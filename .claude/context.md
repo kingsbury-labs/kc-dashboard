@@ -1,28 +1,30 @@
 ---
-session: 2
+session: 3
 last_updated: 2026-10-12
-continue_with: Unblock card 05 (the permission check still refuses headless test runs even after e30f67b); hand-run its gate on wip/05-log, then do Rob-only cards 07-09 before the loop resumes at card 10.
-blockers: Headless workers cannot run tests, so no card can pass the gate (issue 3 on rob-kingsbury/kc-dashboard). Cards 07 vhost install, 08 credentials, 09 fallback model decision wait on Rob.
+continue_with: Approve and fix tests/run.php exiting 0 on a parse error (issue 1), then fix card 14's backslashes on wip/14-safedir (issue 2), then cards 07-09 by hand, then restart the loop.
+blockers: Loop is stopped until run.php fails on a parse error (issue 1). Cards 07 vhost install, 08 credentials, 09 fallback model decision wait on Rob. Until 07, port 80 serves the whole project folder, so any site can make Apache run tests/run.php.
 ---
 
 # KC Dashboard context
 
 ## To Resume
-Session 3. main on origin (kingsbury-labs/kc-dashboard) ends with the session 2 handoff commit; cards 01, 04, 06 are in it.
+Session 4. main on origin (kingsbury-labs/kc-dashboard) ends with the session 3 handoff commit; cards 01, 04, 05, 06, 10-13 are in it.
 THIS WINDOW:
-1. Find why the permission classifier still refuses `php tests/run.php` headless after e30f67b, and fix that, not the card.
-2. Card 05: gate the code on wip/05-log (suite plus mutation check), merge it, close issue 3.
-3. Do cards 07-09 (Rob's hands), then restart claude-loop from card 10.
+1. Issue 1: make tests/run.php exit non-zero when a test file fails to parse (card 11's exception handler swallows the fatal). Needs Rob's OK as its own card.
+2. Issue 2: card 14 on wip/14-safedir, restore the lost backslash literals, run the mutation checks in its result.md.
+3. Cards 07-09 (Rob's hands), then restart claude-loop.
 
 ## What exists
-- Cards 01 test runner and SQLite bootstrap, 04 spec update, 06 Apache vhost snippet and HTTP check script: on main.
-- Card 05 logger with redaction on wip/05-log (pushed to origin), ungated.
+- On main: 01 test runner, 04 spec, 05 logger, 06 vhost snippet, 10 request guard and token, 11 responses and front controller, 12 job queue, 13 worker and registry.
+- Card 14 safe directory check parked on wip/14-safedir (pushed). Details in `.claude/work/log.md`.
 - Plan: `.claude/work/plan.md` (cards 01-26), state: `.claude/work/checklist.json`.
-- Remotes: `origin` is the public kingsbury-labs repo; `private-archive` is the old rob-kingsbury repo holding merged PRs 1-2 and open issue 3.
+- Remotes: `origin` is the public kingsbury-labs repo (issues live here now); `private-archive` is the old rob-kingsbury repo.
 
 ## Decided
-- Second loop run used `--merge-allowed`.
+- Loop runs use `--merge-allowed`; cards land straight on main (no CI, no PRs).
+- Card 11 follow-ups (shutdown handler, emit after headers sent, untested bootstrap handler) are non-blocking, listed in log.md.
 
 ## Recent sessions
-- **S2 (2026-10-12, loop run):** one card attempted. Card 05 blocked again: the permission check still refuses worker test runs, so no card can pass. Loop stopped there. Nothing new shipped.
-- **S1 (2026-10-12, loop run):** cards 01, 04, 06 passed the gate and merged (PRs 1-2 on the archive repo). Card 05 parked on its mutation check. Stopped on the STOP file after card 06.
+- **S3 (2026-10-12, loop run):** headless test runs fixed; cards 05, 10, 11, 12, 13 passed the gate and pushed to main. Card 14 parked after the auditor found two junction bypasses and the fix broke its backslashes; the runner reporting a parse error as a pass stopped the loop. Archive issue 3 closed, issues 1-2 filed.
+- **S2 (2026-10-12, loop run):** card 05 blocked on the permission check refusing worker test runs. Nothing shipped.
+- **S1 (2026-10-12, loop run):** cards 01, 04, 06 merged. Card 05 parked on its mutation check.
