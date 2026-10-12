@@ -38,13 +38,34 @@ require_once __DIR__ . '/../src/bootstrap.php';
 
 $files = glob(rtrim($dir, '/' . chr(92)) . '/*Test.php') ?: [];
 sort($files);
-foreach ($files as $file) {
-    $GLOBALS['__file'] = basename($file, '.php');
-    require $file;
-}
-
 $passed = 0;
 $failed = 0;
+$loading = null;
+register_shutdown_function(function () use (&$loading, &$passed, &$failed) {
+    if ($loading !== null) {
+        echo 'FAIL ' . $loading . "\n    fatal error while loading\n";
+        echo 'Tests: ' . $passed . ' passed, ' . ($failed + 1) . " failed\n";
+        exit(1);
+    }
+});
+foreach ($files as $file) {
+    $GLOBALS['__file'] = basename($file, '.php');
+    $loading = $GLOBALS['__file'];
+    $before = count($GLOBALS['__tests']);
+    try {
+        require $file;
+        if (count($GLOBALS['__tests']) === $before) {
+            $failed++;
+            echo 'FAIL ' . $GLOBALS['__file'] . "\n    file registers no tests\n";
+        }
+    } catch (Throwable $e) {
+        $failed++;
+        echo 'FAIL ' . $GLOBALS['__file'] . "\n    load error: "
+            . str_replace("\n", "\n    ", $e->getMessage()) . "\n";
+    }
+    $loading = null;
+}
+
 foreach ($GLOBALS['__tests'] as [$name, $fn, $file]) {
     $label = $file . ': ' . $name;
     if ($filter !== '' && stripos($label, $filter) === false) {

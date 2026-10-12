@@ -33,3 +33,6 @@ Blocks the loop: a parse error in any test file makes `tests/run.php` print `{"e
 
 ## 2026-10-12 card 13a added
 Rob approved: card 13a (runner fails on a broken test file) goes next, before anything else. When 13a passes, unpark card 14 and resume it from wip/14-safedir.
+
+## 2026-10-12 card 13a, Test runner fails on a broken test file: at the gate
+Scope ok with mutation evidence, diff read; not a risky path, no audit. Full suite was 40 before (card 13), 45 after with the 5 new self-tests, so no file was silently skipped. The true-fatal shutdown path has no test.

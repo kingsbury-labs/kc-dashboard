@@ -132,5 +132,20 @@
       "tree": "358ca6ff4823fe17d2d9f23404a8a99d1fe348f12f2859e956770470350f53c2"
     },
     "parked": "round two left parse errors (lost backslashes); code on wip/14-safedir"
+  },
+  {
+    "id": "13a",
+    "title": "Test runner fails on a broken test file",
+    "brief": ".claude/work/13a-runner-fail/brief.md",
+    "start_sha": "8fa5bc87dee971a58c8937551cfc363f691ebf0d",
+    "passes": true,
+    "scope_ok": {
+      "at": "2026-10-12T18:43:36.297Z",
+      "start_sha": "8fa5bc87dee971a58c8937551cfc363f691ebf0d",
+      "mutation_evidence": true,
+      "tree": "144fd41cfc540bc25ccd67b07fe4f1f4b34d6888eec36dc3eeab7e1a4709e3e8"
+    },
+    "verified_at": "2026-10-12T18:44:03.580Z",
+    "tree": "144fd41cfc540bc25ccd67b07fe4f1f4b34d6888eec36dc3eeab7e1a4709e3e8"
   }
 ]

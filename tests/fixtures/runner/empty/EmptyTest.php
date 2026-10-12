@@ -1,0 +1,2 @@
+<?php
+// defines no tests
