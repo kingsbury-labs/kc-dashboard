@@ -8,7 +8,7 @@ blockers: Headless workers cannot run tests, so no card can pass the gate (issue
 # KC Dashboard context
 
 ## To Resume
-Session 3. main at 55a94af on origin (kingsbury-labs/kc-dashboard); cards 01, 04, 06 are in it.
+Session 3. main on origin (kingsbury-labs/kc-dashboard) ends with the session 2 handoff commit; cards 01, 04, 06 are in it.
 THIS WINDOW:
 1. Find why the permission classifier still refuses `php tests/run.php` headless after e30f67b, and fix that, not the card.
 2. Card 05: gate the code on wip/05-log (suite plus mutation check), merge it, close issue 3.
