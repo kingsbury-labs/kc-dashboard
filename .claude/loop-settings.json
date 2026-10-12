@@ -1,0 +1,25 @@
+{
+  "claudeMdExcludes": [
+    "**/personas/cas/soul.md",
+    "**/personas/cas/voice-samples.md"
+  ],
+  "permissions": {
+    "allow": [
+      "Bash(gh pr merge:*)",
+      "Bash(c:\\xampp\\php\\php.exe tests/run.php:*)",
+      "Bash(C:\\xampp\\php\\php.exe tests/run.php:*)",
+      "Bash(c:/xampp/php/php.exe tests/run.php:*)",
+      "Bash(php tests/run.php:*)",
+      "PowerShell(c:\\xampp\\php\\php.exe tests/run.php:*)",
+      "PowerShell(& c:\\xampp\\php\\php.exe tests/run.php:*)",
+      "Edit(src/**)",
+      "Edit(tests/**)",
+      "Edit(public/**)",
+      "Edit(bin/**)",
+      "Write(src/**)",
+      "Write(tests/**)",
+      "Write(public/**)",
+      "Write(bin/**)"
+    ]
+  }
+}

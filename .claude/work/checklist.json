@@ -30,14 +30,6 @@
     "tree": "0d45fa0abf66b250f5c6580a3032e406ece04f6095a624f956ed9391f8bcf92e"
   },
   {
-    "id": "05",
-    "title": "Logger with redaction",
-    "brief": ".claude/work/05-log/brief.md",
-    "start_sha": "2ecb816d413740544cd2bb959c6cc781453313a8",
-    "passes": false,
-    "parked": "permission classifier refused the mutation-check test run; code on wip/05-log"
-  },
-  {
     "id": "06",
     "title": "Apache vhost snippet and HTTP check script",
     "brief": ".claude/work/06-vhost/brief.md",
