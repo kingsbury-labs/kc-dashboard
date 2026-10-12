@@ -1,0 +1,14 @@
+{
+  "status": "finished",
+  "exit_code": 0,
+  "started_at": "2026-10-12T17:45:14.542Z",
+  "finished_at": "2026-10-12T17:45:14.934Z",
+  "at": "2026-10-12T17:45:14.934Z",
+  "command": "c:\\xampp\\php\\php.exe tests/run.php",
+  "args": [],
+  "tree": "9cb6ca745ba9c5d6a55b44d259385dfb56dece87c7e74bfb57a4aa06265fc9ef",
+  "lines": 1,
+  "summary": "Tests: 21 passed, 0 failed",
+  "filtered": false,
+  "log": "C:\\xampp\\htdocs\\_kc-dashboard\\data\\test-last.log"
+}

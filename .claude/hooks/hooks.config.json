@@ -1,0 +1,5 @@
+{
+  "projectName": "KC Dashboard",
+  "protectedBranches": ["main", "master", "production"],
+  "prOnly": false
+}

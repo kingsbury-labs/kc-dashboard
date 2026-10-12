@@ -1,0 +1,31 @@
+# Secrets. Never commit these; they live in c:\xampp\htdocs\.credentials\
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.credentials/
+
+# Runtime data: SQLite, install token, logs, downloaded models
+/data/
+/llm/
+/scroll-analysis-output/
+
+# OS and editor
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Claude Code local overrides
+.claude/settings.local.json
+.claude/worktrees/
+.claude/work/loop/
+
+# Logs and scratch
+*.log
+.scratch/
+tmp/

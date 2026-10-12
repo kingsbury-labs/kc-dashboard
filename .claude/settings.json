@@ -1,0 +1,29 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          { "type": "command", "command": "node .claude/hooks/secrets-blocker.cjs" },
+          { "type": "command", "command": "node .claude/hooks/pii-blocker.cjs" },
+          { "type": "command", "command": "node .claude/hooks/control-char-blocker.cjs" },
+          { "type": "command", "command": "node .claude/hooks/self-exonerating-comment-blocker.cjs" }
+        ]
+      },
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          { "type": "command", "command": "node .claude/hooks/branch-protection.cjs" },
+          { "type": "command", "command": "node .claude/hooks/closing-keyword-blocker.cjs" }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          { "type": "command", "command": "node .claude/hooks/handoff-staleness-blocker.cjs" }
+        ]
+      }
+    ]
+  }
+}
