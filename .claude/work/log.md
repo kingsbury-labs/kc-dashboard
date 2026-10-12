@@ -4,3 +4,6 @@ Worker wrote src/Log.php and tests/LogTest.php; the filtered tests pass. The mut
 
 ## 2026-10-12 card 05 reopened
 History was squashed into one commit for the public repo (kingsbury-labs/kc-dashboard), so the old start_sha and wip/05-log no longer exist on origin. The entry is removed so the card is briefed fresh. .claude/loop-settings.json now allows the project test command and edits under src/, tests/, public/ and bin/, which is what the classifier refused.
+
+## 2026-10-12 card 05, Logger with redaction: parked again
+Worker wrote src/Log.php and tests/LogTest.php but the permission classifier refused every test run, including the plain `project-test.cjs --filter Log` (first try also used sed on PHP for the mutation, against project.md). No green run, no mutation check, no result.md. Not routed around. Code is on wip/05-log (cut from e30f67b). Needs Rob: let the implementer run `node C:\Users\roban\.claude\bin\project-test.cjs` headless, then re-brief from wip/05-log. Every later card needs test runs too, so the loop is blocked until then.

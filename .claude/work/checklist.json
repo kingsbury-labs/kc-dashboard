@@ -43,5 +43,13 @@
     },
     "verified_at": "2026-10-12T17:45:24.122Z",
     "tree": "9cb6ca745ba9c5d6a55b44d259385dfb56dece87c7e74bfb57a4aa06265fc9ef"
+  },
+  {
+    "id": "05",
+    "title": "Logger with redaction",
+    "brief": ".claude/work/05-log/brief.md",
+    "start_sha": "e30f67ba7eb5c215c17f4124e4372d3f18dc8db4",
+    "passes": false,
+    "parked": "permission check refused every test run, so no green run or mutation check"
   }
 ]
