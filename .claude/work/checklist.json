@@ -49,7 +49,6 @@
     "title": "Logger with redaction",
     "brief": ".claude/work/05-log/brief.md",
     "start_sha": "e30f67ba7eb5c215c17f4124e4372d3f18dc8db4",
-    "passes": false,
-    "parked": "permission check refused every test run, so no green run or mutation check"
+    "passes": false
   }
 ]
