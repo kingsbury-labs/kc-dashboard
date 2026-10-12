@@ -1,30 +1,30 @@
 ---
-session: 3
+session: 4
 last_updated: 2026-10-12
-continue_with: Approve and fix tests/run.php exiting 0 on a parse error (issue 1), then fix card 14's backslashes on wip/14-safedir (issue 2), then cards 07-09 by hand, then restart the loop.
-blockers: Loop is stopped until run.php fails on a parse error (issue 1). Cards 07 vhost install, 08 credentials, 09 fallback model decision wait on Rob. Until 07, port 80 serves the whole project folder, so any site can make Apache run tests/run.php.
+continue_with: Cards 07-09 by hand (vhost install, credentials, fallback model decision), then remove the STOP file and restart claude-loop at card 16 Project picker.
+blockers: Cards 07 vhost install, 08 credentials, 09 fallback model decision wait on Rob. Until 07, port 80 serves the whole project folder, so any site can make Apache run tests/run.php.
 ---
 
 # KC Dashboard context
 
 ## To Resume
-Session 4. main on origin (kingsbury-labs/kc-dashboard) ends with the session 3 handoff commit; cards 01, 04, 05, 06, 10-13 are in it.
+Session 5. main on origin (kingsbury-labs/kc-dashboard) ends with the session 4 handoff commit; cards 01, 04-06, 10-15 and 13a are in it.
 THIS WINDOW:
-1. Issue 1: make tests/run.php exit non-zero when a test file fails to parse (card 11's exception handler swallows the fatal). Needs Rob's OK as its own card.
-2. Issue 2: card 14 on wip/14-safedir, restore the lost backslash literals, run the mutation checks in its result.md.
-3. Cards 07-09 (Rob's hands), then restart claude-loop.
+1. Cards 07-09 (Rob's hands).
+2. Remove the loop's STOP file and restart claude-loop; next card is 16 Project picker.
+3. Issue 3 holds non-blocking follow-ups from cards 14-15.
 
 ## What exists
-- On main: 01 test runner, 04 spec, 05 logger, 06 vhost snippet, 10 request guard and token, 11 responses and front controller, 12 job queue, 13 worker and registry.
-- Card 14 safe directory check parked on wip/14-safedir (pushed). Details in `.claude/work/log.md`.
-- Plan: `.claude/work/plan.md` (cards 01-26), state: `.claude/work/checklist.json`.
-- Remotes: `origin` is the public kingsbury-labs repo (issues live here now); `private-archive` is the old rob-kingsbury repo.
+- On main: 01 test runner, 04 spec, 05 logger, 06 vhost snippet, 10 request guard and token, 11 responses and front controller, 12 job queue, 13 worker and registry, 13a runner fails on a broken test file, 14 safe directory check, 15 ProcessRunner.
+- Stale branch `wip/14-safedir` still on origin; card 14 landed from it, safe to delete.
+- Plan: `.claude/work/plan.md` (cards 01-26), state: `.claude/work/checklist.json`, notes: `.claude/work/log.md`.
+- Remotes: `origin` is the public kingsbury-labs repo (issues live here); `private-archive` is the old rob-kingsbury repo.
 
 ## Decided
 - Loop runs use `--merge-allowed`; cards land straight on main (no CI, no PRs).
 - Card 11 follow-ups (shutdown handler, emit after headers sent, untested bootstrap handler) are non-blocking, listed in log.md.
 
 ## Recent sessions
-- **S3 (2026-10-12, loop run):** headless test runs fixed; cards 05, 10, 11, 12, 13 passed the gate and pushed to main. Card 14 parked after the auditor found two junction bypasses and the fix broke its backslashes; the runner reporting a parse error as a pass stopped the loop. Archive issue 3 closed, issues 1-2 filed.
+- **S4 (2026-10-12, loop run):** cards 13a, 14 and 15 passed the gate and pushed to main; loop stopped on the STOP file. Issues 1-2 closed as fixed, issue 3 filed for card 14-15 follow-ups.
+- **S3 (2026-10-12, loop run):** cards 05, 10-13 pushed to main. Card 14 parked on broken backslashes; runner passing on a parse error stopped the loop.
 - **S2 (2026-10-12, loop run):** card 05 blocked on the permission check refusing worker test runs. Nothing shipped.
-- **S1 (2026-10-12, loop run):** cards 01, 04, 06 merged. Card 05 parked on its mutation check.
