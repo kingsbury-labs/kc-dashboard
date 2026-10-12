@@ -148,5 +148,20 @@
     },
     "verified_at": "2026-10-12T18:44:03.580Z",
     "tree": "144fd41cfc540bc25ccd67b07fe4f1f4b34d6888eec36dc3eeab7e1a4709e3e8"
+  },
+  {
+    "id": "15",
+    "title": "ProcessRunner",
+    "brief": ".claude/work/15-process/brief.md",
+    "start_sha": "da9c6e7134d88266abfa5a12f7c164f1fab8493c",
+    "passes": true,
+    "scope_ok": {
+      "at": "2026-10-12T19:09:11.743Z",
+      "start_sha": "da9c6e7134d88266abfa5a12f7c164f1fab8493c",
+      "mutation_evidence": true,
+      "tree": "00677dd98301997d367fcb2fad00c5bed01e15d5c7a988b677330a621df71420"
+    },
+    "verified_at": "2026-10-12T19:09:42.820Z",
+    "tree": "00677dd98301997d367fcb2fad00c5bed01e15d5c7a988b677330a621df71420"
   }
 ]
