@@ -22,3 +22,6 @@ Scope ok with mutation evidence, diff read, security-auditor (Opus) found no con
 
 ## 2026-10-12 card 12, Job queue: at the gate
 Scope ok with mutation evidence, diff read; not a risky path, no audit. Round two added tests/DbTest.php to the brief: its migration-count assertion hardcoded 1 and now counts the migration files.
+
+## 2026-10-12 card 13, Worker and job registry: at the gate
+Scope ok with mutation evidence, diff read; not a risky path, no audit. Worker does not call recoverStale yet and the default registry is empty; feature cards fill it.

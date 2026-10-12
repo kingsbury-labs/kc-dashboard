@@ -103,5 +103,20 @@
     },
     "verified_at": "2026-10-12T18:25:14.213Z",
     "tree": "27ab40d8b3f514839e26988c238efddce57500d61c784d92aa224d26b787f9e0"
+  },
+  {
+    "id": "13",
+    "title": "Worker and job registry",
+    "brief": ".claude/work/13-worker/brief.md",
+    "start_sha": "58fb6d0d87956b136d63279498bf7899cfe7a860",
+    "passes": true,
+    "scope_ok": {
+      "at": "2026-10-12T18:28:02.016Z",
+      "start_sha": "58fb6d0d87956b136d63279498bf7899cfe7a860",
+      "mutation_evidence": true,
+      "tree": "b273b432c74b1d255ddb64014cd66b49631af29d284e1edbd7ae6cde528f1d48"
+    },
+    "verified_at": "2026-10-12T18:28:21.827Z",
+    "tree": "b273b432c74b1d255ddb64014cd66b49631af29d284e1edbd7ae6cde528f1d48"
   }
 ]
