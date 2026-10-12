@@ -118,5 +118,19 @@
     },
     "verified_at": "2026-10-12T18:28:21.827Z",
     "tree": "b273b432c74b1d255ddb64014cd66b49631af29d284e1edbd7ae6cde528f1d48"
+  },
+  {
+    "id": "14",
+    "title": "Safe directory check (junctions)",
+    "brief": ".claude/work/14-safedir/brief.md",
+    "start_sha": "d8212e68971fb8a161d0214b6617f886cad5094c",
+    "passes": false,
+    "scope_ok": {
+      "at": "2026-10-12T18:34:55.809Z",
+      "start_sha": "d8212e68971fb8a161d0214b6617f886cad5094c",
+      "mutation_evidence": true,
+      "tree": "358ca6ff4823fe17d2d9f23404a8a99d1fe348f12f2859e956770470350f53c2"
+    },
+    "parked": "round two left parse errors (lost backslashes); code on wip/14-safedir"
   }
 ]

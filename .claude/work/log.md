@@ -25,3 +25,8 @@ Scope ok with mutation evidence, diff read; not a risky path, no audit. Round tw
 
 ## 2026-10-12 card 13, Worker and job registry: at the gate
 Scope ok with mutation evidence, diff read; not a risky path, no audit. Worker does not call recoverStale yet and the default registry is empty; feature cards fill it.
+
+## 2026-10-12 card 14, Safe directory check (junctions): parked
+Round one passed scope, but the Opus security-auditor found two real bypasses, both confirmed on PHP 8.2 by round two: a junction to a `\??\Volume{guid}` path is left unresolved by realpath and passes, and the realpath cache lets a folder swapped for a junction pass for up to two minutes. Round two's fix (clearstatcache(true), reject when stat and lstat inodes differ) is right in substance, but its files lost every `'\'` to `'\'`, so SafeDir.php and SafeDirTest.php do not parse. Two top-tier attempts, so parked; code on wip/14-safedir. Fix the backslashes, then run the mutation checks named in its result.md.
+
+Blocks the loop: a parse error in any test file makes `tests/run.php` print `{"error":"internal"}` and exit 0, so the runner records a finished, passing run with no summary. Card 11's bootstrap exception handler swallows fatals in the CLI. Until run.php exits non-zero on that, a green suite proves nothing. Needs Rob to approve fixing that first, as its own card.
