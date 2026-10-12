@@ -88,5 +88,20 @@
     },
     "verified_at": "2026-10-12T18:20:26.955Z",
     "tree": "3c643296968a94ee89cac800961caff4800d34ee78cd3b275c4d3c14e32957a5"
+  },
+  {
+    "id": "12",
+    "title": "Job queue",
+    "brief": ".claude/work/12-queue/brief.md",
+    "start_sha": "2a80e5324713b63f1c9d5720d690d540320f1f74",
+    "passes": true,
+    "scope_ok": {
+      "at": "2026-10-12T18:24:55.494Z",
+      "start_sha": "2a80e5324713b63f1c9d5720d690d540320f1f74",
+      "mutation_evidence": true,
+      "tree": "27ab40d8b3f514839e26988c238efddce57500d61c784d92aa224d26b787f9e0"
+    },
+    "verified_at": "2026-10-12T18:25:14.213Z",
+    "tree": "27ab40d8b3f514839e26988c238efddce57500d61c784d92aa224d26b787f9e0"
   }
 ]

@@ -19,7 +19,8 @@ test('migrating twice records one migration row', function () {
         $pdo = Db::open($path);
         Db::migrate($pdo);
         Db::migrate($pdo);
-        assert_same(1, (int) $pdo->query('SELECT COUNT(*) FROM migrations')->fetchColumn());
+        $files = count(glob(__DIR__ . '/../src/migrations/*.sql'));
+        assert_same($files, (int) $pdo->query('SELECT COUNT(*) FROM migrations')->fetchColumn());
         $pdo = null;
     } finally {
         db_cleanup($path);

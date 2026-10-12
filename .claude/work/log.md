@@ -19,3 +19,6 @@ Scope ok with mutation evidence, diff read, security-auditor (Opus) found nothin
 
 ## 2026-10-12 card 11, Responses, error handling and front controller: at the gate
 Scope ok with mutation evidence, diff read, security-auditor (Opus) found no concrete attack. Follow-ups it raised, not blocking: fatal errors skip the handlers (add a shutdown function), `Response::emit` should send no body once headers are already sent, the 403 test should prove the token file is never created, the bootstrap exception handler is untested, caught exceptions are not logged. Needs Rob soon: until card 07 installs the vhost, port 80 serves the whole project folder, so any site Rob visits can make Apache run `tests/run.php`; no token leak, but it executes code.
+
+## 2026-10-12 card 12, Job queue: at the gate
+Scope ok with mutation evidence, diff read; not a risky path, no audit. Round two added tests/DbTest.php to the brief: its migration-count assertion hardcoded 1 and now counts the migration files.
