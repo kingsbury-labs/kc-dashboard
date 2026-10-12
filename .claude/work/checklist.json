@@ -73,5 +73,20 @@
     },
     "verified_at": "2026-10-12T18:13:04.266Z",
     "tree": "cefb540e4d49c2a0c64c72db5a547c3f24d78ac55e0ac3edd7b47ff27c11ebce"
+  },
+  {
+    "id": "11",
+    "title": "Responses, error handling and front controller",
+    "brief": ".claude/work/11-response/brief.md",
+    "start_sha": "c8c7b62d80279857523e81dcc62d0e3ef1f015f4",
+    "passes": true,
+    "scope_ok": {
+      "at": "2026-10-12T18:15:34.411Z",
+      "start_sha": "c8c7b62d80279857523e81dcc62d0e3ef1f015f4",
+      "mutation_evidence": true,
+      "tree": "3c643296968a94ee89cac800961caff4800d34ee78cd3b275c4d3c14e32957a5"
+    },
+    "verified_at": "2026-10-12T18:20:26.955Z",
+    "tree": "3c643296968a94ee89cac800961caff4800d34ee78cd3b275c4d3c14e32957a5"
   }
 ]
