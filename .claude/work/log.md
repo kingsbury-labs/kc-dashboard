@@ -36,3 +36,6 @@ Rob approved: card 13a (runner fails on a broken test file) goes next, before an
 
 ## 2026-10-12 card 13a, Test runner fails on a broken test file: at the gate
 Scope ok with mutation evidence, diff read; not a risky path, no audit. Full suite was 40 before (card 13), 45 after with the 5 new self-tests, so no file was silently skipped. The true-fatal shutdown path has no test.
+
+## 2026-10-12 card 14, Safe directory check (junctions): unparked, at the gate
+Round three (Opus) restored the lost backslashes; both files parse, filtered and full suite green through the runner, scope ok with mutation evidence. Opus security-auditor found no concrete bypass. Kept the stat/lstat inode check: it is the only guard against a junction to `\??\Volume{guid}` (round two reproduced that bypass), but no test fails when it is removed, because the volume-GUID test builds a junction realpath cannot follow. Follow-ups for a later card: rebuild that test so dropping the inode check fails it; move the dot-folder rule into SafeDir; ProcessRunner (card 15) takes its root from config and rechecks before launch; card 25's `wt.exe -d` cannot be rechecked.
