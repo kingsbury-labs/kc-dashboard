@@ -48,7 +48,15 @@
     "id": "05",
     "title": "Logger with redaction",
     "brief": ".claude/work/05-log/brief.md",
-    "start_sha": "e30f67ba7eb5c215c17f4124e4372d3f18dc8db4",
-    "passes": false
+    "start_sha": "e16406d8310e564f77907723bb71b9a22196e6f1",
+    "passes": true,
+    "scope_ok": {
+      "at": "2026-10-12T18:08:19.911Z",
+      "start_sha": "e16406d8310e564f77907723bb71b9a22196e6f1",
+      "mutation_evidence": true,
+      "tree": "b53ecc146bf55a0281156867a38355bfc0861aadcc9bbf79326776c8663f829f"
+    },
+    "verified_at": "2026-10-12T18:08:41.228Z",
+    "tree": "b53ecc146bf55a0281156867a38355bfc0861aadcc9bbf79326776c8663f829f"
   }
 ]

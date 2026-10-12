@@ -10,3 +10,6 @@ Worker wrote src/Log.php and tests/LogTest.php but the permission classifier ref
 
 ## 2026-10-12 card 05 reopened again
 Rob approved allowing the shared runner (node project-test.cjs, every path spelling) in loop-settings.json. Resume from the code on wip/05-log; mutate with the Edit tool, never sed.
+
+## 2026-10-12 card 05, Logger with redaction: gated and committed
+Resumed from wip/05-log; filtered tests and mutation check ran through the runner, full suite green.
