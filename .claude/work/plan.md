@@ -272,6 +272,28 @@ job in a temp database, runs `bin/worker.php` as a real process with that
 database and a test registry, and asserts the job is `done` with the
 handler's output; an unknown type ends `failed`.
 
+### 13a. Test runner fails on a broken test file (do before 14)
+- Role: implementer. Risky path: no, but every gate depends on it.
+- `tests/run.php`
+- `tests/RunnerSelfTest.php` (or a fixture folder under `tests/fixtures/runner/`
+  that discovery skips)
+
+Found by card 14's worker on 2026-10-12: a test file with a PHP parse error
+makes `tests/run.php` exit 0 and report a pass. Each test file must be
+loaded so that a parse error, a fatal error, an uncaught exception at load
+time, or a file that defines no tests is a `FAIL <file>` line and a non-zero
+exit. Running each file in a child `php -l` first, or loading it in a
+subprocess, are both fine; pick the simplest that catches all four.
+
+Done-test: `php tests/run.php --filter RunnerSelf` passes, and the self-test
+runs `tests/run.php` as a child process against fixture folders holding (a) a
+file with a syntax error, (b) a file that throws at load, (c) a file with one
+failing test, (d) a clean passing file, and asserts the exit code is non-zero
+for a, b and c and zero for d, with a `FAIL` line naming the file for a and b.
+Mutation: make the runner swallow the load error again; the self-test fails.
+After this card lands, re-run the full suite once and confirm the test count
+did not drop (no earlier test file was silently skipped).
+
 ### 14. Safe directory check (junctions)
 - Role: implementer. Risky path: yes (should be listed; it gates every launch cwd). Depends: 01.
 - `src/Fs/SafeDir.php`
