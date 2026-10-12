@@ -42,3 +42,6 @@ Round three (Opus) restored the lost backslashes; both files parse, filtered and
 
 ## 2026-10-12 card 15, ProcessRunner: at the gate
 Round one passed scope; the Opus security-auditor found no way to run an unlisted program, inject through cmd, escape the cwd root or leak env, but a blocking stdin write before the timeout let a stalled child hang `run()` forever. Round two (Opus) moved stdin to a temp file with a test that fails when the blocking write returns, bounded the wait after taskkill, resolved the cwd root once and refuses when it does not exist. Follow-ups, not blocking: orphaned grandchildren survive `taskkill /T` (needs a job object, FFI or a helper exe); if taskkill fails, `unset($proc)` probably still waits on Windows (a guess, not checked); `wt.exe` is a WindowsApps alias that realpath may not resolve, so card 25 may be refused.
+
+## 2026-10-12 re-plan and card 07
+Rob: the remaining cards collapse into 60-69 (feature-sized, about an hour of loop time). Card 07 installed by the coordinator with Rob's deploy go; port 80 is closed for the project, 8787 live. Next window starts the loop fresh from card 60.
