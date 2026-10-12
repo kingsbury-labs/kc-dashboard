@@ -58,5 +58,20 @@
     },
     "verified_at": "2026-10-12T18:08:41.228Z",
     "tree": "b53ecc146bf55a0281156867a38355bfc0861aadcc9bbf79326776c8663f829f"
+  },
+  {
+    "id": "10",
+    "title": "Request guard and install token",
+    "brief": ".claude/work/10-guard/brief.md",
+    "start_sha": "d517ababa7e91e9c04c43cb69fbc842a59ce3091",
+    "passes": true,
+    "scope_ok": {
+      "at": "2026-10-12T18:11:09.709Z",
+      "start_sha": "d517ababa7e91e9c04c43cb69fbc842a59ce3091",
+      "mutation_evidence": true,
+      "tree": "cefb540e4d49c2a0c64c72db5a547c3f24d78ac55e0ac3edd7b47ff27c11ebce"
+    },
+    "verified_at": "2026-10-12T18:13:04.266Z",
+    "tree": "cefb540e4d49c2a0c64c72db5a547c3f24d78ac55e0ac3edd7b47ff27c11ebce"
   }
 ]

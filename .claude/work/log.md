@@ -13,3 +13,6 @@ Rob approved allowing the shared runner (node project-test.cjs, every path spell
 
 ## 2026-10-12 card 05, Logger with redaction: gated and committed
 Resumed from wip/05-log; filtered tests and mutation check ran through the runner, full suite green.
+
+## 2026-10-12 card 10, Request guard and install token: at the gate
+Scope ok with mutation evidence, diff read, security-auditor (Opus) found nothing in the guard or token. Token header is `X-KC-Token` (`RequestGuard::TOKEN_HEADER`). For card 11: add `frame-ancestors 'none'` to the CSP, since a framed dashboard carries the right Host, Origin and token (clickjacking). Token file left empty by a crash mid-create makes every load throw until deleted; fails closed.
