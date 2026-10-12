@@ -1,27 +1,28 @@
 ---
-session: 1
+session: 2
 last_updated: 2026-10-12
-continue_with: Review and merge PR 1 (card 01) then PR 2 (cards 04 and 06, stacked on 01); unpark card 05 (issue 3); then Rob-only cards 07-09 before the loop resumes at card 10.
-blockers: Card 05 mutation check needs Rob's permission (issue 3). Cards 07 vhost install, 08 credentials, 09 fallback model decision wait on Rob.
+continue_with: Unblock card 05 (the permission check still refuses headless test runs even after e30f67b); hand-run its gate on wip/05-log, then do Rob-only cards 07-09 before the loop resumes at card 10.
+blockers: Headless workers cannot run tests, so no card can pass the gate (issue 3 on rob-kingsbury/kc-dashboard). Cards 07 vhost install, 08 credentials, 09 fallback model decision wait on Rob.
 ---
 
 # KC Dashboard context
 
 ## To Resume
-Session 2. main at 99d3ad8 (security hooks only); nothing from the loop is merged.
+Session 3. main at 55a94af on origin (kingsbury-labs/kc-dashboard); cards 01, 04, 06 are in it.
 THIS WINDOW:
-1. Review and merge PR 1 (card/01-runner), then PR 2 (card/04-spec, carries cards 04 and 06).
-2. Card 05: allow or hand-run the mutation check on wip/05-log, gate it, PR it (issue 3).
+1. Find why the permission classifier still refuses `php tests/run.php` headless after e30f67b, and fix that, not the card.
+2. Card 05: gate the code on wip/05-log (suite plus mutation check), merge it, close issue 3.
 3. Do cards 07-09 (Rob's hands), then restart claude-loop from card 10.
 
 ## What exists
-- Card 01 test runner and SQLite bootstrap (PR 1, open).
-- Card 04 spec update, card 06 Apache vhost snippet and HTTP check script (PR 2, open).
-- Card 05 logger with redaction on wip/05-log, ungated.
+- Cards 01 test runner and SQLite bootstrap, 04 spec update, 06 Apache vhost snippet and HTTP check script: on main.
+- Card 05 logger with redaction on wip/05-log (pushed to origin), ungated.
 - Plan: `.claude/work/plan.md` (cards 01-26), state: `.claude/work/checklist.json`.
+- Remotes: `origin` is the public kingsbury-labs repo; `private-archive` is the old rob-kingsbury repo holding merged PRs 1-2 and open issue 3.
 
 ## Decided
-- Loop ran with afk flags none, so it opens PRs and never merges.
+- Second loop run used `--merge-allowed`.
 
 ## Recent sessions
-- **S1 (2026-10-12, loop run):** cards 01, 04, 06 passed the gate and are on open PRs 1 and 2. Card 05 parked: the permission classifier refused its mutation check as a security test removal. Stopped on the STOP file after card 06.
+- **S2 (2026-10-12, loop run):** one card attempted. Card 05 blocked again: the permission check still refuses worker test runs, so no card can pass. Loop stopped there. Nothing new shipped.
+- **S1 (2026-10-12, loop run):** cards 01, 04, 06 passed the gate and merged (PRs 1-2 on the archive repo). Card 05 parked on its mutation check. Stopped on the STOP file after card 06.
