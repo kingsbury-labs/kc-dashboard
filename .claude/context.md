@@ -10,7 +10,7 @@ blockers: Rob decides whether to lift the no-API rule for scheduled jobs, and ap
 ## To Resume
 2026-10-13: READ `.claude/work/attention-engine.md` FIRST. A planning session redesigned the model side (mail dropped, gpt-oss dropped, an "attention engine" replaces impact tags as the main feature). The card list below predates it and needs re-planning with Rob before the loop runs again. Project paths moved to `D:\Dev\htdocs`.
 
-Session 7. main on origin (kingsbury-labs/kc-dashboard, public) ends with the session 6 commit (D: move plus the attention-engine planning files).
+Session 7. main on origin (kingsbury-labs/kc-dashboard, public) ends with the session 6 handoff commit (D: move, attention-engine planning files, and the decision rubric from Sembr in CLAUDE.md).
 THIS WINDOW:
 1. Read `.claude/work/attention-engine.md` and its three reviews in `.claude/work/reviews/attention-*.md`.
 2. Get Rob's calls on the two blockers above, then re-plan cards 60-69 in `plan.md` around them. Do not run the loop before the re-plan.
