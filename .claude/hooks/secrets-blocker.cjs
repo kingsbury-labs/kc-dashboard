@@ -191,7 +191,7 @@ async function main() {
             `- Use environment variables: process.env.API_KEY\n` +
             `- Use .env files (add to .gitignore)\n` +
             `- For test keys, use sk_test_ or pk_test_ prefixes\n` +
-            `- Store credentials in c:\\xampp\\htdocs\\.credentials\\`
+            `- Store credentials in D:\\Dev\\htdocs\\.credentials\\`
         );
     }
 

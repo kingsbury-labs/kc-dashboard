@@ -1,4 +1,4 @@
-# Secrets. Never commit these; they live in c:\xampp\htdocs\.credentials\
+# Secrets. Never commit these; they live in D:\Dev\htdocs\.credentials\
 .env
 .env.*
 !.env.example

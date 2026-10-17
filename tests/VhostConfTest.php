@@ -15,12 +15,12 @@ test('listens on both loopback addresses at 8787', function () {
 });
 
 test('DocumentRoot ends in /public', function () {
-    assert_true((bool) preg_match('#^\s*DocumentRoot\s+"?C:/xampp/htdocs/_kc-dashboard/public"?\s*$#mi', vhost_conf()));
+    assert_true((bool) preg_match('#^\s*DocumentRoot\s+"?D:/Dev/htdocs/_kc-dashboard/public"?\s*$#mi', vhost_conf()));
 });
 
 test('Indexes off and display_errors off', function () {
     $c = vhost_conf();
-    assert_true((bool) preg_match('#<Directory\s+"?C:/xampp/htdocs/_kc-dashboard/public/?"?\s*>(?:(?!</Directory>).)*^\s*Options\s+None\s*$#msi', $c), 'Options None on public/');
+    assert_true((bool) preg_match('#<Directory\s+"?D:/Dev/htdocs/_kc-dashboard/public/?"?\s*>(?:(?!</Directory>).)*^\s*Options\s+None\s*$#msi', $c), 'Options None on public/');
     assert_true(!preg_match('/^\s*Options\b.*[^-]\bIndexes\b/mi', $c), 'Indexes enabled somewhere');
     assert_true((bool) preg_match('/^\s*php_admin_flag\s+display_errors\s+off\s*$/mi', $c), 'display_errors off');
 });
@@ -28,7 +28,7 @@ test('Indexes off and display_errors off', function () {
 test('project folder denied outside the vhost', function () {
     $c = vhost_conf();
     $outside = preg_replace('#<VirtualHost.*?</VirtualHost>#s', '', $c);
-    assert_true((bool) preg_match('#<Directory\s+"?C:/xampp/htdocs/_kc-dashboard/?"?\s*>(.*?)</Directory>#si', $outside, $m),
+    assert_true((bool) preg_match('#<Directory\s+"?D:/Dev/htdocs/_kc-dashboard/?"?\s*>(.*?)</Directory>#si', $outside, $m),
         'port-80 deny on the project folder');
     $block = $m[1];
     assert_true((bool) preg_match('/^\s*Require\s+all\s+denied\s*$/mi', $block), 'Require all denied');
@@ -45,7 +45,7 @@ test('nothing outside the vhost grants access', function () {
 
 test('vhost denies anything outside public/', function () {
     assert_true((bool) preg_match('#<VirtualHost[^>]*>(.*?)</VirtualHost>#s', vhost_conf(), $m), 'vhost missing');
-    $want = '<If "%{REQUEST_FILENAME} !~ m#^C:/xampp/htdocs/_kc-dashboard/public(/|$)#i || ! -e %{REQUEST_FILENAME}">';
+    $want = '<If "%{REQUEST_FILENAME} !~ m#^D:/Dev/htdocs/_kc-dashboard/public(/|$)#i || ! -e %{REQUEST_FILENAME}">';
     $pos = strpos($m[1], $want);
     assert_true($pos !== false, 'public-only <If> missing from the vhost');
     assert_true((bool) preg_match('#^\s*Require\s+all\s+denied\s*</If>#i', substr($m[1], $pos + strlen($want))), '<If> must deny');

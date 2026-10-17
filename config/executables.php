@@ -8,5 +8,5 @@ return [
     'taskkill' => 'C:\\Windows\\System32\\taskkill.exe',
     'whoami' => 'C:\\Windows\\System32\\whoami.exe',
     'nvidia-smi' => 'C:\\Windows\\System32\\nvidia-smi.exe',
-    'llama-server' => 'C:\\xampp\\htdocs\\_kc-dashboard\\llm\\fork\\llama-server.exe',
+    'llama-server' => 'D:\\Dev\\htdocs\\_kc-dashboard\\llm\\fork\\llama-server.exe',
 ];

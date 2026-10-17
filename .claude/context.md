@@ -1,19 +1,22 @@
 ---
-session: 5
-last_updated: 2026-10-12
-continue_with: Start claude-loop fresh at card 60 (Ask Claude core) with --merge-allowed; it runs cards 60-69 in order. Card 08 credentials whenever Rob has them; mail cards park until then.
-blockers: Card 08 (mail credentials, file names only) waits on Rob. Cards 28 (load extension) and 52 (register scheduled tasks) wait on Rob after 68 lands.
+session: 6
+last_updated: 2026-10-17
+continue_with: Read .claude/work/attention-engine.md, then re-plan cards 60-69 with Rob around it (mail and gpt-oss dropped, facts table and rule collectors first). Copy the loop into this project's .claude/ before the next run. Do not start the loop on the old cards.
+blockers: Rob decides whether to lift the no-API rule for scheduled jobs, and approves the spec/plan changes in attention-engine.md.
 ---
 
 # KC Dashboard context
 
 ## To Resume
-Session 6. main on origin (kingsbury-labs/kc-dashboard, public) ends with the session 5 handoff commit.
+2026-10-13: READ `.claude/work/attention-engine.md` FIRST. A planning session redesigned the model side (mail dropped, gpt-oss dropped, an "attention engine" replaces impact tags as the main feature). The card list below predates it and needs re-planning with Rob before the loop runs again. Project paths moved to `D:\Dev\htdocs`.
+
+Session 7. main on origin (kingsbury-labs/kc-dashboard, public) ends with the session 6 commit (D: move plus the attention-engine planning files).
 THIS WINDOW:
-1. Start the loop (no STOP file present):
-   `node C:\Users\roban\.claude\bin\claude-loop.cjs --project C:\xampp\htdocs\_kc-dashboard --max-cards 15 --afk-flags "--merge-allowed"`
-2. Next card is 60 Ask Claude core. Cards 60-69 are feature-sized; about an hour of loop time.
-3. Card 62's done-test includes `php ops/http-check.php` exiting 0 (one check fails today: the token shows on `/` outside its meta tag).
+1. Read `.claude/work/attention-engine.md` and its three reviews in `.claude/work/reviews/attention-*.md`.
+2. Get Rob's calls on the two blockers above, then re-plan cards 60-69 in `plan.md` around them. Do not run the loop before the re-plan.
+3. Copy the loop files into this project's `.claude/` (global rule 7, 2026-10-16); there is no `.claude/bin` here yet.
+4. Then start the loop from the project's own copy with `--merge-allowed`.
+Apache is live on D: (8787 serves, port 80 denies the folder). `php ops/http-check.php` fails one known check (token on `/` outside its meta tag), owned by the UI card.
 
 ## What exists
 - On main: 01 test runner, 04 spec, 05 logger, 06 vhost snippet and HTTP check, 10 request guard and token, 11 responses and front controller, 12 job queue, 13 worker and registry, 13a runner fails on broken test files, 14 safe directory check, 15 ProcessRunner. Done outside the loop: 02 decisions, 03 models on disk, 07 vhost installed, 09 fallback = gpt-oss:20b.
