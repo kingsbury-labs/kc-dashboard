@@ -24,6 +24,7 @@ task, and its "Done-test:" paragraph is what done means.
   query; JS writes text with `textContent` only (DomSinks).
 - PHP 8.2 only. Edit PHP with the Edit/Write tools only, never sed or node -e.
 - Tests use a temp vault root only. Never create or write `D:\Dev\vault\kc` during this card.
+- Make the neutraliser a public, reusable function (card 79 reuses it for briefings and memory). Beyond `[[`, `]]`, `obsidian://` and `file:`, it covers markdown links and images (`[..](..)`, `![..](..)`), raw HTML (`<`), autolink shapes (`https:`, `www.`, `//`), UNC paths and other slashless schemes, so untrusted text reads as plain text in Obsidian. Repo text (branch, commit subject, loop note) is attacker-controlled (card 73 audit).
 
 ## Files you may touch
 - `D:\Dev\htdocs\_kc-dashboard\src\Vault\Vault.php`
