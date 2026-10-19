@@ -59,7 +59,7 @@ test('argv is claude -p --model sonnet json, with no bypass flag and no prompt',
     assert_same($prompt, $fake->calls[0]['stdin'], 'prompt on stdin');
     assert_same('alpha', $fake->calls[0]['cwd']);
     assert_same('D:\\Dev\\htdocs', $made[0]['root']);
-    foreach (['--disallowedTools', '--tools', '--restricted', '--strict-mcp-config'] as $flag) {
+    foreach (['--disallowedTools', '--tools', '--restricted', '--strict-mcp-config', '--no-session-persistence'] as $flag) {
         assert_true(!in_array($flag, $argv, true), 'trusted mode has no ' . $flag);
     }
 });
@@ -95,6 +95,7 @@ test('a Prompt runs in a fresh empty temp folder with the disallowed list', func
     assert_same('', $argv[$t + 1] ?? null, '--tools takes an empty list');
     assert_true(in_array('--restricted', $argv, true), '--restricted');
     assert_true(in_array('--strict-mcp-config', $argv, true), '--strict-mcp-config');
+    assert_true(in_array('--no-session-persistence', $argv, true), '--no-session-persistence, so no transcript is kept');
     assert_true(!in_array('--mcp-config', $argv, true), 'no MCP config handed in');
     assert_true(!in_array('--allowedTools', $argv, true), 'no allow rules added');
     assert_true(in_array('--disallowedTools', $argv, true), 'deny list kept as a second layer');

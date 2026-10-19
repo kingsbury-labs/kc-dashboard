@@ -9,8 +9,9 @@ class ClaudeRunner
     public const ARGS = ['-p', '--model', 'sonnet', '--output-format', 'json'];
     // Untrusted mode starts from nothing allowed: `--tools ""` disables every built-in tool, `--restricted`
     // ignores user, project and local settings (their allow rules included) and confines file tools to the cwd,
-    // `--strict-mcp-config` with no --mcp-config loads no MCP servers. The deny list is a second layer only.
-    public const UNTRUSTED = ['--tools', '', '--restricted', '--strict-mcp-config'];
+    // `--strict-mcp-config` with no --mcp-config loads no MCP servers, `--no-session-persistence` (with -p only)
+    // writes no transcript under ~/.claude/projects. The deny list is a second layer only.
+    public const UNTRUSTED = ['--tools', '', '--restricted', '--strict-mcp-config', '--no-session-persistence'];
     public const DISALLOWED = 'Bash,Edit,Write,MultiEdit,NotebookEdit,WebFetch,WebSearch';
     // Bash run from claude goes through Git Bash, which rewrites /c-style arguments into paths without this.
     public const ENV = ['MSYS_NO_PATHCONV' => '1'];

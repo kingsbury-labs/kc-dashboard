@@ -5,7 +5,8 @@ require_once __DIR__ . '/../Http/RequestGuard.php';
 require_once __DIR__ . '/../Http/Response.php';
 require_once __DIR__ . '/FactStore.php';
 
-// The display budget: the top five by severity then due date, every other visible fact in the "also seen" fold.
+// The display budget: the top five by severity then due date (then the daily read's rank, then id), every other
+// visible fact in the "also seen" fold.
 // Ranking never drops a fact; a held one always goes to the fold.
 class Selector
 {
@@ -24,6 +25,13 @@ class Selector
             $db = $b['due_date'] ?? null;
             if ($da !== $db) {
                 return $da === null ? 1 : ($db === null ? -1 : strcmp($da, $db));
+            }
+            // The daily read's rank only breaks a tie of severity and due date, so a reply can never move a fact
+            // past one those two put ahead of it. Unranked goes after ranked.
+            $ra = is_int($a['rank'] ?? null) ? $a['rank'] : PHP_INT_MAX;
+            $rb = is_int($b['rank'] ?? null) ? $b['rank'] : PHP_INT_MAX;
+            if ($ra !== $rb) {
+                return $ra <=> $rb;
             }
             return strcmp((string) ($a['id'] ?? ''), (string) ($b['id'] ?? ''));
         });

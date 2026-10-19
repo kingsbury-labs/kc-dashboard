@@ -26,6 +26,7 @@ task, and its "Done-test:" paragraph is what done means.
 - Tests use a temp vault root and fixtures only; never write `D:\Dev\vault\kc`. The daily read is card 72's `DailyRead`, faked.
 - Every `public/api/*.php` GET goes through `RequestGuard::checkApiRead()` (same-origin, not a navigation, valid `X-KC-Token`; card 74/74a) and every POST through `checkWrite()`; ApiGuardSweepTest fails any endpoint that does not. JS sends `X-KC-Token` on every fetch.
 - Wiring a new panel or script into the page usually needs `public/index.php` and `src/View.php`; both are in scope for that wiring only, even if not listed below. Any test may gain a case for this card. Edit PHP with Edit/Write only (no heredocs, `php -r`, sed or `node -e`).
+- From the card 72 audit: the briefing file is markdown that Obsidian renders, so neutralise markdown and link syntax in every untrusted field written into it (fact subject, evidence, kind, daily-read reasons, headline titles, commit subjects, memory text), not only model text: `[`, `]`, `(`, `)`, `<`, `>`, backticks, `!`, autolink shapes (`https:`, `www.`, `//`), `obsidian://`, `file:` and UNC paths. Reuse card 78`s neutraliser if it covers these. Daily-read reasons arrive already scrubbed (null when link-shaped); treat them as untrusted anyway.
 
 ## Files you may touch
 - `D:\Dev\htdocs\_kc-dashboard\src\Briefing\Composer.php`

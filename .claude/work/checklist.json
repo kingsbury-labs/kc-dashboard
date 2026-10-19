@@ -343,5 +343,20 @@
     },
     "verified_at": "2026-10-19T20:49:04.459Z",
     "tree": "0d79a4a1a38a8724fd0f24475b9844b1ebfbaf03b4bc4ca524d29dcd8b2684e2"
+  },
+  {
+    "id": "72",
+    "title": "Daily read",
+    "brief": ".claude/work/72-daily/brief.md",
+    "start_sha": "10019167404e76d0993c2c2664f50a09a2870e2b",
+    "passes": true,
+    "scope_ok": {
+      "at": "2026-10-19T21:10:40.612Z",
+      "start_sha": "10019167404e76d0993c2c2664f50a09a2870e2b",
+      "mutation_evidence": true,
+      "tree": "2e0176e1f9c9ff375c8ed6a04f6e08bc2e787d4b5688c6402fc93af5387aedd2"
+    },
+    "verified_at": "2026-10-19T21:11:12.570Z",
+    "tree": "2e0176e1f9c9ff375c8ed6a04f6e08bc2e787d4b5688c6402fc93af5387aedd2"
   }
 ]

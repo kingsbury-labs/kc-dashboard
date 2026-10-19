@@ -24,12 +24,18 @@ task, and its "Done-test:" paragraph is what done means.
   query; JS writes text with `textContent` only (DomSinks).
 - PHP 8.2 only. Edit PHP with the Edit/Write tools only, never sed or node -e.
 - The model call goes through card 60's `ClaudeRunner` in untrusted mode (`ClaudeRunner::UNTRUSTED`: `--tools "" --restricted --strict-mcp-config` plus the deny list) with the prompt built by `Prompt`. Tests use a fake runner and never start claude.
+- From card 70: Selector only sorts and splits; this card is where `shown`/`held` state may be set, but a model never hides or drops a fact (asymmetric rule in attention-engine.md). Fact text is attacker-controlled (alerts.json, client files, feeds), so it goes only inside Prompt`s data block.
+- `bin/daily-read.php` gets the same `PHP_SAPI !== "cli"` guard as the other bin scripts (BinCliTest covers every bin file).
 
 ## Files you may touch
 - `D:\Dev\htdocs\_kc-dashboard\src\Attention\DailyRead.php`
 - `D:\Dev\htdocs\_kc-dashboard\bin\daily-read.php`
 - `D:\Dev\htdocs\_kc-dashboard\src\migrations\005_reads.sql`
 - `D:\Dev\htdocs\_kc-dashboard\tests\DailyReadTest.php`
+- `D:\Dev\htdocs\_kc-dashboard\src\Claude\ClaudeRunner.php` (round two: --no-session-persistence)
+- `D:\Dev\htdocs\_kc-dashboard\tests\ClaudeRunnerTest.php` (round two)
+- `D:\Dev\htdocs\_kc-dashboard\src\Attention\Selector.php` (round two: rank as tie-break only)
+- `D:\Dev\htdocs\_kc-dashboard\tests\SelectorTest.php` (round two)
 
 ## Done-test
 From plan.md card 72, word for word: the "Done-test:" paragraph of card
