@@ -33,6 +33,8 @@ task, and its "Done-test:" paragraph is what done means.
 - `D:\Dev\htdocs\_kc-dashboard\tests\HudTest.php`
 - `D:\Dev\htdocs\_kc-dashboard\src\Running\NowService.php` (the json_encode flag only)
 - `D:\Dev\htdocs\_kc-dashboard\tests\ProjectsUiTest.php` (the bad-snapshot test only)
+- `D:\Dev\htdocs\_kc-dashboard\tests\PageUiTest.php` (asset inventory becomes a glob)
+- `D:\Dev\htdocs\_kc-dashboard\public\index.php` (byte cap on the snapshot read only)
 
 ## Done-test
 From plan.md card 76, word for word: the "Done-test:" paragraph of card

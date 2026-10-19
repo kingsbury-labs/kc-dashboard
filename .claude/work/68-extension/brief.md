@@ -24,6 +24,7 @@ task, and its "Done-test:" paragraph is what done means.
   query; JS writes text with `textContent` only (DomSinks).
 - PHP 8.2 only. Edit PHP with the Edit/Write tools only, never sed or node -e.
 - Never run `bin/register-tasks.ps1` without `-WhatIf`, and make the script's `-WhatIf` path skip `Register-ScheduledTask` entirely (print what it would do), so a test can never register a real task. Rob registers the tasks himself later (card 52). Powershell is `C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`, added to the test's own allowlist only, not to `config/executables.php`.
+- Wiring a new panel or script into the page usually needs `public/index.php` and `src/View.php`; both are in scope for that wiring only, even if not listed below. Any test may gain a case for this card. Edit PHP with Edit/Write only (no heredocs, `php -r`, sed or `node -e`).
 
 ## Files you may touch
 - `D:\Dev\htdocs\_kc-dashboard\chrome-extension\manifest.json`
@@ -32,6 +33,8 @@ task, and its "Done-test:" paragraph is what done means.
 - `D:\Dev\htdocs\_kc-dashboard\bin\register-tasks.ps1`
 - `D:\Dev\htdocs\_kc-dashboard\tests\ExtensionTest.php`
 - `D:\Dev\htdocs\_kc-dashboard\tests\TasksScriptTest.php`
+- `D:\Dev\htdocs\_kc-dashboard\public\index.php` (wiring only)
+- `D:\Dev\htdocs\_kc-dashboard\src\View.php` (wiring only)
 
 ## Done-test
 From plan.md card 68, word for word: the "Done-test:" paragraph of card

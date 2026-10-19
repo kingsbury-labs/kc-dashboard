@@ -126,3 +126,31 @@ test('app.css has no max-width media query and lays the tiles out with min-width
     assert_true(preg_match('/@media\s*\(min-width:[^)]*\)\s*\{\s*\.tiles\s*\{[^}]*grid-template-columns/', $css) === 1,
         'grid layered on with min-width');
 });
+
+test('a snapshot with arrays where strings belong still renders the page', function () {
+    $body = pui_render(['map' => fn() => pui_rows(), 'now' => fn() => [
+        'sessions' => [['project' => ['x'], 'status' => 'busy', 'name' => 'fallback-name'], 'junk', ['status' => ['busy']]],
+        'loops' => 'not a list',
+        'tasks' => [['name' => ['a'], 'failed' => true, 'lastResult' => ['b']]],
+        'ports' => [['port' => ['p'], 'program' => ['q']], 7],
+    ]]);
+    assert_same(['sembr', 'henike', 'kc-site'], pui_tiles($body));
+    assert_true(str_contains(pui_strip($body), 'fallback-name'), 'the good field in a bad entry survives');
+});
+
+test('a snapshot over the byte cap, missing or not JSON counts as no snapshot', function () {
+    $f = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'kcsnap_' . bin2hex(random_bytes(6));
+    try {
+        $small = json_encode(['sessions' => []]);
+        file_put_contents($f, $small);
+        assert_same(['sessions' => []], View::readSnapshot($f, strlen($small)));
+        assert_same([], View::readSnapshot($f, strlen($small) - 1), 'one byte over the cap');
+        file_put_contents($f, '{"x":"' . str_repeat('a', 500) . '"}');
+        assert_same([], View::readSnapshot($f, 100), 'large file');
+        file_put_contents($f, 'not json');
+        assert_same([], View::readSnapshot($f));
+        assert_same([], View::readSnapshot($f . '.missing'));
+    } finally {
+        @unlink($f);
+    }
+});

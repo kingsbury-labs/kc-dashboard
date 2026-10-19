@@ -22,5 +22,5 @@ Response::emit(View::page($_SERVER, $data . '/token', $log, [
         return View::projectRows($pdo);
     },
     // The last api/now.php snapshot only: a page load never starts a scan.
-    'now' => fn(): array => (array) (json_decode((string) @file_get_contents($data . '/now-cache.json'), true) ?? []),
+    'now' => fn(): array => View::readSnapshot($data . '/now-cache.json'),
 ]));

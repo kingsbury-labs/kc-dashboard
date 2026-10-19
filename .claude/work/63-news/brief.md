@@ -25,6 +25,7 @@ task, and its "Done-test:" paragraph is what done means.
 - PHP 8.2 only. Edit PHP with the Edit/Write tools only, never sed or node -e.
 - Feed list in `config/feeds.php` comes from `D:\Dev\htdocs\_kc-dashboard\.claude\work\jarvis-research.md` section 3.4. Tests use only fixtures under `tests/fixtures/feeds/` and the card 71 fake HttpClient; no real fetch.
 - Every `public/api/*.php` GET goes through `RequestGuard::checkApiRead()` (same-origin, not a navigation, valid `X-KC-Token`; card 74/74a) and every POST through `checkWrite()`; ApiGuardSweepTest fails any endpoint that does not. JS sends `X-KC-Token` on every fetch.
+- Wiring a new panel or script into the page usually needs `public/index.php` and `src/View.php`; both are in scope for that wiring only, even if not listed below. Any test may gain a case for this card. Edit PHP with Edit/Write only (no heredocs, `php -r`, sed or `node -e`).
 
 ## Files you may touch
 - `D:\Dev\htdocs\_kc-dashboard\src\News\FeedParser.php`
@@ -42,6 +43,7 @@ task, and its "Done-test:" paragraph is what done means.
 - `D:\Dev\htdocs\_kc-dashboard\tests\FetchNewsTest.php`
 - `D:\Dev\htdocs\_kc-dashboard\tests\ClusterScoreTest.php`
 - `D:\Dev\htdocs\_kc-dashboard\tests\NewsApiTest.php`
+- `D:\Dev\htdocs\_kc-dashboard\public\index.php` (wiring only)
 
 ## Done-test
 From plan.md card 63, word for word: the "Done-test:" paragraph of card

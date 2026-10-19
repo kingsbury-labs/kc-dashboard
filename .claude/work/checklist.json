@@ -283,5 +283,20 @@
     },
     "verified_at": "2026-10-19T16:53:31.799Z",
     "tree": "806a8206dc8dab045214c38d824d0c3ee9be48eb8db8f2b6a8de509832c635db"
+  },
+  {
+    "id": "76",
+    "title": "HUD theme and orb",
+    "brief": ".claude/work/76-hud/brief.md",
+    "start_sha": "510539aa9f7c914651b4582c4275389928ce10bd",
+    "passes": true,
+    "scope_ok": {
+      "at": "2026-10-19T19:51:01.029Z",
+      "start_sha": "510539aa9f7c914651b4582c4275389928ce10bd",
+      "mutation_evidence": true,
+      "tree": "c8a281e5f32db9949a4e0be156d0132db5bd5186ab9cacf9a07e7f8a89ed6f8d"
+    },
+    "verified_at": "2026-10-19T19:51:35.928Z",
+    "tree": "c8a281e5f32db9949a4e0be156d0132db5bd5186ab9cacf9a07e7f8a89ed6f8d"
   }
 ]

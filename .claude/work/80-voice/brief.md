@@ -23,12 +23,14 @@ task, and its "Done-test:" paragraph is what done means.
   JS; desktop layout through `min-width` only; no `max-width` media
   query; JS writes text with `textContent` only (DomSinks).
 - PHP 8.2 only. Edit PHP with the Edit/Write tools only, never sed or node -e.
+- Wiring a new panel or script into the page usually needs `public/index.php` and `src/View.php`; both are in scope for that wiring only, even if not listed below. Any test may gain a case for this card. Edit PHP with Edit/Write only (no heredocs, `php -r`, sed or `node -e`).
 
 ## Files you may touch
 - `D:\Dev\htdocs\_kc-dashboard\public\assets\voice.js`
 - `D:\Dev\htdocs\_kc-dashboard\public\assets\app.js`
 - `D:\Dev\htdocs\_kc-dashboard\src\View.php`
 - `D:\Dev\htdocs\_kc-dashboard\tests\VoiceTest.php`
+- `D:\Dev\htdocs\_kc-dashboard\public\index.php` (wiring only)
 
 ## Done-test
 From plan.md card 80, word for word: the "Done-test:" paragraph of card

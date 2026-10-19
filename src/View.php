@@ -29,8 +29,10 @@ class View
             $elevated = self::source($deps['elevated'] ?? null, false, $log, 'elevation') === true;
             $map = self::source($deps['map'] ?? null, [], $log, 'map');
             $running = self::source($deps['now'] ?? null, [], $log, 'now');
+            $strip = self::section(fn() => self::strip(self::cleanSnapshot($running), is_array($map) ? $map : []), $log, 'strip');
+            $tiles = self::section(fn() => self::tiles(is_array($map) ? $map : [], $now ?? time()), $log, 'tiles');
             return Response::html(200, self::render($token, $projects, $answers, $clients, $elevated,
-                self::strip(is_array($running) ? $running : [], $map), self::tiles($map, $now ?? time())));
+                $strip !== '' ? $strip : '<li class="quiet">Nothing running.</li>', $tiles));
         } catch (Throwable $e) {
             return Response::error($e);
         }
@@ -120,6 +122,48 @@ class View
             $log->exception($e, ['where' => 'page ' . $what]);
             return $default;
         }
+    }
+
+    public const SNAPSHOT_CAP = 262144;
+
+    // The saved api/now.php snapshot: a missing, over-cap or unreadable file is no snapshot.
+    public static function readSnapshot(string $file, int $cap = self::SNAPSHOT_CAP): array
+    {
+        $raw = @file_get_contents($file, false, null, 0, $cap + 1);
+        if ($raw === false || strlen($raw) > $cap) {
+            return [];
+        }
+        $data = json_decode($raw, true);
+        return is_array($data) ? $data : [];
+    }
+
+    // One section of the page in its own try: a bad value leaves that section empty, never a 500.
+    private static function section(callable $fn, Log $log, string $what): string
+    {
+        try {
+            return $fn();
+        } catch (Throwable $e) {
+            $log->exception($e, ['where' => 'page ' . $what]);
+            return '';
+        }
+    }
+
+    // The snapshot file is not trusted: keep the four lists, each entry an array, each field a string, int or bool.
+    private static function cleanSnapshot($now): array
+    {
+        $out = [];
+        foreach (['sessions', 'loops', 'tasks', 'ports'] as $key) {
+            if (!is_array($now) || !isset($now[$key]) || !is_array($now[$key])) {
+                continue;
+            }
+            $out[$key] = [];
+            foreach ($now[$key] as $item) {
+                if (is_array($item)) {
+                    $out[$key][] = array_filter($item, fn($v) => is_string($v) || is_int($v) || is_bool($v));
+                }
+            }
+        }
+        return $out;
     }
 
     private static function e(?string $s): string
@@ -220,7 +264,9 @@ class View
 <meta name="kc-token" content="$t">
 <title>KC Dashboard</title>
 <link rel="stylesheet" href="/assets/app.css">
+<link rel="stylesheet" href="/assets/hud.css">
 <script type="module" src="/assets/app.js"></script>
+<script type="module" src="/assets/orb.js"></script>
 <script type="module" src="/assets/clients.js"></script>
 <script type="module" src="/assets/now.js"></script>
 <script type="module" src="/assets/projects.js"></script>
@@ -240,6 +286,10 @@ $banner
 
 <section class="panel ask" aria-labelledby="ask-h">
 <h2 id="ask-h">Ask Claude</h2>
+<div class="orb" aria-hidden="true">
+<div class="orb-static" id="orb-static"></div>
+<canvas id="orb" class="orb-canvas" width="160" height="160" hidden></canvas>
+</div>
 <form id="ask-form">
 <label for="ask-question">Question</label>
 <textarea id="ask-question" name="question" rows="3" maxlength="8000" required></textarea>

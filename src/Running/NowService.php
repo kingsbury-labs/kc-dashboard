@@ -123,7 +123,7 @@ class NowService
     private function save(array $data): void
     {
         $tmp = $this->cacheFile . '.' . bin2hex(random_bytes(4)) . '.tmp';
-        file_put_contents($tmp, json_encode($data, JSON_UNESCAPED_SLASHES));
+        file_put_contents($tmp, json_encode($data, JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE));
         if (!@rename($tmp, $this->cacheFile)) {
             // Windows refuses the rename while a reader has the file open; that reader keeps the old snapshot.
             @unlink($tmp);

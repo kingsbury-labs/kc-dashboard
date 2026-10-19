@@ -1,0 +1,68 @@
+<?php
+require_once __DIR__ . '/../src/View.php';
+require_once __DIR__ . '/Support/DomSinks.php';
+
+const HUD_ASSETS = __DIR__ . '/../public/assets';
+
+function hud_page(array $deps = []): string
+{
+    $dir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'kchud_' . bin2hex(random_bytes(6));
+    mkdir($dir);
+    file_put_contents($dir . '/token', str_repeat('4d', 32));
+    try {
+        [$status, , $body] = View::page(['REMOTE_ADDR' => '127.0.0.1', 'HTTP_HOST' => '127.0.0.1:8787', 'REQUEST_METHOD' => 'GET'],
+            $dir . '/token', new Log($dir . '/log'), $deps, strtotime('2026-10-19T12:00:00+00:00'));
+    } finally {
+        @unlink($dir . '/token');
+        @unlink($dir . '/log');
+        @rmdir($dir);
+    }
+    assert_same(200, $status);
+    return $body;
+}
+
+test('orb.js exports setLevel and setState and handles motion, visibility and frames', function () {
+    $src = (string) file_get_contents(HUD_ASSETS . '/orb.js');
+    assert_true(preg_match('/export function setLevel\b/', $src) === 1, 'setLevel export');
+    assert_true(preg_match('/export function setState\b/', $src) === 1, 'setState export');
+    foreach (['prefers-reduced-motion', 'visibilitychange', 'requestAnimationFrame', 'cancelAnimationFrame'] as $want) {
+        assert_true(str_contains($src, $want), "orb.js holds $want");
+    }
+    foreach (['idle', 'thinking', 'speaking'] as $s) {
+        assert_true(str_contains($src, "'$s'"), "state $s");
+    }
+});
+
+test('hud.css keeps colours on :root, has a light theme, no max-width query and no wide uppercase tracking', function () {
+    $css = (string) file_get_contents(HUD_ASSETS . '/hud.css');
+    assert_true(preg_match('/:root\s*\{[^}]*--accent:\s*#/', $css) === 1, 'tokens on :root');
+    assert_true(preg_match('/@media\s*\(prefers-color-scheme:\s*light\)/', $css) === 1, 'prefers-color-scheme block');
+    assert_true(preg_match('/@media[^{]*max-width/i', $css) === 0, 'max-width media query');
+    assert_true(str_contains($css, 'min-width'), 'wide layout through min-width');
+    preg_match_all('/\{([^{}]*)\}/', $css, $rules);
+    foreach ($rules[1] as $body) {
+        if (stripos($body, 'text-transform: uppercase') !== false && preg_match('/letter-spacing:\s*([\d.]+)em/', $body, $m)) {
+            assert_true((float) $m[1] < 0.1, 'uppercase rule with letter-spacing ' . $m[1] . 'em');
+        }
+    }
+    assert_true(preg_match('/#f3efe7/i', $css) === 0, 'cream colour');
+});
+
+test('the page has the orb canvas, the no-JS orb and the HUD stylesheet, and no comma in a heading', function () {
+    $body = hud_page();
+    assert_true(str_contains($body, '<canvas id="orb"'), 'canvas');
+    assert_true(str_contains($body, 'id="orb-static"'), 'no-JS fallback element');
+    assert_true(str_contains($body, '/assets/hud.css') && str_contains($body, '/assets/orb.js'), 'assets linked');
+    assert_true(strpos($body, 'id="orb"') > strpos($body, 'id="ask-h"') && strpos($body, 'id="orb"') < strpos($body, 'id="ask-form"'),
+        'orb sits in the Ask panel');
+    preg_match_all('#<h[1-6][^>]*>([^<]*)</h[1-6]>#', $body, $h);
+    assert_true(count($h[1]) > 0, 'headings found');
+    foreach ($h[1] as $heading) {
+        assert_true(!str_contains($heading, ','), "comma in heading: $heading");
+    }
+});
+
+test('DomSinks finds nothing in the assets, orb.js included', function () {
+    assert_true(is_file(HUD_ASSETS . '/orb.js'), 'orb.js exists');
+    assert_same([], DomSinks::find(HUD_ASSETS));
+});
