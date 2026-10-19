@@ -1,4 +1,4 @@
-# Plan: KC Dashboard (whole spec), revision 4
+# Plan: KC Dashboard (whole spec), revision 5
 
 Source: `docs/SPEC.md` (card 59 brings it in line with this plan). Rules:
 `.claude/project.md`, `CLAUDE.md`. Design: `.claude/work/attention-engine.md`.
@@ -12,6 +12,17 @@ Paths: `c:\xampp\htdocs` now means `D:\Dev\htdocs`; XAMPP itself did not
 move. Revision 3's review mapping (which Codex and Fable findings each card
 carries) is in git at `b0ed4b4:.claude/work/plan.md`; every card below keeps
 the findings its revision 3 version carried.
+
+Revision 5 (2026-10-19, Rob): the JARVIS layer from `jarvis-research.md` goes
+on top of revision 4: project map, what's running, HUD and orb, wall page,
+vault with briefings and memory, voice out (cards 73 to 80). Card 67 covers
+every property, not only KC. The vault is plain Markdown that Obsidian can
+open; Obsidian shows the knowledge graph and the kanban board, so the
+dashboard does not build those two views. Voice in, the local model, voice
+handoffs to Claude, wake word, Meta Ads and Buffer are in Later. Rob runs
+this build agentically from a fresh window, not through `claude-loop.cjs`.
+Build order is the order of the cards below: 59, 60, 62, 73, 74, 75, 76, 77,
+70, 71, 72, 63, 67, 78, 79, 80, 68, 69.
 
 Every card leaves `c:\xampp\php\php.exe tests/run.php` green. Code cards use
 fakes; no real network, model or process calls in tests.
@@ -182,6 +193,163 @@ first; a `javascript:` link dropped. ElevationTest: fixture output with
 `High Mandatory Level` sets the warning, `Medium` does not, a missing
 `whoami` sets nothing and does not throw.
 
+### 73. Project scanner
+- Role: implementer. Risky path: yes (`src/Process/`, `src/Fs/`). Depends: 60.
+- `src/Projects/Scanner.php`
+- `src/Projects/GitStatus.php`
+- `src/Projects/LoopState.php`
+- `bin/collect-projects.php`
+- `config/projects.php`
+- `config/executables.php`
+- `src/migrations/008_projects.sql`
+- `tests/fixtures/projects/`
+- `tests/ProjectScannerTest.php`
+- `tests/LoopStateTest.php`
+
+Roots: `D:\Dev\htdocs` plus card 60's extra folders. Never `C:\xampp\htdocs`:
+66 of its entries are junctions into `D:\Dev\htdocs`, and SafeDir rejects
+junctions. One `projects` row per direct child holding `.git`: slug, path,
+branch, ahead, behind, dirty count, last commit sha, date and subject,
+has_claude, loop state (none, running, stopped, stale), loop card and note
+from `.claude/work/loop/status.json`, checklist cards and passing counts from
+`.claude/work/checklist.json`, scanned_at, error. git runs through
+ProcessRunner with `GIT_OPTIONAL_LOCKS=0`: `status --porcelain=v2 --branch`
+and `log -1 --format=%H%x00%cI%x00%s`. A loop is running only when `lock`
+holds a PID that is alive and is `node.exe` (`tasklist.exe /fo csv` through
+ProcessRunner, injectable) and there is no `STOP`; a lock with a dead PID is
+stale (henike-contracting has one today). The scanner only reads: it never
+writes into any project. One project's failure is stored on its row and the
+scan goes on. Commit subjects are data.
+
+Done-test: `php tests/run.php` with `--filter ProjectScanner` and
+`LoopState` pass. ProjectScannerTest, fake runner and fixture tree: three
+repos give three rows; a folder without `.git` is skipped; a junction is
+skipped; a porcelain v2 fixture gives branch, ahead 2, behind 1, dirty 3;
+every git call carries `GIT_OPTIONAL_LOCKS=0`; a failing git on one repo
+stores its error and the next repo is still scanned; the fixture tree's file
+hashes are identical before and after a scan. LoopStateTest: lock with a live
+`node.exe` PID and no STOP is running with the card from `status.json`; a
+dead PID is stale; lock plus STOP is stopped; no lock is none; a checklist
+of 5 entries with 3 passing gives 5 and 3; malformed `status.json` gives
+running with no card, not an exception.
+
+### 74. What's running
+- Role: implementer. Risky path: yes (`public/api/`, `src/Process/`). Depends: 73.
+- `src/Running/SessionRegistry.php`
+- `src/Running/Ports.php`
+- `src/Running/Tasks.php`
+- `src/Running/NowService.php`
+- `public/api/now.php`
+- `config/running.php`
+- `config/executables.php`
+- `tests/fixtures/running/`
+- `tests/SessionRegistryTest.php`
+- `tests/NowApiTest.php`
+
+Sources. Claude Code's session files in `C:\Users\roban\.claude\sessions\`
+(path in config): undocumented and version-dependent, so the parser fails
+soft. It lists only names matching `^\d+\.json$` and never opens anything
+else (the folder also holds `.key` files). Keeps pid, cwd, status (busy,
+idle, waiting), waitingFor, name, startedAt, updatedAt; drops every other
+field. A session counts only when its PID is alive and the process start
+time matches `procStart` within 2 seconds. cwd maps to a project slug from
+card 73. Loops from card 73. Scheduled tasks under `\KC Dashboard\` from
+`schtasks.exe /query /fo csv /v`. Listening ports from `netstat.exe -ano -p
+tcp` joined to `tasklist.exe /fo csv`: port, program name, PID, never a
+command line. `api/now.php` GET returns `{sessions, loops, tasks, ports,
+at}`, Host-checked, cached 3 seconds so many open tabs cost one scan.
+
+Done-test: `php tests/run.php` with `--filter SessionRegistry` and `NowApi`
+pass. SessionRegistryTest on fixtures: a live session gives its project slug
+and status busy; a dead PID is skipped; a reused PID (procStart mismatch) is
+skipped; the reader's list of opened files never includes the fixture
+`.key` file, and its marker string is absent from the output; unknown fields
+are dropped; malformed JSON is skipped without an exception. NowApiTest:
+foreign Host rejected; the four keys are present; a command-line marker
+string in the fixture never appears in the response; two calls within 3
+seconds on a fake clock run the scan once.
+
+### 75. Project map and running strip
+- Role: implementer. Risky path: yes (`public/api/`). Depends: 74.
+- `public/api/projects.php`
+- `public/assets/projects.js`
+- `public/assets/now.js`
+- `public/assets/app.css`
+- `src/View.php`
+- `tests/ProjectsApiTest.php`
+- `tests/ProjectsUiTest.php`
+
+The main page gains a running strip at the top (sessions busy or waiting,
+running loops with their card, failed scheduled tasks, dev server ports) and
+a project map: one tile per project with name, branch, dirty count, last
+commit age, a loop badge with the current card and checklist progress. Tiles
+sort running loop first, then dirty, then newest commit. With no JS, the
+server renders both from the database. With JS, `now.js` polls
+`api/now.php` every 5 seconds while the tab is visible and stops on
+`visibilitychange`; `projects.js` refreshes tiles every 60 seconds. Mobile
+first: one column, grid layered on with `min-width`.
+
+Done-test: `php tests/run.php` with `--filter ProjectsApi` and `ProjectsUi`
+pass. ProjectsApiTest: foreign Host rejected; rows in the stated order.
+ProjectsUiTest: the no-JS page has one tile per fixture project and the
+strip; a commit subject holding `<img src=x onerror=alert(1)>` renders
+escaped; `now.js` holds `visibilitychange` and `5000` (grep); `DomSinks`
+clean; `app.css` has no `max-width` media query.
+
+### 76. HUD theme and orb
+- Role: implementer. Risky path: no. Depends: 75.
+- `public/assets/hud.css`
+- `public/assets/orb.js`
+- `src/View.php`
+- `tests/HudTest.php`
+
+The JARVIS look in plain CSS, no library: dark base, thin frame lines, cut
+corners, monospace numbers, one accent colour; colours are tokens on
+`:root` with a light theme under `prefers-color-scheme`. The orb is a canvas
+2D ES module: radial glow, noise-displaced rings, `setLevel(0..1)` and
+`setState('idle'|'thinking'|'speaking')`. `prefers-reduced-motion` draws one
+still frame; the loop pauses while the tab is hidden; with no JS a static
+CSS orb shows. The orb sits in the Ask Claude panel and shows thinking while
+an answer is pending. Every panel is checked against Rob's design-slop list
+(`c:/personas/cas/memory/design-slop.md`): no eyebrow labels, no filled and
+outlined buttons side by side, no beige or cream, no comma in a heading.
+
+Done-test: `php tests/run.php --filter Hud` passes. HudTest: `orb.js`
+exports `setLevel` and `setState` and holds `prefers-reduced-motion`,
+`visibilitychange` and `requestAnimationFrame` (grep); `hud.css` defines its
+colours on `:root` and has a `prefers-color-scheme` block, no `max-width`
+media query, no `letter-spacing` of 0.1em or more in a rule with
+`text-transform: uppercase`; `View` output has the orb canvas and the no-JS
+fallback element; `DomSinks` clean.
+
+### 77. Wall page
+- Role: implementer. Risky path: yes (`public/`). Depends: 76.
+- `public/wall.php`
+- `public/api/wall-stream.php`
+- `public/assets/wall.js`
+- `public/assets/wall.css`
+- `tests/WallTest.php`
+- `tests/WallStreamTest.php`
+
+`/wall`: a full-screen HUD for a second monitor with the large orb, the
+running strip, the project map, and the attention and headline panels when
+their APIs exist (a missing API hides its panel, so cards 70 and 63 fill in
+later). A Fullscreen button; Screen Wake Lock, re-taken on
+`visibilitychange`. This is the only page that streams: `wall-stream.php`
+sends an `event: now` every 5 seconds, sets `retry: 3000`, calls
+`ob_end_flush()` and `flush()` after each event, and ends itself after 55
+seconds because XAMPP's `max_execution_time` is 120 and PHP on Windows counts
+wall-clock time. Host-checked, no PHP session. With no JS, `/wall` is a
+stacked page that reloads every 30 seconds.
+
+Done-test: `php tests/run.php` with `--filter Wall` and `WallStream` pass.
+WallStreamTest runs `wall-stream.php` in a child `php.exe` with its run
+length set to 2 seconds by an env value and asserts at least one `event:
+now` block, a `retry:` line and an exit inside the limit; a foreign Host gets
+403 and no stream. WallTest: the no-JS page has the panels and a refresh;
+`wall.js` holds `EventSource`, `wakeLock` and `visibilitychange` (grep);
+`DomSinks` clean.
+
 ### 70. Facts table and the attention list
 - Role: implementer. Risky path: yes (`public/api/`). Depends: 62.
 - `src/migrations/004_facts.sql`
@@ -306,7 +474,10 @@ hash and `usage` are saved; invalid JSON leaves the previous ranking.
 - `tests/NewsApiTest.php`
 
 RSS 2.0, Atom, JSON Feed, plus `hn.algolia.com/api/v1/search?tags=front_page`
-for HN points, through card 71's `HttpClient`.
+for HN points, through card 71's `HttpClient`. Revision 5: `config/feeds.php`
+starts from the AI, web dev, PHP and WordPress feeds checked in
+`jarvis-research.md` section 3.4 (Anthropic through the Olshansk/rss-feeds
+scrape, since Anthropic has no feed of its own).
 
 Done-test: `php tests/run.php` with `--filter FeedParser`, `FetchNews`,
 `ClusterScore` and `NewsApi` each pass. FeedParserTest: each fixture gives
@@ -322,7 +493,7 @@ first, page size and page 2 offset, topic filter, foreign Host rejected;
 `news.js` sets `rel="noopener noreferrer"` and assigns `href` only after an
 `http:`/`https:` check (grep); `DomSinks` clean.
 
-### 67. KC numbers
+### 67. Numbers for every property
 - Role: implementer. Risky path: yes (`public/api/`). Depends: 62.
 - `bin/collect_ga.py`
 - `src/Numbers/GaCollector.php`
@@ -347,6 +518,14 @@ config, never a value. The finance display-only numbers (open receivables,
 projected tax, TD balance, reserve vs tax) are not here; they wait for
 kc-finance to add them to `alerts.json`.
 
+Revision 5: every property, not only KC. `config/properties.php` lists, per
+client slug, a GA4 property id and a Search Console site; one service
+account, which Rob adds as a Viewer on each, reads them all. Rows are stored
+per property, and one failing property stores its error while the others
+still store. GA4 Realtime active users per property feed the wall page.
+Added to the done-test: a two-property fixture stores two sets; a 403 on one
+property stores its error and the other still stores.
+
 Done-test: `php tests/run.php` with `--filter CollectGa`, `Numbers` and
 `NumbersApi` each pass. CollectGaTest runs `python.exe bin/collect_ga.py
 --from-fixture ...` through ProcessRunner and asserts the JSON keys, and by
@@ -356,6 +535,107 @@ outputs stored; one failing source stores its error and the others still
 store; the config holds the Bugsink token path, not a value.
 NumbersApiTest: latest values returned, foreign Host rejected, `DomSinks`
 clean.
+
+### 78. Vault
+- Role: implementer. Risky path: yes (`src/Fs/`, file writes). Depends: 73.
+- `src/Vault/Vault.php`
+- `src/Vault/ProjectNotes.php`
+- `src/Vault/CanvasExport.php`
+- `src/Vault/Board.php`
+- `bin/write-vault.php`
+- `config/vault.php`
+- `tests/VaultTest.php`
+- `tests/CanvasExportTest.php`
+- `tests/BoardTest.php`
+
+Vault root from config, default `D:\Dev\vault\kc`, created if missing; Rob
+opens it in Obsidian. `Vault` passes the root through SafeDir, writes only
+code-made paths inside a fixed set of folders (`Projects`, `Briefings`,
+`Memory`, `Boards`, `Maps`) with `[a-z0-9-]` file names, writes atomically
+(temp file in the same folder, then rename), and refuses `..`, absolute
+paths and junctions. ProjectNotes: one `Projects/<slug>.md` per card 73 row,
+front matter (branch, loop state, updated) and `[[client-slug]]` links from
+a project-to-client map in config, so Obsidian's graph joins projects,
+clients and briefings. A note is rewritten only when its content changed.
+Text from git or a model is neutralised before it is written: `[[`, `]]`,
+`obsidian://` and `file:` cannot survive as live syntax. CanvasExport:
+`Maps/projects.canvas` per JSON Canvas 1.0, a file node per project note in a
+grid and a group per loop state. Board: `Boards/Rob.md` in the Obsidian
+Kanban plugin's format (front matter `kanban-plugin: board`, `## Backlog`,
+`## Doing`, `## Done`), created once if missing and never overwritten.
+`bin/write-vault.php` runs after `collect-projects.php`.
+
+Done-test: `php tests/run.php` with `--filter Vault`, `CanvasExport` and
+`Board` pass, all on a temp root. VaultTest: a write to `Projects/a.md` lands
+with no temp file left; `../x.md`, `C:\x.md`, a folder outside the fixed set
+and a junction root are refused; a commit subject holding `[[evil]]` and
+`obsidian://open` is written neutralised; unchanged content leaves the mtime
+unchanged. CanvasExportTest: the file parses as JSON; every node has `id,
+type, x, y, width, height`; every edge's `fromNode` and `toNode` exist; no
+two nodes overlap. BoardTest: a missing board is created with the three
+columns and the front matter; an existing board's bytes are unchanged after
+a run.
+
+### 79. Briefing, memory and history
+- Role: implementer. Risky path: yes (`public/api/`, `src/Fs/`). Depends: 63, 67, 72, 78.
+- `src/Briefing/Composer.php`
+- `bin/brief.php`
+- `src/Memory/MemoryStore.php`
+- `src/migrations/009_memory.sql`
+- `public/api/brief.php`
+- `public/api/remember.php`
+- `public/api/recall.php`
+- `public/briefings.php`
+- `public/assets/brief.js`
+- `src/View.php`
+- `tests/BriefingTest.php`
+- `tests/MemoryTest.php`
+- `tests/BriefApiTest.php`
+
+Composer builds the day's briefing in code: the attention top five plus the
+"also seen" count, loops and the cards they passed since yesterday, projects
+with commits since yesterday, the top five headlines, numbers that moved.
+Card 72's daily read supplies the words around it when there is one; the
+code-built list always shows first, so a missing or wrong read hides
+nothing. Written to `Briefings/YYYY-MM-DD.md` (one file per day, a rerun
+overwrites only today's) and stored in SQLite. "Brief me" shows today's,
+building it on demand if none exists. `briefings.php` lists past briefings
+newest first and opens each as it was that day. Remember: a token-checked
+POST of plain text up to 2,000 characters appends `- HH:MM text` to
+`Memory/YYYY-MM.md` and an FTS5 row; `recall.php?q=` returns matches with
+dates. In the Ask box, input starting `remember ` goes to remember by a code
+match, not a model.
+
+Done-test: `php tests/run.php` with `--filter Briefing`, `Memory` and
+`BriefApi` pass. BriefingTest on fixtures and a fixed clock: the briefing
+holds every attention fact id given even when the fake read omits two; a
+second run the same day overwrites one file and leaves yesterday's
+untouched; at most five headlines. MemoryTest: remember appends a line and
+recall finds it by one word; 2,001 characters are refused; `[[x]]` and
+`obsidian://` in the text are neutralised in the file. BriefApiTest: foreign
+Host rejected; remember without the token saves nothing; history is newest
+first; `DomSinks` clean.
+
+### 80. Voice out
+- Role: implementer. Risky path: no. Depends: 76, 79.
+- `public/assets/voice.js`
+- `public/assets/app.js`
+- `src/View.php`
+- `tests/VoiceTest.php`
+
+The browser's `speechSynthesis` reads the briefing on "Brief me" and an Ask
+Claude answer on a speak control. The voice picker lists only voices with
+`localService` true, so no audio leaves the PC; the choice is kept in
+`localStorage` inside try/catch. While speaking, the orb is set to speaking
+and pulses `setLevel` on `boundary` events (speech output cannot be routed
+into Web Audio). A stop control. Feature-checked: with no `speechSynthesis`
+or no JS, the controls do not appear.
+
+Done-test: `php tests/run.php --filter Voice` passes. VoiceTest (grep):
+`voice.js` filters on `localService`, wraps `localStorage` in try/catch,
+listens for `boundary` and `end`, calls the orb's `setState`, and holds no
+`fetch` or `XMLHttpRequest`; the speak control is absent from the no-JS
+HTML; `DomSinks` clean.
 
 ### 68. Chrome extension and Task Scheduler script
 - Role: implementer. Risky path: yes (`chrome-extension/`). Depends: 63, 67, 72.
@@ -371,7 +651,8 @@ MV3, overrides new tab, navigates to `http://127.0.0.1:8787/`. Tasks under
 `-MultipleInstances IgnoreNew`, `-WorkingDirectory` the repo, absolute
 `c:\xampp\php\php.exe` and script paths. Worker every minute; fetch-news
 every 15 minutes; collect-facts every 30 minutes; daily-read at 6 am;
-collect-kc daily. No mail task, no model at logon. `-WhatIf` supported.
+collect-kc daily; collect-projects then write-vault every 5 minutes; brief
+at 6:15 am. No mail task, no model at logon. `-WhatIf` supported.
 
 Done-test: `php tests/run.php` with `--filter Extension` and `TasksScript`
 pass. ExtensionTest: manifest is valid JSON, version 3, has
@@ -383,7 +664,11 @@ Finance`; a `-WhatIf` run through ProcessRunner (powershell.exe added to the
 allowlist for this test only) registers nothing.
 
 ### 69. Security audit
-- Role: security-auditor. Risky path: yes. Depends: 59 to 68.
+- Role: security-auditor. Risky path: yes. Depends: 59 to 68, 73 to 80.
+- `src/Projects/`
+- `src/Running/`
+- `src/Vault/`
+- `src/Memory/`
 - `src/Http/`
 - `src/Process/`
 - `src/Fs/`
@@ -409,7 +694,9 @@ review finding in revision 3's mapping, or files a card for any without one.
 - Role: Rob. Depends: none. Needed before 67 runs for real; its code uses fakes.
 - `D:\Dev\htdocs\.credentials\` (Rob's files; nobody reads the values)
 
-A Bugsink token file and the GA4 service-account JSON path. Rob gives file
+A Bugsink token file and the GA4 service-account JSON path; revision 5 adds
+the service account as a Viewer on every GA4 property and Search Console
+site in `config/properties.php`. Rob gives file
 names only. Done-test: `Test-Path` on each named file returns True.
 
 ### 28. Load the extension
@@ -428,6 +715,18 @@ Rob reviews the `-WhatIf` output, then confirms the real run. Done-test:
 reaches `done`.
 
 ## Later (not built now)
+
+- JARVIS round two, from `jarvis-research.md` sections 3 and 4, after Rob has
+  used round one for a week: push-to-talk through whisper.cpp on 127.0.0.1
+  (Rob places the zip and model); the local model as voice router
+  (Qwen3.5-9B always on, Qwen 3.6 35B-A3B on demand when RAM allows, no
+  gpt-oss); voice handoff cards to `claude -p` that Rob clicks to send
+  (highest risk, needs a security-auditor pass); wake word in wall mode with
+  sherpa-onnx; Piper or Kokoro voices; loop kanban and force-graph views in
+  the dashboard; `gh` issue counts on tiles; Claude Code hooks feeding the
+  running strip (needs Rob's global settings).
+- Meta Ads (Marketing API insights, `ads_read`, a system user token Rob makes)
+  and Buffer scheduled posts (its API has no engagement numbers).
 
 - 61. LLM layer and Bonsai (ModelManager with `-np 1` and a canary per
   batch, load on demand). Only if Bonsai gets a job; both reviewers keep it

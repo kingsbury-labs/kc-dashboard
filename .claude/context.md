@@ -1,32 +1,31 @@
 ---
-session: 8
+session: 9
 last_updated: 2026-10-19
-continue_with: Add the local runner and docs/config lines to .claude/loop-settings.json (Rob; the classifier refused it), then start the loop from the project copy with --merge-allowed on plan revision 4, card 59 first. Check kc-finance's loop lock is gone first.
-blockers: .claude/loop-settings.json still pre-approves only the global project-test.cjs; headless passes now run the project's own copy and may be refused at the gate until Rob adds those lines.
+continue_with: Rob waived the loop for this build. Run plan revision 5 in-window, one implementer agent per card, in plan order (59, 60, 62, 73-77, 70-72, 63, 67, 78-80, 68, 69). Before Rob leaves for ~8 hours, rehearse every gate once while he is present and get every permission granted up front.
+blockers: coordinator-only.cjs refuses git commit and push from the main window (COORDINATOR_ONLY is unset), so each card's commit goes through a short background agent, which the hook exempts. Live Google numbers wait on card 08 (service account as Viewer on each property); until then card 67 runs on fixtures.
 ---
 
 # KC Dashboard context
 
 ## To Resume
-Session 8. main on origin (kingsbury-labs/kc-dashboard, public) ends with the session 7 handoff commit (plan revision 4, finance contract, project copy of the loop).
-THIS WINDOW:
-1. Rob adds to `allow` in `.claude/loop-settings.json`: `Bash(node D:\\Dev\\htdocs\\_kc-dashboard\\.claude\\bin\\project-test.cjs:*)`, the `D:/...` and PowerShell forms of it, and `Edit`/`Write` for `docs/**` and `config/**`. The classifier refuses this edit from Claude (self-modification).
-2. Confirm no live `C:\Users\roban\kc-finance\.claude\work\loop\lock` without a STOP (one loop at a time).
-3. Start the loop: `node .claude/bin/claude-loop.cjs --afk-flags "--merge-allowed"`. Cards run in plan order: 59, 60, 62, 70, 71, 72, 63, 67, 68, then 69.
+Session 9. main on origin (kingsbury-labs/kc-dashboard, public) ends with the session 8 handoff commit (plan revision 5, JARVIS research).
+THIS WINDOW (Rob is present at the start, then away about 8 hours):
+1. Rehearse the gates with Rob watching, so nothing prompts later: `c:\xampp\php\php.exe tests/run.php`; `node .claude/bin/project-test.cjs` as the coordinate skill calls it; one implementer agent writing under `src/`, `public/`, `tests/`, `config/`, `bin/`, `docs/`; one background agent doing `git add <paths>`, `git commit`, `git push` on main. Whatever prompts or the classifier refuses, Rob allows before he leaves (`/permissions`). Claude cannot edit settings files itself.
+2. Build in-window with the coordinate skill's gate (done-test, mutation check, scope), one agent at a time (no fan-outs), then a background agent commits each card on main without a co-author trailer. Self-pace with `/afk`.
+3. Stop on: a card failing twice, the usage cap, or anything that needs Rob (credentials, installs, outward actions). Log it in `.claude/work/log.md` and go on to the next card that does not depend on it.
 
 ## What exists
 - On main: cards 01, 04, 05, 06, 10-15, 13a (runner, logger, vhost, guard and token, responses, job queue, worker, SafeDir, ProcessRunner). Done outside the loop: 02, 03, 07 (vhost installed).
 - Live: Apache loopback-only, dashboard on http://127.0.0.1:8787/ from `public/`. `php ops/http-check.php` fails one known check (token outside its meta tag), owned by card 62.
-- Plan: `.claude/work/plan.md` revision 4. Design: `attention-engine.md`. Finance: `finance-contract.md`. State: `checklist.json`. Log: `log.md`.
-- Loop: project's own copy in `.claude/bin`, `.claude/skills` (coordinate, brief, afk), `.claude/agents`; `SOURCE.txt` holds the source hashes. The card prompt in `claude-loop.cjs` reads `.claude/skills/coordinate/SKILL.md` directly instead of `/coordinate`, so changes stay local; its tests pass.
-- Bonsai still in `llm/` (gitignored); off the critical path now.
+- Plan: `.claude/work/plan.md` revision 5, 18 cards. JARVIS research and sources: `jarvis-research.md`. Design: `attention-engine.md`. Finance: `finance-contract.md`. State: `checklist.json` (entries are added when a card is briefed). Log: `log.md`.
+- Loop copy in `.claude/bin`, `.claude/skills`, `.claude/agents` (unused for this build). `.claude/loop-settings.json` still lacks the project-copy runner line; it only matters to headless runs.
 
 ## Decided
-- Rob approved the attention-engine spec and plan changes (2026-10-17). Mail out entirely; gpt-oss out; Bonsai and impact tags to Later; no-API rule stays, so the daily read is `claude -p`.
-- kc-finance is read-only through `C:\Users\roban\kc-finance\alerts\alerts.json` (schema 1). Never stores credentials, account numbers, bank lines, receipts or personal income. Ask Claude reaches kc-finance through an exact extra-folder list, shows "finance busy, try later" while its `scripts/` is dirty, and sets `MSYS_NO_PATHCONV=1`.
-- Loop runs use `--merge-allowed`; cards land on main (ci: none). Issue 3 keeps the ProcessRunner follow-ups for Later.
+- Revision 5 (Rob, 2026-10-19): a JARVIS layer on revision 4: project map, what's running (Claude Code's `~/.claude/sessions/<pid>.json`, never the `.key` files), HUD and orb, wall page, vault at `D:\Dev\vault\kc` that Obsidian opens for the graph and kanban, briefings, memory, voice out. Numbers cover every property. Voice in, local model (Qwen3.5-9B router, Qwen 3.6 35B-A3B on demand; gpt-oss stays out), voice handoffs, wake word, Meta Ads and Buffer are Later.
+- No Hermes: its Anthropic login bills extra usage, and the video's "Agent OS" is a paid zip.
+- Attention engine (2026-10-17) stands: mail out, no-API rule, daily read via `claude -p`. kc-finance read-only through `alerts.json` schema 1, never-store list in `finance-contract.md`. Issue 3 keeps the ProcessRunner follow-ups for Later.
 
 ## Recent sessions
-- **S7 (2026-10-17/19, interactive):** asked kc-finance how it should feed the dashboard and recorded its contract; rewrote the plan as revision 4 (cards 59-72) around the attention engine; copied the loop into the project and made passes read the local skills. Loop not started: kc-finance's loop was running, the loop-settings edit was refused, and coordinator-only blocked the commit until Rob turned it off.
+- **S8 (2026-10-19, research):** watched the Hermes Jarvis + Obsidian video (a Julian Goldie sales video for a paid zip); a research agent mapped the free tools for every feature (`jarvis-research.md`); Rob chose round one only, so the plan is now revision 5 with cards 73-80, card 67 covering every property, and the rest in Later. Rob waived the loop for this build.
+- **S7 (2026-10-17/19, interactive):** recorded kc-finance's contract; rewrote the plan as revision 4 (cards 59-72) around the attention engine; copied the loop into the project.
 - **S6 (2026-10-13, planning):** attention-engine design and two reviews; project moved to `D:\Dev\htdocs`; decision rubric from Sembr added to CLAUDE.md.
-- **S5 (2026-10-12, interactive):** re-planned 54 cards into 60-69; installed the 8787 vhost (card 07); loop landed 13a, 14, 15.
