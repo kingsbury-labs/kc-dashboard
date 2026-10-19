@@ -138,6 +138,19 @@ dd { margin: 0 0 0.5rem; overflow-wrap: anywhere; }
 }
 .tile h3 { margin: 0 0 0.25rem; overflow-wrap: anywhere; }
 .subject { margin: 0.25rem 0 0; overflow-wrap: anywhere; }
+
+/* Attention list: one column, a coloured edge for severity, the controls wrap under the fact. */
+.fact { border-left: 3px solid var(--line); padding-left: 0.75rem; min-width: 0; }
+.fact[data-severity="high"] { border-left-color: var(--warn-text); }
+.fact[data-severity="med"] { border-left-color: var(--accent); }
+.fact .subject a { color: var(--accent); display: inline-block; min-height: 44px; padding: 0.5rem 0; }
+.evidence { margin: 0.25rem 0 0; color: var(--muted); font-size: 0.875rem; overflow-wrap: anywhere; }
+.actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem; }
+.actions button, .actions select { min-height: 44px; padding: 0.25rem 0.75rem; font: inherit; }
+.sources { display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; list-style: none; margin: 0.75rem 0 0; padding: 0;
+  color: var(--muted); font-size: 0.875rem; }
+.sources > li { overflow-wrap: anywhere; }
+.sources > li[data-stale="1"] { color: var(--warn-text); }
 .loop { margin: 0.25rem 0 0; color: var(--accent); font-weight: 600; overflow-wrap: anywhere; }
 .loop[data-state="stale"] { color: var(--warn-text); }
 .error { margin: 0.25rem 0 0; color: var(--warn-text); font-size: 0.875rem; overflow-wrap: anywhere; }

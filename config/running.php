@@ -8,4 +8,6 @@ return [
     'task_folder' => '\\KC Dashboard\\',
     'aliases' => ['C:\\xampp\\htdocs' => 'D:\\Dev\\htdocs'],
     'cache_seconds' => 3,
+    // The only http://127.0.0.1 ports an attention fact may link to: 8000 is Bigcapital (the finance feed).
+    'link_ports' => [8000],
 ];

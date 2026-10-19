@@ -313,5 +313,20 @@
     },
     "verified_at": "2026-10-19T20:16:22.759Z",
     "tree": "1b23f47e43d42fb3e2b3606b36574387dec6c517678d87e1766ebd7b81f348b8"
+  },
+  {
+    "id": "70",
+    "title": "Facts table and the attention list",
+    "brief": ".claude/work/70-facts/brief.md",
+    "start_sha": "a652050443b9e066a15de2af547c2c21c5229c3f",
+    "passes": true,
+    "scope_ok": {
+      "at": "2026-10-19T20:41:44.384Z",
+      "start_sha": "a652050443b9e066a15de2af547c2c21c5229c3f",
+      "mutation_evidence": true,
+      "tree": "4ca30128880e6274ec58ecb7cbef880ca55bd39a7ed47c3eb29bfe151d66efa5"
+    },
+    "verified_at": "2026-10-19T20:42:15.789Z",
+    "tree": "4ca30128880e6274ec58ecb7cbef880ca55bd39a7ed47c3eb29bfe151d66efa5"
   }
 ]

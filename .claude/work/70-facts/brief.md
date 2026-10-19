@@ -38,6 +38,8 @@ task, and its "Done-test:" paragraph is what done means.
 - `D:\Dev\htdocs\_kc-dashboard\tests\SelectorTest.php`
 - `D:\Dev\htdocs\_kc-dashboard\tests\AttentionApiTest.php`
 - `D:\Dev\htdocs\_kc-dashboard\public\index.php` (wiring only)
+- `D:\Dev\htdocs\_kc-dashboard\config\running.php` (link_ports only)
+- `D:\Dev\htdocs\_kc-dashboard\public\assets\app.css` (attention panel styles only)
 
 ## Done-test
 From plan.md card 70, word for word: the "Done-test:" paragraph of card

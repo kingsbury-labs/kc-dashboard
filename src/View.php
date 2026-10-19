@@ -13,8 +13,8 @@ class View
     /**
      * The guard runs before the token is read, so a refused request never touches it, and before any of $deps:
      * 'projects' => ProjectList, 'answers' => fn(): array, 'clients' => fn(): array, 'elevated' => fn(): bool,
-     * 'map' => fn(): array (View::projectRows), 'now' => fn(): array (a saved api/now.php snapshot; never a scan).
-     * A failing source leaves its part of the page empty, not a 500.
+     * 'map' => fn(): array (View::projectRows), 'now' => fn(): array (a saved api/now.php snapshot; never a scan),
+     * 'attention' => fn(): array (AttentionApi::data). A failing source leaves its part of the page empty, not a 500.
      */
     public static function page(array $server, string $tokenPath, Log $log, array $deps = [], ?int $now = null): array
     {
@@ -31,8 +31,11 @@ class View
             $running = self::source($deps['now'] ?? null, [], $log, 'now');
             $strip = self::section(fn() => self::strip(self::cleanSnapshot($running), is_array($map) ? $map : []), $log, 'strip');
             $tiles = self::section(fn() => self::tiles(is_array($map) ? $map : [], $now ?? time()), $log, 'tiles');
+            $facts = self::source($deps['attention'] ?? null, null, $log, 'attention');
+            $attention = self::section(fn() => self::attention(is_array($facts) ? $facts : null), $log, 'attention');
             return Response::html(200, self::render($token, $projects, $answers, $clients, $elevated,
-                $strip !== '' ? $strip : '<li class="quiet">Nothing running.</li>', $tiles));
+                $strip !== '' ? $strip : '<li class="quiet">Nothing running.</li>', $tiles,
+                $attention !== '' ? $attention : self::attention(null)));
         } catch (Throwable $e) {
             return Response::error($e);
         }
@@ -40,7 +43,9 @@ class View
 
     /**
      * GET /wall.php, the second-monitor HUD. A page like the new tab, so checkRead, and $deps run only after it:
-     * 'map' and 'now' as for page(), 'panels' => ['attention' => bool, 'news' => bool] for the panels whose API exists.
+     * 'map' and 'now' as for page(), 'panels' => ['attention' => bool, 'news' => bool] for the panels whose API exists,
+     * 'attention' => fn(): array (AttentionApi::data). With no attention data, or a failing one, the panel says
+     * "Attention unavailable." until attention.js loads the list.
      */
     public static function wall(array $server, string $tokenPath, Log $log, array $deps = [], ?int $now = null): array
     {
@@ -54,20 +59,27 @@ class View
             $strip = self::section(fn() => self::strip(self::cleanSnapshot($running), is_array($map) ? $map : []), $log, 'strip');
             $tiles = self::section(fn() => self::tiles(is_array($map) ? $map : [], $now ?? time()), $log, 'tiles');
             $panels = is_array($deps['panels'] ?? null) ? $deps['panels'] : [];
+            $attention = '';
+            if (($panels['attention'] ?? false) === true) {
+                $facts = self::source($deps['attention'] ?? null, null, $log, 'wall attention');
+                $attention = self::section(fn() => self::attention(is_array($facts) ? $facts : null), $log, 'wall attention');
+                $attention = $attention !== '' ? $attention : self::attention(null);
+            }
             return Response::html(200, self::renderWall($token, $strip !== '' ? $strip : '<li class="quiet">Nothing running.</li>',
-                $tiles, ($panels['attention'] ?? false) === true, ($panels['news'] ?? false) === true));
+                $tiles, $attention, ($panels['news'] ?? false) === true));
         } catch (Throwable $e) {
             return Response::error($e);
         }
     }
 
-    private static function renderWall(string $token, string $strip, string $tiles, bool $attention, bool $news): string
+    // $attention is the panel's rendered lists, or '' when the attention panel is not shipped.
+    private static function renderWall(string $token, string $strip, string $tiles, string $attention, bool $news): string
     {
         $t = self::e($token);
-        $scripts = ($attention ? '<script type="module" src="/assets/attention.js"></script>' . "\n" : '')
+        $scripts = ($attention !== '' ? '<script type="module" src="/assets/attention.js"></script>' . "\n" : '')
             . ($news ? '<script type="module" src="/assets/news.js"></script>' . "\n" : '');
-        $extra = ($attention ? '<section class="panel attention" aria-labelledby="attention-h">' . "\n"
-                . '<h2 id="attention-h">Needs attention</h2>' . "\n" . '<ul id="attention" class="list"></ul>' . "\n</section>\n" : '')
+        $extra = ($attention !== '' ? '<section class="panel attention" aria-labelledby="attention-h">' . "\n"
+                . '<h2 id="attention-h">Needs attention</h2>' . "\n" . $attention . "\n</section>\n" : '')
             . ($news ? '<section class="panel news" aria-labelledby="news-h">' . "\n"
                 . '<h2 id="news-h">Headlines</h2>' . "\n" . '<ul id="news" class="list"></ul>' . "\n</section>\n" : '');
         return <<<HTML
@@ -315,8 +327,42 @@ HTML;
             : ($s < 86400 ? intdiv($s, 3600) . 'h ago' : intdiv($s, 86400) . 'd ago'));
     }
 
+    // The attention panel's lists, as attention.js rebuilds them. Null data (no list could be read) says so, and a
+    // url is a link only if AttentionApi::safeUrl passed it. Snooze and feedback need JS, so attention.js adds them.
+    private static function attention(?array $data): string
+    {
+        if ($data === null) {
+            return '<ul id="attention" class="list"><li class="quiet" data-unavailable="1">Attention unavailable.</li></ul>';
+        }
+        $items = implode('', array_map([self::class, 'factItem'], (array) ($data['items'] ?? [])));
+        $also = (array) ($data['also'] ?? []);
+        $sources = '';
+        foreach ((array) ($data['sources'] ?? []) as $s) {
+            $sources .= '<li data-stale="' . (($s['stale'] ?? true) ? '1' : '0') . '">' . self::e($s['name'] ?? '') . ' · '
+                . self::e(($s['last_ok_at'] ?? null) === null ? 'no good run yet' : ($s['status'] ?? '')) . (($s['stale'] ?? true) ? ' · stale' : '')
+                . (($s['last_error'] ?? null) !== null ? '<span class="error"> ' . self::e($s['last_error']) . '</span>' : '') . '</li>';
+        }
+        return '<ul id="attention" class="list">' . ($items !== '' ? $items : '<li class="quiet">Nothing needs you.</li>') . '</ul>'
+            . '<ul id="attention-sources" class="sources">' . ($sources !== '' ? $sources : '<li class="quiet">No collector has run yet.</li>')
+            . '</ul><details id="attention-also" class="also"' . ($also === [] ? ' hidden' : '') . '><summary>Also seen ('
+            . count($also) . ')</summary><ul class="list">' . implode('', array_map([self::class, 'factItem'], $also)) . '</ul></details>';
+    }
+
+    private static function factItem(array $f): string
+    {
+        $url = $f['url'] ?? null;
+        $subject = is_string($url) && (str_starts_with($url, 'https://') || str_starts_with($url, 'http://127.0.0.1:'))
+            ? '<a href="' . self::e($url) . '" rel="noopener noreferrer" target="_blank">' . self::e($f['subject'] ?? '') . '</a>'
+            : self::e($f['subject'] ?? '');
+        $due = ($f['due_date'] ?? null) !== null
+            ? ' · <time datetime="' . self::e($f['due_date']) . '">' . self::e($f['due_date']) . '</time>' : '';
+        return '<li class="fact" data-severity="' . self::e($f['severity'] ?? '') . '"><p class="meta">' . self::e($f['severity'] ?? '')
+            . ' · ' . self::e($f['source'] ?? '') . $due . '</p><p class="subject">' . $subject . '</p>'
+            . (($f['evidence'] ?? null) !== null ? '<p class="evidence">' . self::e($f['evidence']) . '</p>' : '') . '</li>';
+    }
+
     private static function render(string $token, array $projects, array $answers, array $clients, bool $elevated,
-        string $strip, string $tiles): string
+        string $strip, string $tiles, string $attention): string
     {
         $t = self::e($token);
         $banner = $elevated
@@ -345,6 +391,7 @@ HTML;
 <script type="module" src="/assets/clients.js"></script>
 <script type="module" src="/assets/now.js"></script>
 <script type="module" src="/assets/projects.js"></script>
+<script type="module" src="/assets/attention.js"></script>
 </head>
 <body>
 $banner
@@ -358,6 +405,11 @@ $banner
 <label for="q" class="hidden">Search Google</label>
 <input type="search" id="q" name="q" placeholder="Search Google" autofocus>
 </form>
+
+<section class="panel attention" aria-labelledby="attention-h">
+<h2 id="attention-h">Needs attention</h2>
+$attention
+</section>
 
 <section class="panel ask" aria-labelledby="ask-h">
 <h2 id="ask-h">Ask Claude</h2>
