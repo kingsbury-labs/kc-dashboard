@@ -23,6 +23,7 @@ task, and its "Done-test:" paragraph is what done means.
   JS; desktop layout through `min-width` only; no `max-width` media
   query; JS writes text with `textContent` only (DomSinks).
 - PHP 8.2 only. Edit PHP with the Edit/Write tools only, never sed or node -e.
+- From the card 73 audit: escape every repo-controlled column, not only the subject: branch, last_subject, loop_card, loop_note and error. ProjectsUiTest plants the onerror payload in each. Add JSON_INVALID_UTF8_SUBSTITUTE to Response::json so one invalid UTF-8 commit subject cannot blank api/projects.php, with a test.
 
 ## Files you may touch
 - `D:\Dev\htdocs\_kc-dashboard\public\api\projects.php`
@@ -32,6 +33,9 @@ task, and its "Done-test:" paragraph is what done means.
 - `D:\Dev\htdocs\_kc-dashboard\src\View.php`
 - `D:\Dev\htdocs\_kc-dashboard\tests\ProjectsApiTest.php`
 - `D:\Dev\htdocs\_kc-dashboard\tests\ProjectsUiTest.php`
+
+- `D:\Dev\htdocs\_kc-dashboard\src\Http\Response.php` (UTF-8 substitute only)
+- `D:\Dev\htdocs\_kc-dashboard\tests\PageTest.php` (its Response test only)
 
 ## Done-test
 From plan.md card 75, word for word: the "Done-test:" paragraph of card

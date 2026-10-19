@@ -7,7 +7,8 @@ return [
     'php' => 'C:\\xampp\\php\\php.exe',
     'git' => 'C:\\Program Files\\Git\\cmd\\git.exe',
     'taskkill' => 'C:\\Windows\\System32\\taskkill.exe',
-    'whoami' => 'C:\\Windows\\System32\\whoami.exe',
+    'tasklist' => 'C:\\Windows\\System32\\tasklist.exe',
+    'whoami' =>'C:\\Windows\\System32\\whoami.exe',
     'nvidia-smi' => 'C:\\Windows\\System32\\nvidia-smi.exe',
     'llama-server' => 'D:\\Dev\\htdocs\\_kc-dashboard\\llm\\fork\\llama-server.exe',
 ];

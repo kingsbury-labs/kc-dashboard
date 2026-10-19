@@ -1,0 +1,7 @@
+# branch.oid 3f2a9c1d4e5b6a7f8091a2b3c4d5e6f708192a3b
+# branch.head feature/scan
+# branch.upstream origin/feature/scan
+# branch.ab +2 -1
+1 .M N... 100644 100644 100644 0123456789abcdef0123456789abcdef01234567 0123456789abcdef0123456789abcdef01234567 src/a.php
+2 R. N... 100644 100644 100644 0123456789abcdef0123456789abcdef01234567 0123456789abcdef0123456789abcdef01234567 R100 src/new.php	src/old.php
+? notes.txt

@@ -208,5 +208,20 @@
     },
     "verified_at": "2026-10-19T15:29:39.851Z",
     "tree": "0caf3e9b8ec138e95d81325ead699e6251246bdd7292a17ae8e00b4d8cfc3aca"
+  },
+  {
+    "id": "73",
+    "title": "Project scanner",
+    "brief": ".claude/work/73-scanner/brief.md",
+    "start_sha": "be811b25098528bfbb574a654c2eb510eecb0e7b",
+    "passes": true,
+    "scope_ok": {
+      "at": "2026-10-19T15:47:51.612Z",
+      "start_sha": "be811b25098528bfbb574a654c2eb510eecb0e7b",
+      "mutation_evidence": true,
+      "tree": "a65b17a333d3e2816bdedd97503b0bd7fe530d21075cdb725734c00c39282d1a"
+    },
+    "verified_at": "2026-10-19T15:48:04.080Z",
+    "tree": "a65b17a333d3e2816bdedd97503b0bd7fe530d21075cdb725734c00c39282d1a"
   }
 ]
