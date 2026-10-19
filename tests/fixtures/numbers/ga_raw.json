@@ -1,0 +1,32 @@
+{
+  "properties": [
+    {
+      "slug": "kingsbury-creative",
+      "ga4_property": "100000001",
+      "search_console_site": "sc-domain:kc.example.test",
+      "ga4": {
+        "totals": {"rows": [{"dimensionValues": [], "metricValues": [{"value": "1240"}, {"value": "903"}]}]},
+        "pages": {"rows": [
+          {"dimensionValues": [{"value": "/"}], "metricValues": [{"value": "610"}]},
+          {"dimensionValues": [{"value": "/services/"}], "metricValues": [{"value": "201"}]},
+          {"dimensionValues": [{"value": "/contact/"}], "metricValues": [{"value": "88"}]}
+        ]},
+        "realtime": {"rows": [{"dimensionValues": [], "metricValues": [{"value": "3"}]}]}
+      },
+      "search_console": {"rows": [{"keys": [], "clicks": 87, "impressions": 4120, "ctr": 0.0211, "position": 18.4}]}
+    },
+    {
+      "slug": "example-client",
+      "ga4_property": "100000002",
+      "search_console_site": "https://client.example.test/",
+      "ga4": {
+        "totals": {"rows": [{"dimensionValues": [], "metricValues": [{"value": "310"}, {"value": "255"}]}]},
+        "pages": {"rows": [
+          {"dimensionValues": [{"value": "/menu/"}], "metricValues": [{"value": "140"}]}
+        ]},
+        "realtime": {}
+      },
+      "search_console": {"rows": [{"keys": [], "clicks": 12, "impressions": 980, "ctr": 0.0122, "position": 9.5}]}
+    }
+  ]
+}

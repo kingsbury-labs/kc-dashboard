@@ -373,5 +373,20 @@
     },
     "verified_at": "2026-10-19T21:45:33.419Z",
     "tree": "2271fc26ffee50e3e14f3ae51d1e3ab63c5d44df5e4895fe9d66462f4526c91b"
+  },
+  {
+    "id": "67",
+    "title": "Numbers for every property",
+    "brief": ".claude/work/67-numbers/brief.md",
+    "start_sha": "b41ed70ef87e53606d77ad64649b6ad671145d38",
+    "passes": true,
+    "scope_ok": {
+      "at": "2026-10-19T22:09:34.952Z",
+      "start_sha": "b41ed70ef87e53606d77ad64649b6ad671145d38",
+      "mutation_evidence": true,
+      "tree": "c1d622ac7b6e6ae1fbd37cce1bc3b89767172a3afc4642403d28181d0fdbffd4"
+    },
+    "verified_at": "2026-10-19T22:10:10.890Z",
+    "tree": "c1d622ac7b6e6ae1fbd37cce1bc3b89767172a3afc4642403d28181d0fdbffd4"
   }
 ]

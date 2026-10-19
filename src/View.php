@@ -14,7 +14,8 @@ class View
      * The guard runs before the token is read, so a refused request never touches it, and before any of $deps:
      * 'projects' => ProjectList, 'answers' => fn(): array, 'clients' => fn(): array, 'elevated' => fn(): bool,
      * 'map' => fn(): array (View::projectRows), 'now' => fn(): array (a saved api/now.php snapshot; never a scan),
-     * 'attention' => fn(): array (AttentionApi::data), 'news' => fn(): array (NewsApi::data). A failing source leaves
+     * 'attention' => fn(): array (AttentionApi::data), 'news' => fn(): array (NewsApi::data),
+     * 'numbers' => fn(): array (NumbersApi::data). A failing source leaves
      * its part of the page empty, not a 500.
      */
     public static function page(array $server, string $tokenPath, Log $log, array $deps = [], ?int $now = null): array
@@ -36,9 +37,12 @@ class View
             $attention = self::section(fn() => self::attention(is_array($facts) ? $facts : null), $log, 'attention');
             $stories = self::source($deps['news'] ?? null, null, $log, 'news');
             $news = self::section(fn() => self::news(is_array($stories) ? $stories : null), $log, 'news');
+            $sources = self::source($deps['numbers'] ?? null, null, $log, 'numbers');
+            $numbers = self::section(fn() => self::numbers(is_array($sources) ? $sources : null), $log, 'numbers');
             return Response::html(200, self::render($token, $projects, $answers, $clients, $elevated,
                 $strip !== '' ? $strip : '<li class="quiet">Nothing running.</li>', $tiles,
-                $attention !== '' ? $attention : self::attention(null), $news !== '' ? $news : self::news(null)));
+                $attention !== '' ? $attention : self::attention(null), $news !== '' ? $news : self::news(null),
+                $numbers !== '' ? $numbers : self::numbers(null)));
         } catch (Throwable $e) {
             return Response::error($e);
         }
@@ -371,6 +375,56 @@ HTML;
         return '<ul id="news" class="list">' . ($items !== '' ? $items : '<li class="quiet">No headlines yet.</li>') . '</ul>';
     }
 
+    private const NUMBER_NAMES = ['sessions' => 'sessions', 'users' => 'users', 'active_users' => 'active now',
+        'clicks' => 'clicks', 'impressions' => 'impressions', 'ctr' => 'CTR', 'position' => 'avg position',
+        'open_issues' => 'open issues', 'checks' => 'checks', 'down' => 'down'];
+
+    // The numbers list, as numbers.js rebuilds it: one entry per source, its values, top pages and last error.
+    private static function numbers(?array $data): string
+    {
+        if ($data === null) {
+            return '<ul id="numbers" class="list"><li class="quiet">Numbers unavailable.</li></ul>';
+        }
+        $items = '';
+        foreach ((array) ($data['sources'] ?? []) as $s) {
+            $bits = [];
+            $pages = '';
+            foreach ((array) ($s['values'] ?? []) as $metric => $v) {
+                $value = is_array($v) ? ($v['value'] ?? null) : null;
+                $label = is_array($v) && is_string($v['label'] ?? null) ? $v['label'] : '';
+                $metric = (string) $metric;
+                if (str_starts_with($metric, 'top_page:')) {
+                    $pages .= '<li>' . self::e($label . ' · ' . self::numberShown($metric, $value)) . '</li>';
+                } elseif ($metric === 'status') {
+                    $bits[] = $label !== '' ? $label : 'unknown';
+                } elseif (isset(self::NUMBER_NAMES[$metric])) {
+                    $bits[] = self::NUMBER_NAMES[$metric] . ' ' . self::numberShown($metric, $value) . ($label === 'partial' ? '+' : '');
+                }
+            }
+            if (($s['last_ok_at'] ?? null) === null) {
+                $bits[] = 'no good run yet';
+            }
+            if (($s['stale'] ?? true) === true) {
+                $bits[] = 'stale';
+            }
+            $error = $s['last_error'] ?? null;
+            $items .= '<li class="number" data-status="' . self::e((string) ($s['status'] ?? '')) . '" data-stale="'
+                . (($s['stale'] ?? true) === true ? '1' : '0') . '"><p class="subject">' . self::e((string) ($s['name'] ?? ''))
+                . '</p><p class="meta">' . self::e(implode(' · ', $bits)) . '</p>'
+                . ($pages !== '' ? '<ol class="pages">' . $pages . '</ol>' : '')
+                . (is_string($error) && $error !== '' ? '<p class="error">' . self::e($error) . '</p>' : '') . '</li>';
+        }
+        return '<ul id="numbers" class="list">' . ($items !== '' ? $items : '<li class="quiet">No numbers collected yet.</li>') . '</ul>';
+    }
+
+    private static function numberShown(string $metric, $v): string
+    {
+        if (!is_int($v) && !is_float($v)) {
+            return '?';
+        }
+        return $metric === 'ctr' ? number_format($v * 100, 1) . '%' : ($metric === 'position' ? number_format($v, 1) : (string) $v);
+    }
+
     private static function factItem(array $f): string
     {
         $url = $f['url'] ?? null;
@@ -385,7 +439,7 @@ HTML;
     }
 
     private static function render(string $token, array $projects, array $answers, array $clients, bool $elevated,
-        string $strip, string $tiles, string $attention, string $news): string
+        string $strip, string $tiles, string $attention, string $news, string $numbers): string
     {
         $t = self::e($token);
         $banner = $elevated
@@ -416,6 +470,7 @@ HTML;
 <script type="module" src="/assets/projects.js"></script>
 <script type="module" src="/assets/attention.js"></script>
 <script type="module" src="/assets/news.js"></script>
+<script type="module" src="/assets/numbers.js"></script>
 </head>
 <body>
 $banner
@@ -472,6 +527,11 @@ $attention
 <section class="panel news" aria-labelledby="news-h">
 <h2 id="news-h">Headlines</h2>
 $news
+</section>
+
+<section class="panel numbers" aria-labelledby="numbers-h">
+<h2 id="numbers-h">Numbers</h2>
+$numbers
 </section>
 </main>
 </body>

@@ -42,6 +42,7 @@ task, and its "Done-test:" paragraph is what done means.
 - `D:\Dev\htdocs\_kc-dashboard\tests\NumbersTest.php`
 - `D:\Dev\htdocs\_kc-dashboard\tests\NumbersApiTest.php`
 - `D:\Dev\htdocs\_kc-dashboard\public\index.php` (wiring only)
+- `D:\Dev\htdocs\_kc-dashboard\config\properties.php` (new: invented placeholder ids per client slug, the Bugsink token file path under .credentials (a placeholder name), Bugsink base URL, status URL)
 
 ## Done-test
 From plan.md card 67, word for word: the "Done-test:" paragraph of card

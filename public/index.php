@@ -5,6 +5,7 @@ require_once __DIR__ . '/../src/Sys/Elevation.php';
 require_once __DIR__ . '/../src/Jobs/AskHandler.php';
 require_once __DIR__ . '/../src/Attention/Selector.php';
 require_once __DIR__ . '/../src/News/Scorer.php';
+require_once __DIR__ . '/../src/Numbers/GaCollector.php';
 
 $data = __DIR__ . '/../data';
 $log = new Log($data . '/app.log');
@@ -37,4 +38,10 @@ Response::emit(View::page($_SERVER, $data . '/token', $log, [
         Db::migrate($pdo);
         return $pdo;
     }, NewsApi::topics(), '', 1, time(), NewsApi::PAGE_SIZE, $data . '/news-cache.json', false),
+    // Same list numbers.php serves, so the numbers show with JS off.
+    'numbers' => function () use ($data): array {
+        $pdo = Db::open($data . '/dashboard.sqlite');
+        Db::migrate($pdo);
+        return NumbersApi::data($pdo, time());
+    },
 ]));
