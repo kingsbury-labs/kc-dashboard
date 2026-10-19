@@ -36,6 +36,8 @@ task, and its "Done-test:" paragraph is what done means.
 - `D:\Dev\htdocs\_kc-dashboard\tests\fixtures\running\` (new files inside)
 - `D:\Dev\htdocs\_kc-dashboard\tests\SessionRegistryTest.php`
 - `D:\Dev\htdocs\_kc-dashboard\tests\NowApiTest.php`
+- `D:\Dev\htdocs\_kc-dashboard\src\Http\RequestGuard.php` (round two)
+- `D:\Dev\htdocs\_kc-dashboard\tests\RequestGuardTest.php` (round two)
 
 ## Done-test
 From plan.md card 74, word for word: the "Done-test:" paragraph of card

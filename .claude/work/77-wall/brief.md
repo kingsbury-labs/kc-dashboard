@@ -23,6 +23,7 @@ task, and its "Done-test:" paragraph is what done means.
   JS; desktop layout through `min-width` only; no `max-width` media
   query; JS writes text with `textContent` only (DomSinks).
 - PHP 8.2 only. Edit PHP with the Edit/Write tools only, never sed or node -e.
+- Every `public/api/*.php` GET goes through `RequestGuard::checkApiRead()` (same-origin, not a navigation, valid `X-KC-Token`; card 74/74a) and every POST through `checkWrite()`; ApiGuardSweepTest fails any endpoint that does not. JS sends `X-KC-Token` on every fetch. EventSource cannot send headers: for `wall-stream.php` pick the safest workable design (for example a short-lived one-use stream ticket fetched with the token, passed as a query value and never logged), say why in result.md, and keep the sweep test passing.
 
 ## Files you may touch
 - `D:\Dev\htdocs\_kc-dashboard\public\wall.php`

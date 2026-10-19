@@ -36,6 +36,28 @@ class RequestGuard
         return ($server['HTTP_SEC_FETCH_MODE'] ?? null) === 'navigate';
     }
 
+    // A read that starts processes. checkRead lets another site navigate here, and a navigation (an iframe on a
+    // timer, an auto-submitted GET form) would start them, so this also needs the token header, and a browser
+    // request must be same-origin and not a navigation. No Sec-Fetch headers at all is curl; the token covers it.
+    public function checkApiRead(array $server): bool
+    {
+        if (!$this->checkRead($server)) {
+            return false;
+        }
+        $site = $server['HTTP_SEC_FETCH_SITE'] ?? null;
+        $mode = $server['HTTP_SEC_FETCH_MODE'] ?? null;
+        if (($site !== null || $mode !== null) && ($site !== 'same-origin' || $mode === null || $mode === 'navigate')) {
+            return false;
+        }
+        return $this->tokenSent($server);
+    }
+
+    private function tokenSent(array $server): bool
+    {
+        $sent = $server[self::TOKEN_HEADER] ?? null;
+        return is_string($sent) && $this->token !== '' && hash_equals($this->token, $sent);
+    }
+
     public function checkWrite(array $server): bool
     {
         if (!$this->checkRead($server)) {
@@ -44,8 +66,7 @@ class RequestGuard
         if (($server['REQUEST_METHOD'] ?? null) !== 'POST') {
             return false;
         }
-        $sent = $server[self::TOKEN_HEADER] ?? null;
-        if (!is_string($sent) || $this->token === '' || !hash_equals($this->token, $sent)) {
+        if (!$this->tokenSent($server)) {
             return false;
         }
         return ($server['HTTP_ORIGIN'] ?? null) === 'http://' . $server['HTTP_HOST'];

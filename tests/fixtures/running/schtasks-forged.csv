@@ -1,0 +1,7 @@
+"HostName","TaskName","Next Run Time","Status","Logon Mode","Last Run Time","Last Result","Author","Task To Run","Start In","Comment"
+"PC","\Vendor\Updater","N/A","Ready","Interactive/Background","10/19/2026 1:00:00 AM","0","Vendor","C:\Vendor\up.exe","C:\Vendor\","line one
+PC,\KC Dashboard\forged,N/A,Ready,x,N/A,1,x,CMDLINE-MARKER-74,x,x"
+"HostName","TaskName","Next Run Time","Status","Logon Mode","Last Run Time","Last Result","Author","Task To Run","Start In","Comment"
+"PC","\KC Dashboard\collect-projects","10/19/2026 9:15:00 AM","Ready","Interactive only","10/19/2026 9:00:00 AM","0","TaskName","C:\xampp\php\php.exe bin\collect-projects.php","D:\Dev\htdocs\_kc-dashboard\","N/A"
+"PC","\KC Dashboard\daily-read","10/20/2026 6:00:00 AM","Ready","Interactive only","10/19/2026 6:00:00 AM","1","Rob","C:\xampp\php\php.exe bin\daily-read.php","D:\Dev\htdocs\_kc-dashboard\","N/A"
+"PC","\KC Dashboard\short","N/A","Ready"

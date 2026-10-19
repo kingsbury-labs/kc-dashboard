@@ -223,5 +223,20 @@
     },
     "verified_at": "2026-10-19T15:48:04.080Z",
     "tree": "a65b17a333d3e2816bdedd97503b0bd7fe530d21075cdb725734c00c39282d1a"
+  },
+  {
+    "id": "74",
+    "title": "What's running",
+    "brief": ".claude/work/74-running/brief.md",
+    "start_sha": "0f908c236ed3245e0cf1aa32a5f776a7339b657d",
+    "passes": true,
+    "scope_ok": {
+      "at": "2026-10-19T16:10:06.219Z",
+      "start_sha": "0f908c236ed3245e0cf1aa32a5f776a7339b657d",
+      "mutation_evidence": true,
+      "tree": "40a019453a1a4281b9251f00093bcf04661ee7f4ab1f1923f4335ff5fdd563b0"
+    },
+    "verified_at": "2026-10-19T16:10:18.426Z",
+    "tree": "40a019453a1a4281b9251f00093bcf04661ee7f4ab1f1923f4335ff5fdd563b0"
   }
 ]

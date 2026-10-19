@@ -24,6 +24,7 @@ task, and its "Done-test:" paragraph is what done means.
   query; JS writes text with `textContent` only (DomSinks).
 - PHP 8.2 only. Edit PHP with the Edit/Write tools only, never sed or node -e.
 - Python is `C:\Users\roban\AppData\Local\Programs\Python\Python311\python.exe` (in `config/executables.php`). `--from-fixture` must run with no credentials and no network: import the Google client libraries only on the live path. Never open anything under `D:\Dev\htdocs\.credentials\`; `config/properties.php` holds invented placeholder ids until Rob fills it (card 08).
+- Every `public/api/*.php` GET goes through `RequestGuard::checkApiRead()` (same-origin, not a navigation, valid `X-KC-Token`; card 74/74a) and every POST through `checkWrite()`; ApiGuardSweepTest fails any endpoint that does not. JS sends `X-KC-Token` on every fetch.
 
 ## Files you may touch
 - `D:\Dev\htdocs\_kc-dashboard\bin\collect_ga.py`

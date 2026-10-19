@@ -1,0 +1,5 @@
+"HostName","TaskName","Next Run Time","Status","Logon Mode","Last Run Time","Last Result","Author","Task To Run","Start In","Comment"
+"PC","\Microsoft\Office\Update","N/A","Ready","Interactive/Background","10/19/2026 1:00:00 AM","0","Microsoft","C:\Office\update.exe","N/A","N/A"
+"HostName","TaskName","Next Run Time","Status","Logon Mode","Last Run Time","Last Result","Author","Task To Run","Start In","Comment"
+"PC","\KC Dashboard\collect-projects","10/19/2026 9:15:00 AM","Ready","Interactive only","10/19/2026 9:00:00 AM","0","Rob","C:\xampp\php\php.exe bin\collect-projects.php CMDLINE-MARKER-74","D:\Dev\htdocs\_kc-dashboard","N/A"
+"PC","\KC Dashboard\daily-read","10/20/2026 6:00:00 AM","Ready","Interactive only","10/19/2026 6:00:00 AM","1","Rob","C:\xampp\php\php.exe bin\daily-read.php CMDLINE-MARKER-74","D:\Dev\htdocs\_kc-dashboard","N/A"

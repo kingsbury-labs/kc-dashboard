@@ -83,3 +83,31 @@ test('another site may only navigate here: subresource and fetch requests are re
     }
     assert_true($g->checkRead($s), 'no Sec-Fetch headers, as from curl');
 });
+
+test('api read needs the token and a same-origin non-navigation fetch', function () {
+    $g = new RequestGuard(GUARD_TOKEN);
+    $s = guard_ok('localhost:8787');
+    $s['REQUEST_METHOD'] = 'GET';
+    unset($s['HTTP_ORIGIN']);
+    $fetch = ['HTTP_SEC_FETCH_SITE' => 'same-origin', 'HTTP_SEC_FETCH_MODE' => 'cors'];
+    assert_true($g->checkApiRead($fetch + $s), 'same-origin fetch with token');
+    assert_true($g->checkApiRead($s), 'no Sec-Fetch headers with token, as from curl');
+    $refused = [
+        'cross-site navigate' => ['HTTP_SEC_FETCH_SITE' => 'cross-site', 'HTTP_SEC_FETCH_MODE' => 'navigate'],
+        'same-origin navigate' => ['HTTP_SEC_FETCH_SITE' => 'same-origin', 'HTTP_SEC_FETCH_MODE' => 'navigate'],
+        'none navigate' => ['HTTP_SEC_FETCH_SITE' => 'none', 'HTTP_SEC_FETCH_MODE' => 'navigate'],
+        'none cors' => ['HTTP_SEC_FETCH_SITE' => 'none', 'HTTP_SEC_FETCH_MODE' => 'cors'],
+        'same-site cors' => ['HTTP_SEC_FETCH_SITE' => 'same-site', 'HTTP_SEC_FETCH_MODE' => 'cors'],
+        'site without mode' => ['HTTP_SEC_FETCH_SITE' => 'same-origin'],
+        'mode without site' => ['HTTP_SEC_FETCH_MODE' => 'cors'],
+    ];
+    foreach ($refused as $name => $headers) {
+        assert_true(!$g->checkApiRead($headers + $s), $name);
+    }
+    $none = $fetch + $s;
+    unset($none[RequestGuard::TOKEN_HEADER]);
+    assert_true(!$g->checkApiRead($none), 'no token');
+    assert_true(!$g->checkApiRead([RequestGuard::TOKEN_HEADER => 'fake-token-ffffffffffffffffffffffffffffffff'] + $fetch + $s), 'wrong token');
+    assert_true(!(new RequestGuard(''))->checkApiRead([RequestGuard::TOKEN_HEADER => ''] + $fetch + $s), 'empty token');
+    assert_true(!$g->checkApiRead(['HTTP_HOST' => 'evil.com'] + $fetch + $s), 'foreign host');
+});

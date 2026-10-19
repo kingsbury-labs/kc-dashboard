@@ -9,6 +9,9 @@ return [
     'taskkill' => 'C:\\Windows\\System32\\taskkill.exe',
     'tasklist' => 'C:\\Windows\\System32\\tasklist.exe',
     'whoami' =>'C:\\Windows\\System32\\whoami.exe',
+    'netstat' => 'C:\\Windows\\System32\\netstat.exe',
+    'schtasks' => 'C:\\Windows\\System32\\schtasks.exe',
+    'powershell' => 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',
     'nvidia-smi' => 'C:\\Windows\\System32\\nvidia-smi.exe',
     'llama-server' => 'D:\\Dev\\htdocs\\_kc-dashboard\\llm\\fork\\llama-server.exe',
 ];

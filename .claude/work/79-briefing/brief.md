@@ -24,6 +24,7 @@ task, and its "Done-test:" paragraph is what done means.
   query; JS writes text with `textContent` only (DomSinks).
 - PHP 8.2 only. Edit PHP with the Edit/Write tools only, never sed or node -e.
 - Tests use a temp vault root and fixtures only; never write `D:\Dev\vault\kc`. The daily read is card 72's `DailyRead`, faked.
+- Every `public/api/*.php` GET goes through `RequestGuard::checkApiRead()` (same-origin, not a navigation, valid `X-KC-Token`; card 74/74a) and every POST through `checkWrite()`; ApiGuardSweepTest fails any endpoint that does not. JS sends `X-KC-Token` on every fetch.
 
 ## Files you may touch
 - `D:\Dev\htdocs\_kc-dashboard\src\Briefing\Composer.php`
