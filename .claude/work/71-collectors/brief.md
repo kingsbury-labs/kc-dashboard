@@ -24,6 +24,8 @@ task, and its "Done-test:" paragraph is what done means.
   query; JS writes text with `textContent` only (DomSinks).
 - PHP 8.2 only. Edit PHP with the Edit/Write tools only, never sed or node -e.
 - Tests read only fixtures: never the real `C:\Users\roban\kc-finance\alerts\alerts.json`, `_DASHBOARD.md` or a live host. The finance contract is `D:\Dev\htdocs\_kc-dashboard\.claude\work\finance-contract.md`; its never-store list is binding.
+- From card 70 (read its result.md): FactStore::record requires every id to start with `<source>:` and be at most 512 bytes of valid UTF-8 with no control characters; build ids from a constant prefix plus a stable key, never from free text alone. The salient hash must include the due date and severity. A finance url links only under `http://127.0.0.1:8000/` (AttentionApi::safeUrl is source-aware). Pass collector errors through Log redaction (FactStore::sourceFailed takes the Log).
+- The PII hook refuses IP-address literals and real-looking emails or phone numbers in files; use host names like `example.test` in fixtures.
 
 ## Files you may touch
 - `D:\Dev\htdocs\_kc-dashboard\src\Net\HttpClient.php`

@@ -1,0 +1,2 @@
+{"generated_at": "2026-10-16T07:00:00Z", "schema": 1, "sources": [],
+ "facts": [{"id": "todo:old", "kind": "todo", "subject": "Old to-do", "due_date": null, "severity": "low", "amount_cents": null, "evidence": "x", "url": null}]}

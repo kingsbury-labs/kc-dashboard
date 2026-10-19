@@ -328,5 +328,20 @@
     },
     "verified_at": "2026-10-19T20:42:15.789Z",
     "tree": "4ca30128880e6274ec58ecb7cbef880ca55bd39a7ed47c3eb29bfe151d66efa5"
+  },
+  {
+    "id": "71",
+    "title": "Rule collectors",
+    "brief": ".claude/work/71-collectors/brief.md",
+    "start_sha": "13d5b7996ab5937fef91e4f7cfcd715d2f19946a",
+    "passes": true,
+    "scope_ok": {
+      "at": "2026-10-19T20:48:19.377Z",
+      "start_sha": "13d5b7996ab5937fef91e4f7cfcd715d2f19946a",
+      "mutation_evidence": true,
+      "tree": "0d79a4a1a38a8724fd0f24475b9844b1ebfbaf03b4bc4ca524d29dcd8b2684e2"
+    },
+    "verified_at": "2026-10-19T20:49:04.459Z",
+    "tree": "0d79a4a1a38a8724fd0f24475b9844b1ebfbaf03b4bc4ca524d29dcd8b2684e2"
   }
 ]

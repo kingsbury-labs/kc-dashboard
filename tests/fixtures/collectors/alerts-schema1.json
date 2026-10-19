@@ -1,0 +1,9 @@
+{"generated_at": "2026-10-17T08:00:00Z", "schema": 1,
+ "sources": [{"name": "bigcapital", "last_ok_at": "2026-10-17T08:00:00Z", "status": "ok"}],
+ "facts": [
+  {"id": "invoice:INV-0042:overdue-14", "kind": "invoice_overdue", "subject": "Birch Lane Roofing Ltd", "due_date": "2026-10-03",
+   "severity": "high", "amount_cents": 125000, "evidence": "INV-0042 is 14 days overdue", "url": "http://127.0.0.1:8000/invoices/42",
+   "account_number": "ACCT-CANARY-XQZ-7781", "raw_csv_line": "CSVLINE-CANARY-XQZ"},
+  {"id": "todo:file-hst", "kind": "todo", "subject": "File the HST return", "due_date": null,
+   "severity": "low", "amount_cents": null, "evidence": "quarterly", "url": "javascript:alert(1)"}
+ ]}
