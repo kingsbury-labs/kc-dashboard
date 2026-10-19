@@ -163,5 +163,20 @@
     },
     "verified_at": "2026-10-12T19:09:42.820Z",
     "tree": "00677dd98301997d367fcb2fad00c5bed01e15d5c7a988b677330a621df71420"
+  },
+  {
+    "id": "59",
+    "title": "Spec update for revision 4",
+    "brief": ".claude/work/59-spec/brief.md",
+    "start_sha": "f28f19e6de2777d74943a1b055dabf0924c44fa1",
+    "passes": true,
+    "scope_ok": {
+      "at": "2026-10-19T14:31:25.082Z",
+      "start_sha": "f28f19e6de2777d74943a1b055dabf0924c44fa1",
+      "mutation_evidence": true,
+      "tree": "c4ac83988f4eb1cbbd4d26807fac7269583b7f3bf1d107c99d20e29c4452c2bc"
+    },
+    "verified_at": "2026-10-19T14:31:44.569Z",
+    "tree": "c4ac83988f4eb1cbbd4d26807fac7269583b7f3bf1d107c99d20e29c4452c2bc"
   }
 ]
