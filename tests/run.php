@@ -2,6 +2,11 @@
 // Plain test runner. Test files call test('name', fn) and the assert_* helpers.
 // Output contract: one "FAIL <name>" line per failure, last line "Tests: N passed, M failed".
 
+// Only ever from the command line: under a web server this file must do nothing at all.
+if (PHP_SAPI !== 'cli') {
+    exit(1);
+}
+
 $GLOBALS['__tests'] = [];
 
 function test(string $name, callable $fn): void

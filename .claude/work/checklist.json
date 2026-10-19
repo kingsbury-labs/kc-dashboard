@@ -178,5 +178,20 @@
     },
     "verified_at": "2026-10-19T14:31:44.569Z",
     "tree": "c4ac83988f4eb1cbbd4d26807fac7269583b7f3bf1d107c99d20e29c4452c2bc"
+  },
+  {
+    "id": "60",
+    "title": "Ask Claude core",
+    "brief": ".claude/work/60-ask/brief.md",
+    "start_sha": "e554bd051d49847724eec472329c299a86ddfc23",
+    "passes": true,
+    "scope_ok": {
+      "at": "2026-10-19T15:02:36.485Z",
+      "start_sha": "e554bd051d49847724eec472329c299a86ddfc23",
+      "mutation_evidence": true,
+      "tree": "886f3d50dc80236e05ceacf28c8d2ff3e69506b50966b1bba842e3abf3cf382e"
+    },
+    "verified_at": "2026-10-19T15:02:58.714Z",
+    "tree": "886f3d50dc80236e05ceacf28c8d2ff3e69506b50966b1bba842e3abf3cf382e"
   }
 ]

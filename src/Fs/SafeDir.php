@@ -6,9 +6,10 @@ class SafeDir
     // Junctions and symlinks resolve elsewhere, so the realpath equality rejects them.
     // A junction to a volume GUID path is left unresolved by realpath, so any reparse
     // point is also caught by stat and lstat disagreeing on the inode.
+    // Dot folders (.git, .credentials, and . and .. themselves) are never safe.
     public static function isDirectChild(string $root, string $name): bool
     {
-        if ($name === '' || $name === '.' || $name === '..'
+        if ($name === '' || $name[0] === '.'
             || strpbrk($name, "/\:\0") !== false) {
             return false;
         }

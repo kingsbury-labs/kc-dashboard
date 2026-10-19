@@ -155,6 +155,27 @@ test('the child sees only allowlisted environment variables', function () {
     }
 });
 
+test('extraEnv reaches the child and the parent environment cannot override it', function () {
+    putenv('KCPR_FIXED=parent');
+    try {
+        $allow = array_merge(ProcessRunner::DEFAULT_ENV, ['KCPR_FIXED']);
+        // Same spelling, then a different case, which Windows treats as the same variable.
+        foreach (['KCPR_FIXED', 'kcpr_fixed'] as $spelling) {
+            $runner = new ProcessRunner(['php' => PR_PHP], null, $allow, 'C:\\Windows\\System32\\taskkill.exe',
+                [$spelling => 'fixed', 'KCPR_ONLY_EXTRA' => '1']);
+            $r = $runner->run([PR_PHP, '-r', 'echo json_encode(getenv());'], null, 20);
+            $env = json_decode($r['stdout'], true);
+            assert_true(is_array($env), 'no env listing: ' . $r['stderr']);
+            $hits = array_values(array_filter(array_keys($env), fn($n) => strcasecmp($n, 'KCPR_FIXED') === 0));
+            assert_same(1, count($hits), $spelling . ' copies');
+            assert_same('fixed', $env[$hits[0]], $spelling . ' value');
+            assert_same('1', $env['KCPR_ONLY_EXTRA'] ?? null, 'extra-only variable');
+        }
+    } finally {
+        putenv('KCPR_FIXED');
+    }
+});
+
 test('the fake records calls and starts nothing', function () {
     $fake = new FakeProcessRunner();
     $fake->willReturn(3, 'out');

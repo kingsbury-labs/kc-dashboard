@@ -18,19 +18,23 @@ class ProcessRunner
     private array $envAllow;
     private ?string $cwdRoot;
     private string $taskkill;
+    /** @var array<string,string> fixed values set on every child, over anything inherited */
+    private array $extraEnv;
 
     public function __construct(array $executables, ?string $cwdRoot = null, array $envAllow = self::DEFAULT_ENV,
-        string $taskkill = 'C:\\Windows\\System32\\taskkill.exe')
+        string $taskkill = 'C:\\Windows\\System32\\taskkill.exe', array $extraEnv = [])
     {
         $this->executables = $executables;
         $this->cwdRoot = $cwdRoot;
         $this->envAllow = $envAllow;
         $this->taskkill = $taskkill;
+        $this->extraEnv = $extraEnv;
     }
 
-    public static function fromConfig(?string $cwdRoot = null): self
+    public static function fromConfig(?string $cwdRoot = null, array $extraEnv = []): self
     {
-        return new self(require __DIR__ . '/../../config/executables.php', $cwdRoot);
+        return new self(require __DIR__ . '/../../config/executables.php', $cwdRoot, self::DEFAULT_ENV,
+            'C:\\Windows\\System32\\taskkill.exe', $extraEnv);
     }
 
     // Returns the resolved real path of an allowlisted .exe, or throws.
@@ -72,6 +76,15 @@ class ProcessRunner
                     $env[$name] = $value;
                 }
             }
+        }
+        // Windows names are case-insensitive: drop any inherited spelling first, or the child sees two.
+        foreach ($this->extraEnv as $name => $value) {
+            foreach (array_keys($env) as $have) {
+                if (strcasecmp($have, $name) === 0) {
+                    unset($env[$have]);
+                }
+            }
+            $env[$name] = (string) $value;
         }
         return $env;
     }

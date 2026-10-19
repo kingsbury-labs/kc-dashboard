@@ -54,6 +54,29 @@ test('worker fails an unknown type and a throwing handler without re-queueing', 
     }
 });
 
+test('worker recovers a claim older than the stale timeout and runs it', function () {
+    [$path, $pdo] = queue_db();
+    try {
+        // A worker that claimed these and died: one 1000 s ago, one 10 s ago.
+        $old = new Queue($pdo, fn() => time() - 1000);
+        $stale = $old->enqueue('test.echo', ['word' => 'again']);
+        assert_same($stale, (int) $old->claim()['id']);
+        $recent = new Queue($pdo, fn() => time() - 10);
+        $live = $recent->enqueue('test.echo', ['word' => 'live']);
+        assert_same($live, (int) $recent->claim()['id']);
+        assert_same(0, worker_run($path, ['--stale=600']));
+        $q = new Queue($pdo);
+        assert_same('done', $q->get($stale)['status']);
+        assert_same('echo:again', $q->get($stale)['result']);
+        assert_same('2', (string) $q->get($stale)['attempts'], 'claimed twice');
+        assert_same('running', $q->get($live)['status'], 'a recent claim is left alone');
+        $pdo = $q = $old = $recent = null;
+    } finally {
+        queue_cleanup($path);
+        @unlink($path . '.log');
+    }
+});
+
 test('worker with a spent budget leaves jobs queued', function () {
     [$path, $pdo] = queue_db();
     try {

@@ -89,6 +89,34 @@ test('missing folder, a file, and an unresolvable root are rejected', function (
     }
 });
 
+// mklink through cmd, not New-Item: New-Item stores a volume GUID target as \??\\\?\Volume{...},
+// which realpath cannot follow at all, so a test built on it passes with or without the inode check.
+function safedir_mklink(string $link, string $target): void
+{
+    $proc = proc_open('mklink /J "' . $link . '" "' . $target . '"', [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
+    assert_true(is_resource($proc), 'could not start cmd');
+    stream_get_contents($pipes[1]);
+    $err = stream_get_contents($pipes[2]);
+    fclose($pipes[1]);
+    fclose($pipes[2]);
+    $code = proc_close($proc);
+    assert_true($code === 0 && @lstat($link) !== false, 'junction not created: ' . trim($err));
+}
+
+test('a dot folder inside the root is rejected', function () {
+    $root = safedir_temp();
+    try {
+        mkdir($root . '\\.hidden');
+        mkdir($root . '\\.credentials');
+        assert_same(false, SafeDir::isDirectChild($root, '.hidden'), '.hidden');
+        assert_same(false, SafeDir::isDirectChild($root, '.credentials'), '.credentials');
+    } finally {
+        @rmdir($root . '\\.hidden');
+        @rmdir($root . '\\.credentials');
+        @rmdir($root);
+    }
+});
+
 function safedir_volume_path(string $path): string
 {
     $proc = proc_open(
@@ -112,7 +140,11 @@ test('a junction to a volume GUID path outside the root is rejected', function (
     $root = safedir_temp();
     $outside = safedir_temp();
     try {
-        safedir_junction($root . '\\vol', safedir_volume_path($outside));
+        safedir_mklink($root . '\\vol', safedir_volume_path($outside));
+        // The bypass shape: realpath hands back the link itself and is_dir agrees, so only the inode check stops it.
+        clearstatcache(true);
+        assert_same(realpath($root) . '\\vol', realpath($root . '\\vol'), 'realpath left the junction unresolved');
+        assert_true(is_dir($root . '\\vol'), 'junction reads as a folder');
         assert_same(false, SafeDir::isDirectChild($root, 'vol'));
     } finally {
         @rmdir($root . '\\vol');
