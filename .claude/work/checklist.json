@@ -238,5 +238,20 @@
     },
     "verified_at": "2026-10-19T16:10:18.426Z",
     "tree": "40a019453a1a4281b9251f00093bcf04661ee7f4ab1f1923f4335ff5fdd563b0"
+  },
+  {
+    "id": "74a",
+    "title": "Token on every API read",
+    "brief": ".claude/work/74a-apiread/brief.md",
+    "start_sha": "93d36fe9b7e113ee7594e3f48124b67605b1d165",
+    "passes": true,
+    "scope_ok": {
+      "at": "2026-10-19T16:35:22.869Z",
+      "start_sha": "93d36fe9b7e113ee7594e3f48124b67605b1d165",
+      "mutation_evidence": true,
+      "tree": "1e28fb2a153b6e6115428a15473921348373496ae7ab6275da4518e8fd1fd138"
+    },
+    "verified_at": "2026-10-19T16:35:39.986Z",
+    "tree": "1e28fb2a153b6e6115428a15473921348373496ae7ab6275da4518e8fd1fd138"
   }
 ]

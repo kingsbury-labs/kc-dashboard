@@ -75,6 +75,23 @@ function ask_post(array $w, array $body, array $server = []): array
     return AskApi::ask(ask_server($server), json_encode($body), $w['base'] . '\\token', $w['log'], $w['pdo'], $w['projects']);
 }
 
+// A same-origin fetch of answers.php from the page, with the token unless $over removes it.
+function ask_get_server(array $over = []): array
+{
+    return array_filter($over + ['REMOTE_ADDR' => '127.0.0.1', 'HTTP_HOST' => 'localhost:8787', 'REQUEST_METHOD' => 'GET',
+        'HTTP_SEC_FETCH_SITE' => 'same-origin', 'HTTP_SEC_FETCH_MODE' => 'cors', RequestGuard::TOKEN_HEADER => ASK_TOKEN],
+        fn($v) => $v !== null);
+}
+
+function ask_answers(array $w, array $over = [], ?bool &$opened = null): array
+{
+    $opened = false;
+    return AskApi::answersApi(ask_get_server($over), $w['base'] . '\\token', $w['log'], function () use ($w, &$opened): PDO {
+        $opened = true;
+        return $w['pdo'];
+    });
+}
+
 function ask_jobs(array $w): int
 {
     return (int) $w['pdo']->query('SELECT COUNT(*) FROM jobs')->fetchColumn();
@@ -186,7 +203,7 @@ test('a 21st answer drops the oldest', function () {
         assert_same(20, (int) $w['pdo']->query('SELECT COUNT(*) FROM asks')->fetchColumn());
         assert_same(null, ask_row($w, $ids[0]), 'oldest dropped');
         assert_same('a2', ask_row($w, $ids[1])['answer'], 'second kept');
-        [$status, , $out] = AskApi::answers(ask_server(['REQUEST_METHOD' => 'GET']), $w['pdo']);
+        [$status, , $out] = ask_answers($w);
         assert_same(200, $status);
         $answers = json_decode($out, true)['answers'];
         assert_same(20, count($answers));
@@ -347,14 +364,43 @@ test('answers.php refuses a foreign Host', function () {
     $w = ask_world();
     try {
         foreach (['evil.com', 'localhost', 'localhost:8787.evil.com'] as $host) {
-            [$status, , $body] = AskApi::answers(['REMOTE_ADDR' => '127.0.0.1', 'HTTP_HOST' => $host], $w['pdo']);
+            [$status, , $body] = ask_answers($w, ['HTTP_HOST' => $host], $opened);
             assert_same(403, $status, $host);
             assert_true(!str_contains($body, 'answers'), 'no data for ' . $host);
+            assert_true(!$opened, 'database opened for ' . $host);
         }
-        [$status, $headers, $body] = AskApi::answers(['REMOTE_ADDR' => '127.0.0.1', 'HTTP_HOST' => 'localhost:8787'], $w['pdo']);
+        [$status, $headers, $body] = ask_answers($w);
         assert_same(200, $status);
         assert_same('application/json', $headers['Content-Type']);
         assert_same(['answers' => []], json_decode($body, true));
+    } finally {
+        ask_cleanup($w);
+    }
+});
+
+test('answers.php without the token or as a navigation is refused before the database opens', function () {
+    $w = ask_world();
+    try {
+        [, , $body] = ask_post($w, ['question' => 'private question', 'project' => 'alpha']);
+        $refused = [
+            'no token' => [RequestGuard::TOKEN_HEADER => null],
+            'wrong token' => [RequestGuard::TOKEN_HEADER => 'fake-wrong'],
+            'no token, curl' => [RequestGuard::TOKEN_HEADER => null, 'HTTP_SEC_FETCH_SITE' => null, 'HTTP_SEC_FETCH_MODE' => null],
+            'cross-site navigate' => ['HTTP_SEC_FETCH_SITE' => 'cross-site', 'HTTP_SEC_FETCH_MODE' => 'navigate'],
+            'same-origin navigate' => ['HTTP_SEC_FETCH_MODE' => 'navigate'],
+        ];
+        foreach ($refused as $name => $over) {
+            [$status, , $out] = ask_answers($w, $over, $opened);
+            assert_same(403, $status, $name);
+            assert_same('{"error":"forbidden"}', $out, $name);
+            assert_true(!$opened, 'database opened: ' . $name);
+        }
+        // With the token the rows are the same ones answers() gives index.php.
+        [$status, , $out] = ask_answers($w, [], $opened);
+        assert_same(200, $status);
+        assert_true($opened, 'database opened');
+        assert_same(AskApi::answers(ask_get_server(), $w['pdo'])[2], $out);
+        assert_same('private question', json_decode($out, true)['answers'][0]['question']);
     } finally {
         ask_cleanup($w);
     }

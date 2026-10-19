@@ -1,5 +1,6 @@
 // Ask Claude and the answers list. Every value from the server is written with textContent.
-const token = document.querySelector('meta[name="kc-token"]')?.content ?? '';
+// Every /api/ request sends it: reads as well as writes are refused without it.
+export const token = document.querySelector('meta[name="kc-token"]')?.content ?? '';
 const form = document.getElementById('ask-form');
 const note = document.getElementById('ask-note');
 const list = document.getElementById('answers');
@@ -31,7 +32,7 @@ function pending() {
 
 async function refresh() {
   try {
-    const res = await fetch('/api/answers.php', { cache: 'no-store' });
+    const res = await fetch('/api/answers.php', { cache: 'no-store', headers: { 'X-KC-Token': token } });
     if (!res.ok) return;
     const data = await res.json();
     list.replaceChildren(...(data.answers ?? []).map(answerItem));

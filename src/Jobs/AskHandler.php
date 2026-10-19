@@ -116,7 +116,8 @@ class AskApi
     public static function ask(array $server, string $body, string $tokenPath, Log $log, PDO $pdo, ProjectList $projects): array
     {
         try {
-            // Read check first, so a refused request never creates or reads the token.
+            // Read check first, so a foreign address or Host never creates or reads the token. A request that
+            // passes it has loaded the token before checkWrite refuses it.
             if (!(new RequestGuard(''))->checkRead($server)
                 || !(new RequestGuard(Token::load($tokenPath, $log)))->checkWrite($server)) {
                 return Response::json(403, ['error' => 'forbidden']);
@@ -151,6 +152,24 @@ class AskApi
         }
     }
 
+    // GET /api/answers.php. The page's fetch sends the token; the database opens only once the guard passes.
+    public static function answersApi(array $server, string $tokenPath, Log $log, Closure $pdo): array
+    {
+        try {
+            // Read check first, so a foreign address or Host never creates or reads the token. A request that
+            // passes it has loaded the token before checkApiRead refuses it.
+            if (!(new RequestGuard(''))->checkRead($server)
+                || !(new RequestGuard(Token::load($tokenPath, $log)))->checkApiRead($server)) {
+                return Response::json(403, ['error' => 'forbidden']);
+            }
+            return self::answers($server, $pdo());
+        } catch (Throwable $e) {
+            $log->exception($e, ['where' => 'answers']);
+            return Response::error($e);
+        }
+    }
+
+    // The rows behind answersApi, also rendered into the page by index.php, which is checkRead by design.
     public static function answers(array $server, PDO $pdo): array
     {
         try {

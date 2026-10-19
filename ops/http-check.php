@@ -121,6 +121,29 @@ foreach ($writes as $p) {
     body_clean($r, "$p bad origin");
 }
 
+// Every other endpoint is a read, and a read needs the token too and must not be a navigation (card 74a).
+$reads = array_values(array_diff($paths, ['/'], WRITES));
+if (!in_array('/api/answers.php', $reads, true)) {
+    echo "FAIL /api/answers.php is not among the read endpoints; nothing checked\n";
+    exit(1);
+}
+foreach ($reads as $p) {
+    $tokenHdr = [TOKEN_HEADER . ': ' . $token];
+
+    $r = req('GET', BASE . $p, ['Host: 127.0.0.1:8787']);
+    check($r['status'] === 403, "$p refuses GET without token (got {$r['status']})");
+    body_clean($r, "$p no token");
+
+    $r = req('GET', BASE . $p, array_merge(['Host: 127.0.0.1:8787', 'Sec-Fetch-Site: cross-site',
+        'Sec-Fetch-Mode: navigate'], $tokenHdr));
+    check($r['status'] === 403, "$p refuses a navigation with the token (got {$r['status']})");
+
+    $r = req('GET', BASE . $p, array_merge(['Host: 127.0.0.1:8787', 'Sec-Fetch-Site: same-origin',
+        'Sec-Fetch-Mode: cors'], $tokenHdr));
+    check($r['status'] === 200, "$p answers a same-origin fetch with the token (got {$r['status']})");
+    body_clean($r, "$p with token");
+}
+
 $inherited = ['/phpmyadmin/', '/cgi-bin/', '/php-cgi/', '/server-status', '/server-info', '/licenses/', '/webalizer/', '/icons/', '/examples/'];
 foreach (array_merge(['/data/token', '/src/bootstrap.php', '/tests/run.php', '/.git/HEAD'], $inherited) as $p) {
     $r = req('GET', BASE . $p, ['Host: 127.0.0.1:8787']);

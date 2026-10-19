@@ -14,12 +14,42 @@ function capi_config(): array
     ]];
 }
 
-function capi_get(string $host): array
+define('CAPI_TOKEN', str_repeat('c4', 32));
+
+// A same-origin fetch from the page with the token; $over changes or (with null) removes a header.
+function capi_get(string $host, array $over = []): array
 {
-    $log = new Log(sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'kccapi_' . bin2hex(random_bytes(4)) . '.log');
-    return View::clients(['REMOTE_ADDR' => '127.0.0.1', 'HTTP_HOST' => $host, 'REQUEST_METHOD' => 'GET'],
-        capi_config(), $log);
+    $tmp = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'kccapi_' . bin2hex(random_bytes(4));
+    file_put_contents($tmp . '.token', CAPI_TOKEN);
+    $server = array_filter($over + ['REMOTE_ADDR' => '127.0.0.1', 'HTTP_HOST' => $host, 'REQUEST_METHOD' => 'GET',
+        'HTTP_SEC_FETCH_SITE' => 'same-origin', 'HTTP_SEC_FETCH_MODE' => 'cors', RequestGuard::TOKEN_HEADER => CAPI_TOKEN],
+        fn($v) => $v !== null);
+    try {
+        return View::clients($server, $tmp . '.token', capi_config(), new Log($tmp . '.log'));
+    } finally {
+        @unlink($tmp . '.token');
+        @unlink($tmp . '.log');
+    }
 }
+
+test('clients.php without the token or as a navigation is refused with no client data', function () {
+    $refused = [
+        'no token' => [RequestGuard::TOKEN_HEADER => null],
+        'wrong token' => [RequestGuard::TOKEN_HEADER => 'fake-wrong'],
+        'no token, curl' => [RequestGuard::TOKEN_HEADER => null, 'HTTP_SEC_FETCH_SITE' => null, 'HTTP_SEC_FETCH_MODE' => null],
+        'cross-site navigate' => ['HTTP_SEC_FETCH_SITE' => 'cross-site', 'HTTP_SEC_FETCH_MODE' => 'navigate'],
+        'same-origin navigate' => ['HTTP_SEC_FETCH_MODE' => 'navigate'],
+    ];
+    foreach ($refused as $name => $over) {
+        [$status, , $body] = capi_get('localhost:8787', $over);
+        assert_same(403, $status, $name);
+        assert_same('{"error":"forbidden"}', $body, $name);
+    }
+    // With the token the body is exactly the data the page renders.
+    [$status, , $body] = capi_get('localhost:8787');
+    assert_same(200, $status);
+    assert_same(View::clientsData(capi_config()), json_decode($body, true));
+});
 
 test('foreign Host is refused with no client data', function () {
     [$status, , $body] = capi_get('evil.com');

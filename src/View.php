@@ -32,11 +32,12 @@ class View
         }
     }
 
-    // GET /api/clients.php: {"clients": [...], "leads": [...]}.
-    public static function clients(array $server, array $config, Log $log): array
+    // GET /api/clients.php: {"clients": [...], "leads": [...]}. Needs the token, read only after checkRead passes.
+    public static function clients(array $server, string $tokenPath, array $config, Log $log): array
     {
         try {
-            if (!(new RequestGuard(''))->checkRead($server)) {
+            if (!(new RequestGuard(''))->checkRead($server)
+                || !(new RequestGuard(Token::load($tokenPath, $log)))->checkApiRead($server)) {
                 return Response::json(403, ['error' => 'forbidden']);
             }
             return Response::json(200, self::clientsData($config, $log));

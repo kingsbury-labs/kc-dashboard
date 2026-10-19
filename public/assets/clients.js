@@ -1,5 +1,5 @@
 // Refreshes the clients panel when the tab comes back into view. The page already renders it without JS.
-import { el } from './app.js';
+import { el, token } from './app.js';
 
 const clientList = document.getElementById('clients');
 const leadList = document.getElementById('leads');
@@ -68,7 +68,7 @@ function leadItem(l) {
 
 async function refresh() {
   try {
-    const res = await fetch('/api/clients.php', { cache: 'no-store' });
+    const res = await fetch('/api/clients.php', { cache: 'no-store', headers: { 'X-KC-Token': token } });
     if (!res.ok) return;
     const data = await res.json();
     // An open panel stays open: only rebuild when nothing is expanded.
