@@ -1,0 +1,21 @@
+{
+  "hits": [
+    {
+      "title": "PHP 8.5 released",
+      "url": "https://www.php.example.test/releases/8.5",
+      "points": 412,
+      "num_comments": 230,
+      "created_at_i": 1792317600,
+      "objectID": "45100001"
+    },
+    {
+      "title": "Ask HN: What are you reading?",
+      "url": null,
+      "points": 57,
+      "created_at_i": 1792314000,
+      "objectID": "45100002"
+    }
+  ],
+  "nbHits": 2,
+  "page": 0
+}

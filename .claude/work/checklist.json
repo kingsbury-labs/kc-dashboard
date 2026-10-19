@@ -358,5 +358,20 @@
     },
     "verified_at": "2026-10-19T21:11:12.570Z",
     "tree": "2e0176e1f9c9ff375c8ed6a04f6e08bc2e787d4b5688c6402fc93af5387aedd2"
+  },
+  {
+    "id": "63",
+    "title": "News",
+    "brief": ".claude/work/63-news/brief.md",
+    "start_sha": "307d284836f83a58f1df19fb7a16547777020af4",
+    "passes": true,
+    "scope_ok": {
+      "at": "2026-10-19T21:45:00.248Z",
+      "start_sha": "307d284836f83a58f1df19fb7a16547777020af4",
+      "mutation_evidence": true,
+      "tree": "2271fc26ffee50e3e14f3ae51d1e3ab63c5d44df5e4895fe9d66462f4526c91b"
+    },
+    "verified_at": "2026-10-19T21:45:33.419Z",
+    "tree": "2271fc26ffee50e3e14f3ae51d1e3ab63c5d44df5e4895fe9d66462f4526c91b"
   }
 ]

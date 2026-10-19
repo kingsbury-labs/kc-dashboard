@@ -4,6 +4,7 @@ require_once __DIR__ . '/../src/View.php';
 require_once __DIR__ . '/../src/Sys/Elevation.php';
 require_once __DIR__ . '/../src/Jobs/AskHandler.php';
 require_once __DIR__ . '/../src/Attention/Selector.php';
+require_once __DIR__ . '/../src/News/Scorer.php';
 
 $data = __DIR__ . '/../data';
 $log = new Log($data . '/app.log');
@@ -30,4 +31,10 @@ Response::emit(View::page($_SERVER, $data . '/token', $log, [
         Db::migrate($pdo);
         return AttentionApi::data(new FactStore($pdo), AttentionApi::linkPorts(), time());
     },
+    // The first page news.php serves, so headlines show with JS off.
+    'news' => fn(): array => NewsApi::data(function () use ($data): PDO {
+        $pdo = Db::open($data . '/dashboard.sqlite');
+        Db::migrate($pdo);
+        return $pdo;
+    }, NewsApi::topics(), '', 1, time(), NewsApi::PAGE_SIZE, $data . '/news-cache.json', false),
 ]));

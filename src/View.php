@@ -14,7 +14,8 @@ class View
      * The guard runs before the token is read, so a refused request never touches it, and before any of $deps:
      * 'projects' => ProjectList, 'answers' => fn(): array, 'clients' => fn(): array, 'elevated' => fn(): bool,
      * 'map' => fn(): array (View::projectRows), 'now' => fn(): array (a saved api/now.php snapshot; never a scan),
-     * 'attention' => fn(): array (AttentionApi::data). A failing source leaves its part of the page empty, not a 500.
+     * 'attention' => fn(): array (AttentionApi::data), 'news' => fn(): array (NewsApi::data). A failing source leaves
+     * its part of the page empty, not a 500.
      */
     public static function page(array $server, string $tokenPath, Log $log, array $deps = [], ?int $now = null): array
     {
@@ -33,9 +34,11 @@ class View
             $tiles = self::section(fn() => self::tiles(is_array($map) ? $map : [], $now ?? time()), $log, 'tiles');
             $facts = self::source($deps['attention'] ?? null, null, $log, 'attention');
             $attention = self::section(fn() => self::attention(is_array($facts) ? $facts : null), $log, 'attention');
+            $stories = self::source($deps['news'] ?? null, null, $log, 'news');
+            $news = self::section(fn() => self::news(is_array($stories) ? $stories : null), $log, 'news');
             return Response::html(200, self::render($token, $projects, $answers, $clients, $elevated,
                 $strip !== '' ? $strip : '<li class="quiet">Nothing running.</li>', $tiles,
-                $attention !== '' ? $attention : self::attention(null)));
+                $attention !== '' ? $attention : self::attention(null), $news !== '' ? $news : self::news(null)));
         } catch (Throwable $e) {
             return Response::error($e);
         }
@@ -348,6 +351,26 @@ HTML;
             . count($also) . ')</summary><ul class="list">' . implode('', array_map([self::class, 'factItem'], $also)) . '</ul></details>';
     }
 
+    // The headlines list, as news.js rebuilds it: the first page, hottest first. A url is a link only if
+    // NewsApi::safeUrl passed it and it still starts http:// or https://. The topic filter and "More" need JS.
+    private static function news(?array $data): string
+    {
+        if ($data === null) {
+            return '<ul id="news" class="list"><li class="quiet">Headlines unavailable.</li></ul>';
+        }
+        $items = '';
+        foreach ((array) ($data['stories'] ?? []) as $s) {
+            $url = $s['url'] ?? null;
+            $title = is_string($url) && (str_starts_with($url, 'https://') || str_starts_with($url, 'http://'))
+                ? '<a href="' . self::e($url) . '" rel="noopener noreferrer" target="_blank">' . self::e($s['title'] ?? '') . '</a>'
+                : self::e($s['title'] ?? '');
+            $meta = self::e(implode(', ', array_map('strval', (array) ($s['sources'] ?? []))))
+                . (($s['points'] ?? 0) > 0 ? ' · ' . (int) $s['points'] . ' points' : '');
+            $items .= '<li class="story"><p class="subject">' . $title . '</p><p class="meta">' . $meta . '</p></li>';
+        }
+        return '<ul id="news" class="list">' . ($items !== '' ? $items : '<li class="quiet">No headlines yet.</li>') . '</ul>';
+    }
+
     private static function factItem(array $f): string
     {
         $url = $f['url'] ?? null;
@@ -362,7 +385,7 @@ HTML;
     }
 
     private static function render(string $token, array $projects, array $answers, array $clients, bool $elevated,
-        string $strip, string $tiles, string $attention): string
+        string $strip, string $tiles, string $attention, string $news): string
     {
         $t = self::e($token);
         $banner = $elevated
@@ -392,6 +415,7 @@ HTML;
 <script type="module" src="/assets/now.js"></script>
 <script type="module" src="/assets/projects.js"></script>
 <script type="module" src="/assets/attention.js"></script>
+<script type="module" src="/assets/news.js"></script>
 </head>
 <body>
 $banner
@@ -443,6 +467,11 @@ $attention
 <section class="panel map" aria-labelledby="map-h">
 <h2 id="map-h">Projects</h2>
 <ul id="projects" class="tiles">$tiles</ul>
+</section>
+
+<section class="panel news" aria-labelledby="news-h">
+<h2 id="news-h">Headlines</h2>
+$news
 </section>
 </main>
 </body>

@@ -1,0 +1,18 @@
+{
+  "version": "https://jsonfeed.org/version/1.1",
+  "title": "Example JSON Feed",
+  "home_page_url": "https://json.example.test/",
+  "items": [
+    {
+      "id": "1",
+      "title": "WordPress 7.1 beta ships a new block editor API",
+      "url": "https://json.example.test/wp-71-beta",
+      "date_published": "2026-10-18T14:00:00-04:00"
+    },
+    {
+      "id": "2",
+      "content_text": "an item with no title is left out",
+      "url": "https://json.example.test/no-title"
+    }
+  ]
+}

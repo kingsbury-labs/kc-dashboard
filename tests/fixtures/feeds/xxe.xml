@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE rss [
+<!ENTITY leak SYSTEM "__TARGET__">
+]>
+<rss version="2.0">
+<channel>
+<title>XXE</title>
+<item>
+<title>Leaked: &leak;</title>
+<link>https://xxe.example.test/1</link>
+</item>
+</channel>
+</rss>

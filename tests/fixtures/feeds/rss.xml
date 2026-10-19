@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+<channel>
+<title>Example RSS</title>
+<link>https://rss.example.test/</link>
+<item>
+<title>PHP 8.5 released with the pipe operator</title>
+<link>https://rss.example.test/php-85?utm_source=rss&amp;utm_medium=feed</link>
+<pubDate>Sat, 18 Oct 2026 09:00:00 +0000</pubDate>
+</item>
+<item>
+<title><![CDATA[Tips for <em>faster</em> builds &amp; caching]]></title>
+<link>https://rss.example.test/builds</link>
+<pubDate>Fri, 17 Oct 2026 09:00:00 +0000</pubDate>
+</item>
+<item>
+<title></title>
+<link>https://rss.example.test/untitled</link>
+</item>
+</channel>
+</rss>
