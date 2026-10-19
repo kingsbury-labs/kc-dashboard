@@ -38,6 +38,81 @@ class View
         }
     }
 
+    /**
+     * GET /wall.php, the second-monitor HUD. A page like the new tab, so checkRead, and $deps run only after it:
+     * 'map' and 'now' as for page(), 'panels' => ['attention' => bool, 'news' => bool] for the panels whose API exists.
+     */
+    public static function wall(array $server, string $tokenPath, Log $log, array $deps = [], ?int $now = null): array
+    {
+        try {
+            if (!(new RequestGuard(''))->checkRead($server)) {
+                return Response::json(403, ['error' => 'forbidden']);
+            }
+            $token = Token::load($tokenPath, $log);
+            $map = self::source($deps['map'] ?? null, [], $log, 'map');
+            $running = self::source($deps['now'] ?? null, [], $log, 'now');
+            $strip = self::section(fn() => self::strip(self::cleanSnapshot($running), is_array($map) ? $map : []), $log, 'strip');
+            $tiles = self::section(fn() => self::tiles(is_array($map) ? $map : [], $now ?? time()), $log, 'tiles');
+            $panels = is_array($deps['panels'] ?? null) ? $deps['panels'] : [];
+            return Response::html(200, self::renderWall($token, $strip !== '' ? $strip : '<li class="quiet">Nothing running.</li>',
+                $tiles, ($panels['attention'] ?? false) === true, ($panels['news'] ?? false) === true));
+        } catch (Throwable $e) {
+            return Response::error($e);
+        }
+    }
+
+    private static function renderWall(string $token, string $strip, string $tiles, bool $attention, bool $news): string
+    {
+        $t = self::e($token);
+        $scripts = ($attention ? '<script type="module" src="/assets/attention.js"></script>' . "\n" : '')
+            . ($news ? '<script type="module" src="/assets/news.js"></script>' . "\n" : '');
+        $extra = ($attention ? '<section class="panel attention" aria-labelledby="attention-h">' . "\n"
+                . '<h2 id="attention-h">Needs attention</h2>' . "\n" . '<ul id="attention" class="list"></ul>' . "\n</section>\n" : '')
+            . ($news ? '<section class="panel news" aria-labelledby="news-h">' . "\n"
+                . '<h2 id="news-h">Headlines</h2>' . "\n" . '<ul id="news" class="list"></ul>' . "\n</section>\n" : '');
+        return <<<HTML
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="kc-token" content="$t">
+<noscript><meta http-equiv="refresh" content="30"></noscript>
+<title>KC Wall</title>
+<link rel="stylesheet" href="/assets/app.css">
+<link rel="stylesheet" href="/assets/hud.css">
+<link rel="stylesheet" href="/assets/wall.css">
+<script type="module" src="/assets/orb.js"></script>
+<script type="module" src="/assets/projects.js"></script>
+<script type="module" src="/assets/wall.js"></script>
+$scripts</head>
+<body class="wall">
+<main class="wall-grid">
+<section class="wall-orb" aria-labelledby="wall-h">
+<h1 id="wall-h">Kingsbury Creative</h1>
+<div class="orb" aria-hidden="true">
+<div class="orb-static" id="orb-static"></div>
+<canvas id="orb" class="orb-canvas" width="480" height="480" hidden></canvas>
+</div>
+<button type="button" id="wall-full" hidden>Fullscreen</button>
+<p class="note" id="wall-note" aria-live="polite"></p>
+</section>
+
+<section class="strip" aria-labelledby="strip-h">
+<h2 id="strip-h">Running now</h2>
+<ul id="running" class="strip-list">$strip</ul>
+</section>
+
+<section class="panel map" aria-labelledby="map-h">
+<h2 id="map-h">Projects</h2>
+<ul id="projects" class="tiles">$tiles</ul>
+</section>
+$extra</main>
+</body>
+</html>
+HTML;
+    }
+
     // GET /api/projects.php: {"projects": [...]} in map order. The database opens only after the guard and token pass.
     public static function projects(array $server, string $tokenPath, Closure $pdo, Log $log): array
     {

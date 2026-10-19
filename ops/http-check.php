@@ -84,9 +84,12 @@ function body_clean(array $r, string $label, bool $allowMeta = false): void
 // Every endpoint that changes state or starts a job. Named, not grepped: the handlers live in src/, so the
 // entry files in public/api/ never mention POST. A new write endpoint is added here.
 const WRITES = ['/api/ask.php'];
+// Pages render on a navigation and carry the token in one <meta> tag. The stream is checked on its own below.
+const PAGES = ['/', '/wall.php'];
+const STREAM = '/api/wall-stream.php';
 
 $apiFiles = glob($root . '/public/api/*.php') ?: [];
-$paths = ['/'];
+$paths = PAGES;
 foreach ($apiFiles as $f) {
     $paths[] = '/api/' . basename($f);
 }
@@ -103,8 +106,13 @@ foreach ($paths as $p) {
 
     $r = req('GET', BASE . $p, ['Host: 127.0.0.1:8787']);
     check(stripos($r['headers'], "\ncache-control: no-store") !== false, "$p carries Cache-Control: no-store");
-    body_clean($r, "$p GET", $p === '/');
+    body_clean($r, "$p GET", in_array($p, PAGES, true));
 }
+
+$r = req('GET', BASE . '/wall.php', ['Host: 127.0.0.1:8787', 'Sec-Fetch-Site: none', 'Sec-Fetch-Mode: navigate']);
+check($r['status'] === 200 && strpos($r['body'], '<body class="wall">') !== false,
+    "/wall.php renders on a navigation (got {$r['status']})");
+body_clean($r, '/wall.php navigation', true);
 
 foreach ($writes as $p) {
     $tokenHdr = [TOKEN_HEADER . ': ' . $token];
@@ -122,7 +130,7 @@ foreach ($writes as $p) {
 }
 
 // Every other endpoint is a read, and a read needs the token too and must not be a navigation (card 74a).
-$reads = array_values(array_diff($paths, ['/'], WRITES));
+$reads = array_values(array_diff($paths, PAGES, WRITES, [STREAM]));
 if (!in_array('/api/answers.php', $reads, true)) {
     echo "FAIL /api/answers.php is not among the read endpoints; nothing checked\n";
     exit(1);
@@ -142,6 +150,60 @@ foreach ($reads as $p) {
         'Sec-Fetch-Mode: cors'], $tokenHdr));
     check($r['status'] === 200, "$p answers a same-origin fetch with the token (got {$r['status']})");
     body_clean($r, "$p with token");
+}
+
+// The wall stream (card 77): a one-use ticket from a POST with the token, then a GET with it. Neither the token
+// nor a ticket is printed.
+// Reads at most $cap bytes of the stream, stopping at the first event, so a 55-second stream costs a moment.
+function stream_req(string $url, array $headers, int $cap = 8192): array
+{
+    $buf = '';
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_HTTPHEADER => $headers,
+        CURLOPT_TIMEOUT => 15,
+        CURLOPT_PROXY => '',
+        CURLOPT_WRITEFUNCTION => function ($ch, string $chunk) use (&$buf, $cap): int {
+            $buf .= $chunk;
+            return strpos($buf, "event: now\ndata: ") !== false || strlen($buf) >= $cap ? -1 : strlen($chunk);
+        },
+    ]);
+    curl_exec($ch);
+    $status = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+    $type = (string) curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
+    curl_close($ch);
+    return ['status' => $status, 'type' => $type, 'body' => $buf];
+}
+
+if (!in_array(STREAM, $paths, true)) {
+    check(false, STREAM . ' is missing from public/api/');
+} else {
+    $s = STREAM;
+    $fetch = ['Host: 127.0.0.1:8787', 'Sec-Fetch-Site: same-origin', 'Sec-Fetch-Mode: cors'];
+    $r = req('GET', BASE . $s, $fetch);
+    check($r['status'] === 403, "$s refuses GET without a ticket (got {$r['status']})");
+    body_clean($r, "$s no ticket");
+
+    $r = req('POST', BASE . $s, array_merge($fetch, ['Origin: ' . GOOD_ORIGIN]));
+    check($r['status'] === 403 && strpos($r['body'], 'ticket') === false, "$s refuses POST without the token (got {$r['status']})");
+    body_clean($r, "$s POST no token");
+
+    $r = req('POST', BASE . $s, array_merge($fetch, ['Origin: ' . GOOD_ORIGIN, TOKEN_HEADER . ': ' . $token]));
+    $ticket = preg_match('/^\{"ticket":"([0-9a-f]{64})"\}$/', $r['body'], $m) === 1 ? $m[1] : '';
+    check($r['status'] === 200 && $ticket !== '', "$s gives a ticket for a POST with the token (got {$r['status']})");
+    body_clean($r, "$s ticket");
+
+    if ($ticket !== '') {
+        $r = stream_req(BASE . $s . '?ticket=' . $ticket, $fetch);
+        check($r['status'] === 200 && stripos($r['type'], 'text/event-stream') === 0,
+            "$s streams for the ticket (got {$r['status']})");
+        check(strpos($r['body'], "event: now\ndata: ") !== false, "$s sends an event: now block");
+        check(strpos($r['body'], $token) === false, "$s stream does not contain the token");
+
+        $r = req('GET', BASE . $s . '?ticket=' . $ticket, $fetch);
+        check($r['status'] === 403, "$s refuses the same ticket twice (got {$r['status']})");
+        check(strpos($r['body'], $ticket) === false, "$s refusal does not echo the ticket");
+    }
 }
 
 $inherited = ['/phpmyadmin/', '/cgi-bin/', '/php-cgi/', '/server-status', '/server-info', '/licenses/', '/webalizer/', '/icons/', '/examples/'];

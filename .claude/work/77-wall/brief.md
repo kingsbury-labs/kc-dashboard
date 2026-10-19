@@ -35,6 +35,10 @@ task, and its "Done-test:" paragraph is what done means.
 - `D:\Dev\htdocs\_kc-dashboard\tests\WallStreamTest.php`
 - `D:\Dev\htdocs\_kc-dashboard\public\index.php` (wiring only)
 - `D:\Dev\htdocs\_kc-dashboard\src\View.php` (wiring only)
+- `D:\Dev\htdocs\_kc-dashboard\tests\ApiGuardSweepTest.php` (coordinator: wall.php as a page next to index.php)
+- `D:\Dev\htdocs\_kc-dashboard\ops\http-check.php` (coordinator: wall-stream ticket flow)
+- `D:\Dev\htdocs\_kc-dashboard\src\Http\RequestGuard.php` (round two: a site/mode check without a token)
+- `D:\Dev\htdocs\_kc-dashboard\tests\RequestGuardTest.php` (round two)
 
 ## Done-test
 From plan.md card 77, word for word: the "Done-test:" paragraph of card

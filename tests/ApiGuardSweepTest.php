@@ -1,13 +1,15 @@
 <?php
 // Runs every public/**/*.php under php-cgi, as Apache would, in a temp copy of the app whose executables are all
 // stubs that drop a marker into data/. A new endpoint that answers a tokenless GET, a navigation or a POST
-// without the token and Origin fails here without anyone having to list it. index.php is the one exception.
+// without the token and Origin fails here without anyone having to list it. The pages in SWEEP_PAGES are the
+// exceptions: a navigation must render them, so each has its own test below.
 
 const SWEEP_CGI = 'C:\\xampp\\php\\php-cgi.exe';
 define('SWEEP_TOKEN', str_repeat('5e', 32));
 // ask.php opens and migrates the database before AskApi::ask runs its guard, so without one installed the refused
 // request creates dashboard.sqlite. Moving that open behind the guard needs ask.php, which card 74a does not own.
 const SWEEP_NEEDS_DB = ['api/ask.php'];
+const SWEEP_PAGES = ['index.php', 'wall.php'];
 // Each case runs a second time with these removed, so a start the stub misses (below) throws and gives a 500.
 const SWEEP_NO_PROCESS = '-ddisable_functions=proc_open,popen,exec,shell_exec,system,passthru,pcntl_exec';
 
@@ -152,7 +154,7 @@ const SWEEP_CASES = [
 test('every endpoint under public/ refuses tokenless, navigated and foreign requests, and changes nothing', function () {
     $t = sweep_world();
     try {
-        $files = array_values(array_diff(sweep_files("$t/public"), ['index.php']));
+        $files = array_values(array_diff(sweep_files("$t/public"), SWEEP_PAGES));
         assert_true(count($files) > 0, 'no endpoints found under public/');
         foreach ($files as $rel) {
             $script = str_replace('/', '\\', "$t/public/$rel");
@@ -201,6 +203,39 @@ test('index.php is checkRead and starts nothing beyond the cached whoami', funct
         assert_same(1, count($lines), 'whoami once, from the cache after: ' . implode(' | ', $lines));
         $allowed = ['dashboard.sqlite', 'dashboard.sqlite-shm', 'dashboard.sqlite-wal', 'elevation.json', 'started-whoami.log', 'token'];
         assert_same([], array_values(array_diff(array_keys(sweep_snapshot("$t/data")), $allowed)), 'unexpected files in data/');
+    } finally {
+        sweep_rmtree($t);
+    }
+});
+
+test('wall.php is checkRead and starts no program at all', function () {
+    $t = sweep_world();
+    try {
+        assert_same(SWEEP_PAGES, array_values(array_intersect(SWEEP_PAGES, sweep_files("$t/public"))), 'a page is missing');
+        $wall = str_replace('/', '\\', "$t/public/wall.php");
+        sweep_reset_data($t, false);
+        $before = sweep_snapshot("$t/data");
+        $out = sweep_request($wall, 'GET', ['HTTP_HOST' => 'evil.com']);
+        assert_true(preg_match('/^Status: 403\b/mi', $out) === 1, 'foreign Host: ' . substr($out, 0, 300));
+        assert_same($before, sweep_snapshot("$t/data"), 'foreign Host changed data/');
+        $loads = [
+            ['GET', ['HTTP_SEC_FETCH_SITE' => 'none', 'HTTP_SEC_FETCH_MODE' => 'navigate']],
+            ['GET', ['HTTP_SEC_FETCH_SITE' => 'same-origin', 'HTTP_SEC_FETCH_MODE' => 'navigate']],
+            ['GET', ['HTTP_SEC_FETCH_SITE' => 'cross-site', 'HTTP_SEC_FETCH_MODE' => 'navigate']],
+            ['POST', ['HTTP_SEC_FETCH_SITE' => 'cross-site', 'HTTP_SEC_FETCH_MODE' => 'navigate', 'HTTP_ORIGIN' => 'http://evil.com']],
+        ];
+        foreach ($loads as $i => [$method, $headers]) {
+            foreach (['stubs' => [], 'no process functions' => [SWEEP_NO_PROCESS]] as $how => $args) {
+                $out = sweep_request($wall, $method, $headers, '', $args);
+                assert_true(preg_match('/^Status: 200\b/mi', $out) === 1 || !preg_match('/^Status: /mi', $out), "load $i ($how): "
+                    . substr($out, 0, 300));
+                assert_true(str_contains($out, '<body class="wall">'), "load $i ($how) renders the wall");
+            }
+        }
+        $files = array_keys(sweep_snapshot("$t/data"));
+        assert_same([], array_values(array_filter($files, fn($f) => str_starts_with($f, 'started-'))), 'programs started');
+        $allowed = ['dashboard.sqlite', 'dashboard.sqlite-shm', 'dashboard.sqlite-wal', 'token'];
+        assert_same([], array_values(array_diff($files, $allowed)), 'unexpected files in data/');
     } finally {
         sweep_rmtree($t);
     }

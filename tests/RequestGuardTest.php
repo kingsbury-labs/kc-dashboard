@@ -111,3 +111,27 @@ test('api read needs the token and a same-origin non-navigation fetch', function
     assert_true(!(new RequestGuard(''))->checkApiRead([RequestGuard::TOKEN_HEADER => ''] + $fetch + $s), 'empty token');
     assert_true(!$g->checkApiRead(['HTTP_HOST' => 'evil.com'] + $fetch + $s), 'foreign host');
 });
+
+test('checkFetchSite is the api read rule without the token', function () {
+    $g = new RequestGuard('');
+    $s = ['REMOTE_ADDR' => '127.0.0.1', 'HTTP_HOST' => '127.0.0.1:8787', 'REQUEST_METHOD' => 'GET'];
+    assert_true($g->checkFetchSite(['HTTP_SEC_FETCH_SITE' => 'same-origin', 'HTTP_SEC_FETCH_MODE' => 'cors'] + $s), 'same-origin fetch');
+    assert_true($g->checkFetchSite($s), 'no Sec-Fetch headers, as from curl');
+    $refused = [
+        'cross-site navigate' => ['HTTP_SEC_FETCH_SITE' => 'cross-site', 'HTTP_SEC_FETCH_MODE' => 'navigate'],
+        'same-origin navigate' => ['HTTP_SEC_FETCH_SITE' => 'same-origin', 'HTTP_SEC_FETCH_MODE' => 'navigate'],
+        'none navigate' => ['HTTP_SEC_FETCH_SITE' => 'none', 'HTTP_SEC_FETCH_MODE' => 'navigate'],
+        'same-site cors' => ['HTTP_SEC_FETCH_SITE' => 'same-site', 'HTTP_SEC_FETCH_MODE' => 'cors'],
+        'cross-site cors' => ['HTTP_SEC_FETCH_SITE' => 'cross-site', 'HTTP_SEC_FETCH_MODE' => 'cors'],
+        'site without mode' => ['HTTP_SEC_FETCH_SITE' => 'same-origin'],
+        'mode without site' => ['HTTP_SEC_FETCH_MODE' => 'cors'],
+        'foreign host' => ['HTTP_HOST' => 'evil.com'],
+        'foreign address' => ['REMOTE_ADDR' => '10.0.0.5'],
+    ];
+    foreach ($refused as $name => $headers) {
+        assert_true(!$g->checkFetchSite($headers + $s), $name);
+    }
+    // A token is neither needed nor enough.
+    $tokened = new RequestGuard(GUARD_TOKEN);
+    assert_true(!$tokened->checkFetchSite([RequestGuard::TOKEN_HEADER => GUARD_TOKEN, 'HTTP_HOST' => 'evil.com'] + $s), 'token on foreign host');
+});

@@ -41,15 +41,19 @@ class RequestGuard
     // request must be same-origin and not a navigation. No Sec-Fetch headers at all is curl; the token covers it.
     public function checkApiRead(array $server): bool
     {
+        return $this->checkFetchSite($server) && $this->tokenSent($server);
+    }
+
+    // checkApiRead without the token: the address and Host, and a browser request must be a same-origin fetch,
+    // not a navigation. Only for a caller that proves itself another way (the wall stream's one-use ticket).
+    public function checkFetchSite(array $server): bool
+    {
         if (!$this->checkRead($server)) {
             return false;
         }
         $site = $server['HTTP_SEC_FETCH_SITE'] ?? null;
         $mode = $server['HTTP_SEC_FETCH_MODE'] ?? null;
-        if (($site !== null || $mode !== null) && ($site !== 'same-origin' || $mode === null || $mode === 'navigate')) {
-            return false;
-        }
-        return $this->tokenSent($server);
+        return ($site === null && $mode === null) || ($site === 'same-origin' && $mode !== null && $mode !== 'navigate');
     }
 
     private function tokenSent(array $server): bool

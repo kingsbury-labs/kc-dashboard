@@ -1,0 +1,28 @@
+/* The wall page over app.css and hud.css. Phone first: one stacked column. A second monitor gets the orb
+   beside the strip and the map through min-width only. */
+.wall main.wall-grid { max-width: none; min-height: 100vh; box-sizing: border-box; }
+
+.wall h1 { margin: 0 0 0.5rem; font-size: 1.5rem; font-weight: 700; text-align: center; }
+
+.wall-orb { display: grid; justify-items: center; gap: 0.5rem; }
+.wall .wall-orb .orb { width: min(70vw, 16rem); height: min(70vw, 16rem); margin: 0; }
+.wall-orb .note:empty { display: none; }
+
+.wall .strip-list > li { font-size: 1rem; }
+
+@media (min-width: 64rem) {
+  .wall main.wall-grid {
+    grid-template-columns: minmax(20rem, 1fr) 2fr;
+    grid-auto-rows: min-content;
+    align-items: start;
+  }
+  .wall .wall-grid > .wall-orb { grid-column: 1; grid-row: 1 / span 3; position: sticky; top: var(--space); }
+  .wall .wall-grid > .strip, .wall .wall-grid > .map, .wall .wall-grid > .attention, .wall .wall-grid > .news { grid-column: 2; }
+  .wall .wall-orb .orb { width: min(30vw, 28rem); height: min(30vw, 28rem); }
+}
+
+@media (min-width: 120rem) {
+  .wall main.wall-grid { grid-template-columns: minmax(24rem, 1fr) 2fr 1fr; }
+  .wall .wall-grid > .attention, .wall .wall-grid > .news { grid-column: 3; }
+  .wall .wall-grid > .attention { grid-row: 1 / span 2; }
+}
