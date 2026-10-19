@@ -343,6 +343,23 @@ test('a repo config key off the inert list stores "not trusted" and runs no stat
     }
 });
 
+test('editor branch keys and core.hookspath are accepted; extensions.worktreeconfig and filter.x.clean are refused', function () {
+    $f = ps_fixture();
+    try {
+        [$rows] = ps_scan($f, [], [
+            'alpha' => "core.bare\nbranch.main.github-pr-base-branch\nbranch.x.gk-last-accessed\nbranch.main.github-pr-owner-number\ncore.hookspath\n",
+            'beta' => "core.bare\nextensions.worktreeconfig\n",
+            'gamma' => "core.bare\nfilter.x.clean\n",
+        ]);
+        $rows = ps_by_slug($rows);
+        assert_same(null, $rows['alpha']['error']);
+        assert_same('repo config not trusted: extensions.worktreeconfig', $rows['beta']['error']);
+        assert_same('repo config not trusted: filter.x.clean', $rows['gamma']['error']);
+    } finally {
+        ps_cleanup($f);
+    }
+});
+
 test('a .git that is a gitdir file, or has commondir, is not read by git', function () {
     $f = ps_fixture();
     try {

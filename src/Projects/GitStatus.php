@@ -25,7 +25,10 @@ class GitStatus
     private const INERT = [
         '/^core\.(repositoryformatversion|filemode|bare|logallrefupdates|symlinks|ignorecase|autocrlf)$/',
         '/^remote\.[^\x00-\x1f]+\.(url|pushurl|fetch|gh-resolved)$/',
-        '/^branch\.[^\x00-\x1f]+\.(remote|merge|vscode-merge-base)$/',
+        // Any branch key: none makes status, log or config run a command; they only steer merge, rebase, pull and push.
+        '/^branch\.[^\x00-\x1f]+\.[a-z0-9-]+$/',
+        // Hooks fire on commit, merge and push, never on config, status or log, and the index is not written.
+        '/^core\.hookspath$/',
         '/^user\.(name|email)$/',
     ];
 

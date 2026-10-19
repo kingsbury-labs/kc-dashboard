@@ -268,5 +268,20 @@
     },
     "verified_at": "2026-10-19T16:50:39.413Z",
     "tree": "05b769379d79327f9345bc6b3eec2dedd6c6eac517f214e1f6dd0a16b83c2683"
+  },
+  {
+    "id": "73b",
+    "title": "Scanner: accept harmless repo config keys",
+    "brief": ".claude/work/73b-inert/brief.md",
+    "start_sha": "6869e23df212062a530bcb93fe0ec494c4e8e1db",
+    "passes": true,
+    "scope_ok": {
+      "at": "2026-10-19T16:52:50.841Z",
+      "start_sha": "6869e23df212062a530bcb93fe0ec494c4e8e1db",
+      "mutation_evidence": true,
+      "tree": "806a8206dc8dab045214c38d824d0c3ee9be48eb8db8f2b6a8de509832c635db"
+    },
+    "verified_at": "2026-10-19T16:53:31.799Z",
+    "tree": "806a8206dc8dab045214c38d824d0c3ee9be48eb8db8f2b6a8de509832c635db"
   }
 ]
