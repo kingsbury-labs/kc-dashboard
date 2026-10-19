@@ -37,6 +37,8 @@ task, and its "Done-test:" paragraph is what done means.
 
 - `D:\Dev\htdocs\_kc-dashboard\src\Http\Response.php` (UTF-8 substitute only)
 - `D:\Dev\htdocs\_kc-dashboard\tests\PageTest.php` (its Response test only)
+- `D:\Dev\htdocs\_kc-dashboard\tests\PageUiTest.php` (the JS file inventory only)
+- `D:\Dev\htdocs\_kc-dashboard\public\index.php` (passing the map and now sources only)
 
 ## Done-test
 From plan.md card 75, word for word: the "Done-test:" paragraph of card

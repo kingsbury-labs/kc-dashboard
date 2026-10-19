@@ -16,4 +16,11 @@ Response::emit(View::page($_SERVER, $data . '/token', $log, [
     },
     'clients' => fn(): array => View::clientsData(require __DIR__ . '/../config/clients.php', $log),
     'elevated' => fn(): bool => Elevation::fromConfig($data . '/elevation.json'),
+    'map' => function () use ($data): array {
+        $pdo = Db::open($data . '/dashboard.sqlite');
+        Db::migrate($pdo);
+        return View::projectRows($pdo);
+    },
+    // The last api/now.php snapshot only: a page load never starts a scan.
+    'now' => fn(): array => (array) (json_decode((string) @file_get_contents($data . '/now-cache.json'), true) ?? []),
 ]));

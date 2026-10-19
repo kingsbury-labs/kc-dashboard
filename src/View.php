@@ -12,10 +12,11 @@ class View
 {
     /**
      * The guard runs before the token is read, so a refused request never touches it, and before any of $deps:
-     * 'projects' => ProjectList, 'answers' => fn(): array, 'clients' => fn(): array, 'elevated' => fn(): bool.
-     * A failing answers, clients or elevation source leaves its part of the page empty, not a 500.
+     * 'projects' => ProjectList, 'answers' => fn(): array, 'clients' => fn(): array, 'elevated' => fn(): bool,
+     * 'map' => fn(): array (View::projectRows), 'now' => fn(): array (a saved api/now.php snapshot; never a scan).
+     * A failing source leaves its part of the page empty, not a 500.
      */
-    public static function page(array $server, string $tokenPath, Log $log, array $deps = []): array
+    public static function page(array $server, string $tokenPath, Log $log, array $deps = [], ?int $now = null): array
     {
         try {
             if (!(new RequestGuard(''))->checkRead($server)) {
@@ -26,10 +27,44 @@ class View
             $answers = self::source($deps['answers'] ?? null, [], $log, 'answers');
             $clients = self::source($deps['clients'] ?? null, ['clients' => [], 'leads' => []], $log, 'clients');
             $elevated = self::source($deps['elevated'] ?? null, false, $log, 'elevation') === true;
-            return Response::html(200, self::render($token, $projects, $answers, $clients, $elevated));
+            $map = self::source($deps['map'] ?? null, [], $log, 'map');
+            $running = self::source($deps['now'] ?? null, [], $log, 'now');
+            return Response::html(200, self::render($token, $projects, $answers, $clients, $elevated,
+                self::strip(is_array($running) ? $running : [], $map), self::tiles($map, $now ?? time())));
         } catch (Throwable $e) {
             return Response::error($e);
         }
+    }
+
+    // GET /api/projects.php: {"projects": [...]} in map order. The database opens only after the guard and token pass.
+    public static function projects(array $server, string $tokenPath, Closure $pdo, Log $log): array
+    {
+        try {
+            if (!(new RequestGuard(''))->checkRead($server) || ($server['REQUEST_METHOD'] ?? null) !== 'GET'
+                || !(new RequestGuard(Token::load($tokenPath, $log)))->checkApiRead($server)) {
+                return Response::json(403, ['error' => 'forbidden']);
+            }
+            return Response::json(200, ['projects' => self::projectRows($pdo())]);
+        } catch (Throwable $e) {
+            $log->exception($e, ['where' => 'projects']);
+            return Response::error($e);
+        }
+    }
+
+    private const PROJECT_COLS = ['slug', 'branch', 'ahead', 'behind', 'dirty', 'last_sha', 'last_date', 'last_subject',
+        'loop_state', 'loop_card', 'loop_note', 'checklist_cards', 'checklist_passing', 'scanned_at', 'error'];
+
+    // The projects table without paths: running loop first, then dirty, then newest commit, then by name.
+    // Sorted here, not in SQL: commit dates carry their own UTC offsets, so comparing the strings would misorder them.
+    public static function projectRows(PDO $pdo): array
+    {
+        $rows = $pdo->query('SELECT ' . implode(', ', self::PROJECT_COLS) . ' FROM projects')->fetchAll(PDO::FETCH_ASSOC);
+        $key = function (array $r): array {
+            $t = $r['last_date'] !== null ? strtotime((string) $r['last_date']) : false;
+            return [$r['loop_state'] === 'running' ? 0 : 1, (int) $r['dirty'] > 0 ? 0 : 1, $t === false ? PHP_INT_MAX : -$t];
+        };
+        usort($rows, fn(array $a, array $b): int => [$key($a), $a['slug']] <=> [$key($b), $b['slug']]);
+        return $rows;
     }
 
     // GET /api/clients.php: {"clients": [...], "leads": [...]}. Needs the token, read only after checkRead passes.
@@ -92,7 +127,77 @@ class View
         return htmlspecialchars((string) $s, ENT_QUOTES | ENT_HTML5 | ENT_SUBSTITUTE, 'UTF-8');
     }
 
-    private static function render(string $token, array $projects, array $answers, array $clients, bool $elevated): string
+    // The running strip: sessions busy or waiting, running loops, failed tasks, listening ports. Loops come from the
+    // snapshot when there is one, otherwise from the projects table, so the strip shows loops even before any poll.
+    private static function strip(array $now, array $map): string
+    {
+        $items = '';
+        foreach ((array) ($now['sessions'] ?? []) as $s) {
+            if (in_array($s['status'] ?? null, ['busy', 'waiting'], true)) {
+                $what = ($s['status'] === 'waiting' && ($s['waitingFor'] ?? '') !== '') ? 'waiting: ' . $s['waitingFor'] : $s['status'];
+                $items .= self::stripItem('session', (string) ($s['project'] ?? $s['name'] ?? 'session'), $what);
+            }
+        }
+        $loops = isset($now['loops']) ? (array) $now['loops']
+            : array_map(fn($r) => ['project' => $r['slug'], 'state' => $r['loop_state'], 'card' => $r['loop_card']], $map);
+        foreach ($loops as $l) {
+            if (($l['state'] ?? null) === 'running') {
+                $items .= self::stripItem('loop', (string) ($l['project'] ?? ''), 'card ' . ($l['card'] ?? '?'));
+            }
+        }
+        foreach ((array) ($now['tasks'] ?? []) as $t) {
+            if (($t['failed'] ?? false) === true) {
+                $items .= self::stripItem('task', (string) ($t['name'] ?? ''), 'failed ' . ($t['lastResult'] ?? ''));
+            }
+        }
+        foreach ((array) ($now['ports'] ?? []) as $p) {
+            $items .= self::stripItem('port', ':' . ($p['port'] ?? ''), (string) ($p['program'] ?? ''));
+        }
+        return $items !== '' ? $items : '<li class="quiet">Nothing running.</li>';
+    }
+
+    private static function stripItem(string $kind, string $name, string $what): string
+    {
+        return '<li data-kind="' . self::e($kind) . '"><span class="name">' . self::e($name) . '</span> <span class="tag">'
+            . self::e($what) . '</span></li>';
+    }
+
+    private static function tiles(array $rows, int $now): string
+    {
+        $out = '';
+        foreach ($rows as $r) {
+            $age = self::age($r['last_date'] ?? null, $now);
+            $loop = ($r['loop_state'] ?? null) !== null && $r['loop_state'] !== 'none'
+                ? '<p class="loop" data-state="' . self::e($r['loop_state']) . '">Loop ' . self::e($r['loop_state'])
+                    . (($r['loop_card'] ?? null) !== null ? ', card ' . self::e($r['loop_card']) : '')
+                    . (($r['loop_note'] ?? null) !== null ? ': ' . self::e($r['loop_note']) : '') . '</p>'
+                : '';
+            $checklist = ($r['checklist_cards'] ?? null) !== null
+                ? '<p class="meta">Checklist ' . (int) $r['checklist_passing'] . ' of ' . (int) $r['checklist_cards'] . '</p>' : '';
+            $out .= '<li class="tile" data-slug="' . self::e($r['slug'] ?? '') . '"><h3>' . self::e($r['slug'] ?? '') . '</h3>'
+                . '<p class="meta">' . self::e($r['branch'] ?? 'no branch') . ' · ' . (int) ($r['dirty'] ?? 0) . ' dirty'
+                . ($age !== '' ? ' · <time datetime="' . self::e($r['last_date']) . '">' . self::e($age) . '</time>' : '') . '</p>'
+                . (($r['last_subject'] ?? null) !== null ? '<p class="subject">' . self::e($r['last_subject']) . '</p>' : '')
+                . $loop . $checklist
+                . (($r['error'] ?? null) !== null ? '<p class="error">' . self::e($r['error']) . '</p>' : '') . '</li>';
+        }
+        return $out;
+    }
+
+    // "5m ago", "3h ago", "2d ago"; empty when there is no readable date. projects.js formats the same way.
+    private static function age(?string $date, int $now): string
+    {
+        $t = $date !== null ? strtotime($date) : false;
+        if ($t === false) {
+            return '';
+        }
+        $s = max(0, $now - $t);
+        return $s < 60 ? 'just now' : ($s < 3600 ? intdiv($s, 60) . 'm ago'
+            : ($s < 86400 ? intdiv($s, 3600) . 'h ago' : intdiv($s, 86400) . 'd ago'));
+    }
+
+    private static function render(string $token, array $projects, array $answers, array $clients, bool $elevated,
+        string $strip, string $tiles): string
     {
         $t = self::e($token);
         $banner = $elevated
@@ -117,10 +222,17 @@ class View
 <link rel="stylesheet" href="/assets/app.css">
 <script type="module" src="/assets/app.js"></script>
 <script type="module" src="/assets/clients.js"></script>
+<script type="module" src="/assets/now.js"></script>
+<script type="module" src="/assets/projects.js"></script>
 </head>
 <body>
 $banner
 <main>
+<section class="strip" aria-labelledby="strip-h">
+<h2 id="strip-h" class="hidden">Running now</h2>
+<ul id="running" class="strip-list">$strip</ul>
+</section>
+
 <form class="search" action="https://www.google.com/search" method="get" role="search">
 <label for="q" class="hidden">Search Google</label>
 <input type="search" id="q" name="q" placeholder="Search Google" autofocus>
@@ -149,6 +261,11 @@ $banner
 <ul id="clients" class="list">$clientItems</ul>
 <h3>Leads</h3>
 <ul id="leads" class="list">$leadItems</ul>
+</section>
+
+<section class="panel map" aria-labelledby="map-h">
+<h2 id="map-h">Projects</h2>
+<ul id="projects" class="tiles">$tiles</ul>
 </section>
 </main>
 </body>

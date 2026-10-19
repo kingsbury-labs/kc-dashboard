@@ -117,6 +117,35 @@ dd { margin: 0 0 0.5rem; overflow-wrap: anywhere; }
 .links { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; list-style: none; margin: 0.5rem 0 0; padding: 0; }
 .links a { color: var(--accent); display: inline-block; padding: 0.5rem 0; }
 
+.strip-list { display: flex; flex-wrap: wrap; gap: 0.5rem; list-style: none; margin: 0; padding: 0; }
+.strip-list > li {
+  padding: 0.25rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow-wrap: anywhere;
+}
+.strip-list > li[data-kind="loop"] { border-color: var(--accent); }
+.quiet { color: var(--muted); }
+
+.tiles { display: grid; gap: 0.75rem; list-style: none; margin: 0; padding: 0; }
+.tile {
+  padding: 0.75rem;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  min-width: 0;
+}
+.tile h3 { margin: 0 0 0.25rem; overflow-wrap: anywhere; }
+.subject { margin: 0.25rem 0 0; overflow-wrap: anywhere; }
+.loop { margin: 0.25rem 0 0; color: var(--accent); font-weight: 600; overflow-wrap: anywhere; }
+.loop[data-state="stale"] { color: var(--warn-text); }
+.error { margin: 0.25rem 0 0; color: var(--warn-text); font-size: 0.875rem; overflow-wrap: anywhere; }
+
+@media (min-width: 40rem) {
+  .tiles { grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); }
+}
+
 @media (min-width: 48rem) {
   dl { grid-template-columns: max-content 1fr; }
   dd { margin: 0; }
@@ -127,6 +156,7 @@ dd { margin: 0 0 0.5rem; overflow-wrap: anywhere; }
     grid-template-columns: 1fr 1fr;
     align-items: start;
   }
-  .search { grid-column: 1 / -1; }
-  .clients { grid-column: 2; grid-row: 2 / span 2; }
+  .strip, .search, .map { grid-column: 1 / -1; }
+  /* Rows: strip, search, then ask and answers on the left beside clients. */
+  .clients { grid-column: 2; grid-row: 3 / span 2; }
 }

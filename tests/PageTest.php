@@ -67,6 +67,12 @@ test('error response carries no message or trace', function () {
     page_assert_headers($headers);
 });
 
+test('json substitutes invalid UTF-8 instead of sending an empty body', function () {
+    [$status, , $body] = Response::json(200, ['subject' => "ok \xff\xfe end", 'next' => 'kept']);
+    assert_same(200, $status);
+    assert_same(['subject' => "ok \u{FFFD}\u{FFFD} end", 'next' => 'kept'], json_decode($body, true));
+});
+
 test('a 403 never creates the token file', function () {
     $dir = page_dir();
     [$status] = View::page(page_server('evil.com'), $dir . '/token', new Log($dir . '/log'));

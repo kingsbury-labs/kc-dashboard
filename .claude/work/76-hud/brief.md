@@ -24,12 +24,15 @@ task, and its "Done-test:" paragraph is what done means.
   query; JS writes text with `textContent` only (DomSinks).
 - PHP 8.2 only. Edit PHP with the Edit/Write tools only, never sed or node -e.
 - The HUD theme replaces the plain shell look from card 62; keep every no-JS path working.
+- From the card 75 audit, small and in this card: View.php:32-33 renders strip() and tiles() outside the per-source try, and bootstrap turns warnings into exceptions, so one non-scalar value in data/now-cache.json 500s the whole page. Read the snapshot with a byte cap and keep only string/int fields, and render each section in its own try (test: a snapshot with an array as a session project still renders the page). Add JSON_INVALID_UTF8_SUBSTITUTE to NowService.php:126.
 
 ## Files you may touch
 - `D:\Dev\htdocs\_kc-dashboard\public\assets\hud.css`
 - `D:\Dev\htdocs\_kc-dashboard\public\assets\orb.js`
 - `D:\Dev\htdocs\_kc-dashboard\src\View.php`
 - `D:\Dev\htdocs\_kc-dashboard\tests\HudTest.php`
+- `D:\Dev\htdocs\_kc-dashboard\src\Running\NowService.php` (the json_encode flag only)
+- `D:\Dev\htdocs\_kc-dashboard\tests\ProjectsUiTest.php` (the bad-snapshot test only)
 
 ## Done-test
 From plan.md card 76, word for word: the "Done-test:" paragraph of card

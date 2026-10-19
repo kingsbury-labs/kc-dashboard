@@ -66,7 +66,7 @@ test('the elevated banner shows only when elevated', function () {
 
 test('no JS file in public/assets uses a markup or code sink', function () {
     $files = glob(PAGEUI_ASSETS . '/*.js');
-    assert_same(['app.js', 'clients.js'], array_map('basename', $files));
+    assert_same(['app.js', 'clients.js', 'now.js', 'projects.js'], array_map('basename', $files));
     assert_same([], DomSinks::find(PAGEUI_ASSETS));
     assert_true(str_contains((string) file_get_contents(PAGEUI_ASSETS . '/app.js'), 'textContent'), 'uses textContent');
 });

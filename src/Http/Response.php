@@ -20,7 +20,8 @@ class Response
     public static function json(int $status, array $data): array
     {
         return [$status, ['Content-Type' => 'application/json'] + self::SECURITY_HEADERS,
-            json_encode($data, JSON_UNESCAPED_SLASHES)];
+            // One invalid UTF-8 byte (a commit subject is data) would otherwise make json_encode return false: an empty body.
+            json_encode($data, JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE)];
     }
 
     // The throwable is deliberately unused: no message, no trace reaches the client.

@@ -253,5 +253,20 @@
     },
     "verified_at": "2026-10-19T16:35:39.986Z",
     "tree": "1e28fb2a153b6e6115428a15473921348373496ae7ab6275da4518e8fd1fd138"
+  },
+  {
+    "id": "75",
+    "title": "Project map and running strip",
+    "brief": ".claude/work/75-map/brief.md",
+    "start_sha": "81405495cca02320e40e042d94aa95ae68b43ef1",
+    "passes": true,
+    "scope_ok": {
+      "at": "2026-10-19T16:43:16.251Z",
+      "start_sha": "81405495cca02320e40e042d94aa95ae68b43ef1",
+      "mutation_evidence": true,
+      "tree": "05b769379d79327f9345bc6b3eec2dedd6c6eac517f214e1f6dd0a16b83c2683"
+    },
+    "verified_at": "2026-10-19T16:50:39.413Z",
+    "tree": "05b769379d79327f9345bc6b3eec2dedd6c6eac517f214e1f6dd0a16b83c2683"
   }
 ]
