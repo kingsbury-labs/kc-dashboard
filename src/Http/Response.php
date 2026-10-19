@@ -6,7 +6,8 @@ class Response
     public const SECURITY_HEADERS = [
         'Cache-Control' => 'no-store',
         'Pragma' => 'no-cache',
-        'Content-Security-Policy' => "default-src 'self'; form-action 'self' https://www.google.com; frame-ancestors 'none'",
+        'Content-Security-Policy' => "default-src 'self'; form-action 'self' https://www.google.com; frame-ancestors 'none'; "
+            . "require-trusted-types-for 'script'; trusted-types 'none'; base-uri 'none'",
         'X-Content-Type-Options' => 'nosniff',
         'Referrer-Policy' => 'no-referrer',
     ];
@@ -31,11 +32,13 @@ class Response
     public static function emit(array $triple): void
     {
         [$status, $headers, $body] = $triple;
-        if (!headers_sent()) {
-            http_response_code($status);
-            foreach ($headers as $name => $value) {
-                header($name . ': ' . $value);
-            }
+        // Output already went out under other headers: a body appended now would land inside it.
+        if (headers_sent()) {
+            return;
+        }
+        http_response_code($status);
+        foreach ($headers as $name => $value) {
+            header($name . ': ' . $value);
         }
         echo $body;
     }

@@ -193,5 +193,20 @@
     },
     "verified_at": "2026-10-19T15:02:58.714Z",
     "tree": "886f3d50dc80236e05ceacf28c8d2ff3e69506b50966b1bba842e3abf3cf382e"
+  },
+  {
+    "id": "62",
+    "title": "Page UI shell",
+    "brief": ".claude/work/62-ui/brief.md",
+    "start_sha": "f3d2816efad0f661fae72e3a1bc1acad5f201287",
+    "passes": true,
+    "scope_ok": {
+      "at": "2026-10-19T15:29:27.775Z",
+      "start_sha": "f3d2816efad0f661fae72e3a1bc1acad5f201287",
+      "mutation_evidence": true,
+      "tree": "0caf3e9b8ec138e95d81325ead699e6251246bdd7292a17ae8e00b4d8cfc3aca"
+    },
+    "verified_at": "2026-10-19T15:29:39.851Z",
+    "tree": "0caf3e9b8ec138e95d81325ead699e6251246bdd7292a17ae8e00b4d8cfc3aca"
   }
 ]

@@ -1,0 +1,132 @@
+/* Plain shell, phone first. Card 76 brings the HUD theme; colours stay in these tokens until then. */
+:root {
+  --bg: #ffffff;
+  --surface: #f4f6f8;
+  --text: #1b1f24;
+  --muted: #5a6470;
+  --line: #d5dbe1;
+  --accent: #1f5fae;
+  --warn-bg: #fff1e6;
+  --warn-text: #8a3200;
+  --space: 1rem;
+  --radius: 4px;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #111418;
+    --surface: #1a1f25;
+    --text: #e6e9ec;
+    --muted: #9aa5b1;
+    --line: #2d343c;
+    --accent: #7fb0f0;
+    --warn-bg: #3a1d0a;
+    --warn-text: #ffc59e;
+  }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 1rem/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+main {
+  display: grid;
+  gap: var(--space);
+  padding: var(--space);
+  max-width: 72rem;
+  margin: 0 auto;
+}
+
+h2, h3 { margin: 0 0 0.5rem; font-size: 1.125rem; }
+h3 { margin-top: var(--space); font-size: 1rem; }
+
+.hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.banner {
+  margin: 0;
+  padding: 0.75rem var(--space);
+  background: var(--warn-bg);
+  color: var(--warn-text);
+  font-weight: 600;
+}
+
+input, textarea, select, button {
+  font: inherit;
+  color: inherit;
+  width: 100%;
+  min-height: 44px;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+
+.search input { font-size: 1.125rem; }
+
+label { display: block; margin: 0.5rem 0 0.25rem; color: var(--muted); font-size: 0.875rem; }
+
+button {
+  margin-top: 0.75rem;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button:disabled { opacity: 0.5; cursor: default; }
+
+.panel {
+  padding: var(--space);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  min-width: 0;
+}
+
+.note { color: var(--muted); font-size: 0.875rem; margin: 0.5rem 0 0; }
+
+.list { list-style: none; margin: 0; padding: 0; }
+.list > li { border-top: 1px solid var(--line); padding: 0.5rem 0; }
+.list > li:first-child { border-top: 0; }
+
+.meta { margin: 0; color: var(--muted); font-size: 0.875rem; }
+.question { margin: 0.25rem 0; font-weight: 600; }
+.answer { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+summary { cursor: pointer; min-height: 44px; padding: 0.5rem 0; }
+.name { font-weight: 600; }
+.tag, time { color: var(--muted); font-size: 0.875rem; }
+
+dl { margin: 0.25rem 0 0; display: grid; gap: 0.125rem 1rem; }
+dt { color: var(--muted); font-size: 0.875rem; }
+dd { margin: 0 0 0.5rem; overflow-wrap: anywhere; }
+
+.links { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; list-style: none; margin: 0.5rem 0 0; padding: 0; }
+.links a { color: var(--accent); display: inline-block; padding: 0.5rem 0; }
+
+@media (min-width: 48rem) {
+  dl { grid-template-columns: max-content 1fr; }
+  dd { margin: 0; }
+}
+
+@media (min-width: 64rem) {
+  main {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+  .search { grid-column: 1 / -1; }
+  .clients { grid-column: 2; grid-row: 2 / span 2; }
+}

@@ -2,6 +2,11 @@
 // Post-install HTTP check (card 07). Real requests with curl; not part of tests/run.php.
 // Usage: php ops/http-check.php    Exit 0 when every check passes.
 
+// Only ever from the command line: under a web server this file must do nothing at all.
+if (PHP_SAPI !== 'cli') {
+    exit(1);
+}
+
 const BASE = 'http://127.0.0.1:8787';
 const PORT80 = ['http://127.0.0.1', 'http://[::1]', 'https://127.0.0.1'];
 const GOOD_ORIGIN = 'http://127.0.0.1:8787';
@@ -70,21 +75,25 @@ function body_clean(array $r, string $label, bool $allowMeta = false): void
     $body = $r['body'];
     if ($allowMeta) {
         // Card 11 puts the token in one <meta> tag on /; drop that tag only.
-        $body = preg_replace('/<meta[^>]*' . preg_quote($token, '/') . '[^>]*>/i', '', $body, 1);
+        $body = preg_replace('/<meta\b[^>]*' . preg_quote($token, '/') . '[^>]*>/i', '', $body, 1);
     }
     check(strpos($body, $token) === false, "$label: body does not contain the token");
     check(strpos($r['body'], '#0 ') === false, "$label: body has no stack frames");
 }
 
+// Every endpoint that changes state or starts a job. Named, not grepped: the handlers live in src/, so the
+// entry files in public/api/ never mention POST. A new write endpoint is added here.
+const WRITES = ['/api/ask.php'];
+
 $apiFiles = glob($root . '/public/api/*.php') ?: [];
 $paths = ['/'];
-$writes = [];
 foreach ($apiFiles as $f) {
-    $p = '/api/' . basename($f);
-    $paths[] = $p;
-    if (preg_match('/[\'"]POST[\'"]/', (string) file_get_contents($f))) {
-        $writes[] = $p;
-    }
+    $paths[] = '/api/' . basename($f);
+}
+$writes = array_values(array_intersect(WRITES, $paths));
+if ($writes === [] || count($writes) !== count(WRITES)) {
+    echo "FAIL write endpoint list does not match public/api/; nothing checked\n";
+    exit(1);
 }
 
 foreach ($paths as $p) {

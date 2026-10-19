@@ -1,0 +1,10 @@
+
+GRUPPENINFORMATIONEN
+--------------------
+
+Gruppenname                                          Typ                 SID          Attribute
+==================================================== =================== ============ ==================================================
+Jeder                                                Bekannte Gruppe     S-1-1-0      Verbindliche Gruppe, Standardmäßig aktiviert, Aktivierte Gruppe
+VORDEFINIERT\Administratoren                         Alias               S-1-5-32-544 Verbindliche Gruppe, Standardmäßig aktiviert, Aktivierte Gruppe, Gruppenbesitzer
+NT-AUTORITÄT\INTERAKTIV                              Bekannte Gruppe     S-1-5-4      Verbindliche Gruppe, Standardmäßig aktiviert, Aktivierte Gruppe
+Verbindliche Beschriftung\Hohe Verbindlichkeitsstufe Bezeichnung         S-1-16-12288

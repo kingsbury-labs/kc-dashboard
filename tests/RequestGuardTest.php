@@ -64,3 +64,22 @@ test('write rejects method, token and origin cases', function () {
         assert_true(!$g->checkWrite($s), $name);
     }
 });
+
+test('another site may only navigate here: subresource and fetch requests are refused', function () {
+    $g = new RequestGuard('');
+    $s = guard_ok('127.0.0.1:8787');
+    foreach (['cross-site', 'same-site'] as $site) {
+        foreach (['no-cors', 'cors', 'same-origin', ''] as $mode) {
+            $r = $s + ['HTTP_SEC_FETCH_SITE' => $site];
+            if ($mode !== '') {
+                $r['HTTP_SEC_FETCH_MODE'] = $mode;
+            }
+            assert_true(!$g->checkRead($r), "$site $mode");
+        }
+        assert_true($g->checkRead($s + ['HTTP_SEC_FETCH_SITE' => $site, 'HTTP_SEC_FETCH_MODE' => 'navigate']), "$site navigate");
+    }
+    foreach (['same-origin', 'none'] as $site) {
+        assert_true($g->checkRead($s + ['HTTP_SEC_FETCH_SITE' => $site, 'HTTP_SEC_FETCH_MODE' => 'cors']), $site);
+    }
+    assert_true($g->checkRead($s), 'no Sec-Fetch headers, as from curl');
+});

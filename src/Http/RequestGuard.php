@@ -20,7 +20,20 @@ class RequestGuard
         $addr = $server['REMOTE_ADDR'] ?? null;
         $host = $server['HTTP_HOST'] ?? null;
         return is_string($addr) && in_array($addr, self::ADDRS, true)
-            && is_string($host) && in_array($host, self::HOSTS, true);
+            && is_string($host) && in_array($host, self::HOSTS, true)
+            && self::fetchAllowed($server);
+    }
+
+    // A browser marks where a request came from. Another site (or another port on this machine, which is
+    // same-site) may only navigate here, so an <img> or fetch from any other page reaches nothing.
+    // No header at all is a non-browser client such as curl, which the address and Host checks cover.
+    private static function fetchAllowed(array $server): bool
+    {
+        $site = $server['HTTP_SEC_FETCH_SITE'] ?? null;
+        if ($site === null || $site === 'same-origin' || $site === 'none') {
+            return true;
+        }
+        return ($server['HTTP_SEC_FETCH_MODE'] ?? null) === 'navigate';
     }
 
     public function checkWrite(array $server): bool

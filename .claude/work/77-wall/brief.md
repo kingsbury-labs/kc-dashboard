@@ -44,7 +44,7 @@ time with the Edit tool, run, name the tests that failed, restore. Then run
 green.
 
 ## Boundaries
-No commit, no push, no install, nothing outward. No change to Apache, Task
+If the permission check refuses a mutation run (it has refused ones that remove a security guard as "Security Weaken"), restore the code at once, do not retry or rephrase it, and list it in result.md as owed. No commit, no push, no install, nothing outward. No change to Apache, Task
 Scheduler or any other project's files (reading is fine where the card says
 so). Never read a secret value. `project.md`'s Never list applies. A file
 not in the list above is out of scope; if one must change, stop and say so

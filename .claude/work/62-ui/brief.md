@@ -62,6 +62,9 @@ only "body does not contain the token".
 - `D:\Dev\htdocs\_kc-dashboard\tests\ClientsParserTest.php`
 - `D:\Dev\htdocs\_kc-dashboard\tests\ClientsApiTest.php`
 - `D:\Dev\htdocs\_kc-dashboard\tests\ElevationTest.php`
+- `D:\Dev\htdocs\_kc-dashboard\src\Http\RequestGuard.php` (round two, Fetch Metadata rule)
+- `D:\Dev\htdocs\_kc-dashboard\tests\RequestGuardTest.php` (round two)
+- `D:\Dev\htdocs\_kc-dashboard\ops\http-check.php` (added by the coordinator: fix the 0x08 byte on line 73 to `\b`, and add the same `PHP_SAPI !== 'cli'` exit guard as `bin/worker.php`)
 
 ## Done-test
 From plan.md card 62, word for word: the "Done-test:" paragraph at the end
@@ -76,7 +79,7 @@ the failing tests and restoring: (a) render an answer with `innerHTML` in
 the shutdown function from bootstrap. Then run green.
 
 ## Boundaries
-No commit, no push, no install, nothing outward. No restart or config change
+If the permission check refuses a mutation run (it has refused ones that remove a security guard as "Security Weaken"), restore the code at once, do not retry or rephrase it, and list it in result.md as owed. No commit, no push, no install, nothing outward. No restart or config change
 to Apache. Never print, log or copy the token. `project.md`'s Never list
 applies. A file not in the list above is out of scope; if one must change,
 stop and say so in result.md.
