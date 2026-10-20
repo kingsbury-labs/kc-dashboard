@@ -5,6 +5,7 @@ import { el, token } from './app.js';
 
 const list = document.getElementById('attention');
 const REFRESH_MS = 60000;
+const TAGS = { high: 'WARN', med: 'INFO' };
 const REASONS = ['useful', 'already knew', 'not actionable', 'too early', 'irrelevant', 'wrong evidence', 'resolved'];
 
 function linkable(url) {
@@ -54,6 +55,10 @@ function actions(f) {
 function item(f) {
   const li = el('li', 'fact');
   li.dataset.severity = f.severity ?? '';
+  // Same tags as View::factItem.
+  const tag = el('span', 'feed-tag', TAGS[f.severity] ?? 'TIP');
+  tag.dataset.tag = TAGS[f.severity] ?? 'TIP';
+  li.append(tag);
   const meta = el('p', 'meta', `${f.severity ?? ''} · ${f.source ?? ''}`);
   if (f.due_date) {
     const t = el('time', null, f.due_date);

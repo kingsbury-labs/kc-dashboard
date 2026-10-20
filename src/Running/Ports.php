@@ -2,18 +2,31 @@
 require_once __DIR__ . '/../Process/ProcessRunner.php';
 
 // Listening TCP ports with the program and PID that own them. netstat gives port and PID, tasklist gives the
-// image name. Neither call asks for a command line, so none can reach the output.
+// image name. Neither call asks for a command line, so none can reach the output. Only dev servers are kept:
+// a program in $programs on a port from 1024 up, or any program on a port in $always.
 class Ports
 {
     private ProcessRunner $runner;
     private string $netstatExe;
     private string $tasklistExe;
+    /** @var string[] lower-case image names */
+    private array $programs;
+    /** @var int[] */
+    private array $always;
 
-    public function __construct(ProcessRunner $runner, string $netstatExe, string $tasklistExe)
+    public function __construct(ProcessRunner $runner, string $netstatExe, string $tasklistExe, array $programs, array $always)
     {
         $this->runner = $runner;
         $this->netstatExe = $netstatExe;
         $this->tasklistExe = $tasklistExe;
+        $this->programs = array_map(fn($p) => strtolower((string) $p), $programs);
+        $this->always = array_values(array_filter($always, 'is_int'));
+    }
+
+    public function keeps(int $port, ?string $program): bool
+    {
+        return in_array($port, $this->always, true)
+            || ($port >= 1024 && $program !== null && in_array(strtolower($program), $this->programs, true));
     }
 
     /** @return array<int,array{port:int,program:?string,pid:int}> */
@@ -42,7 +55,10 @@ class Ports
         }
         $out = [];
         foreach ($listening as $l) {
-            $out[] = ['port' => $l['port'], 'program' => $images[$l['pid']] ?? null, 'pid' => $l['pid']];
+            $program = $images[$l['pid']] ?? null;
+            if ($this->keeps($l['port'], $program)) {
+                $out[] = ['port' => $l['port'], 'program' => $program, 'pid' => $l['pid']];
+            }
         }
         usort($out, fn($a, $b) => [$a['port'], $a['pid']] <=> [$b['port'], $b['pid']]);
         return $out;

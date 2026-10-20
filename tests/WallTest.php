@@ -27,18 +27,22 @@ function wall_row(array $over = []): array
         'loop_note' => null, 'checklist_cards' => 5, 'checklist_passing' => 3, 'scanned_at' => 0, 'error' => null];
 }
 
-test('the no-JS wall has the orb, the strip, the map, a 30 second refresh and the script', function () {
+test('the no-JS wall is the command center without the rail, with a 30 second refresh and the script', function () {
     [$status, $headers, $body] = wall_page(['map' => fn() => [wall_row(), wall_row(['slug' => 'beta', 'loop_state' => 'none'])],
         'now' => fn() => ['sessions' => [['status' => 'busy', 'project' => 'alpha']], 'ports' => [['port' => 8787, 'program' => 'httpd.exe']]]]);
     assert_same(200, $status);
     assert_true(str_starts_with($headers['Content-Type'], 'text/html'), 'html');
     assert_true(str_contains($body, '<noscript><meta http-equiv="refresh" content="30"></noscript>'), 'no-JS refresh');
+    assert_true(str_contains($body, '<body class="wall">'), 'wall body');
     assert_true(str_contains($body, '<canvas id="orb"') && str_contains($body, 'id="orb-static"'), 'orb and its no-JS fallback');
-    assert_true(str_contains($body, '<ul id="running"') && str_contains($body, '<ul id="projects"'), 'strip and map');
-    assert_same(2, substr_count($body, '<li class="tile"'), 'one tile per project');
+    foreach (['running', 'core', 'agents', 'timeline', 'monitor', 'llm', 'talk'] as $id) {
+        assert_true(str_contains($body, 'id="' . $id . '"'), "wall has #$id");
+    }
+    assert_true(!str_contains($body, 'id="rail"'), 'no rail on the wall');
+    assert_same(2, substr_count($body, '<li class="agent"'), 'the session and the running loop');
     assert_true(str_contains($body, 'httpd.exe') && str_contains($body, 'card 9'), 'strip items');
     assert_true(str_contains($body, '<button type="button" id="wall-full" hidden>Fullscreen</button>'), 'fullscreen button waits for JS');
-    foreach (['/assets/wall.js', '/assets/wall.css', '/assets/orb.js', '/assets/hud.css', '<meta name="kc-token"'] as $want) {
+    foreach (['/assets/wall.js', '/assets/wall.css', '/assets/orb.js', '/assets/core.js', '/assets/hud.css', '<meta name="kc-token"'] as $want) {
         assert_true(str_contains($body, $want), "page has $want");
     }
     assert_true(!str_contains($body, '/assets/now.js'), 'the wall streams; it does not poll now.php');
@@ -83,7 +87,7 @@ test('a foreign Host is refused before any source runs', function () {
 
 test('wall.js streams, holds a wake lock and sends the token on every fetch', function () {
     $src = (string) file_get_contents(WALL_ASSETS . '/wall.js');
-    foreach (['EventSource', 'wakeLock', 'visibilitychange', 'requestFullscreen', 'textContent'] as $want) {
+    foreach (['EventSource', 'wakeLock', 'visibilitychange', 'requestFullscreen', 'textContent', 'applyNow(data)'] as $want) {
         assert_true(str_contains($src, $want), "wall.js holds $want");
     }
     assert_true(preg_match("/visibilityState === 'visible'\) connect\(\);\s*else disconnect\(\);/", $src) === 1,

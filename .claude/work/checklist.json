@@ -403,5 +403,20 @@
     },
     "verified_at": "2026-10-19T22:33:56.285Z",
     "tree": "8921e691bdb6f07eeae22967489c73008230bc1f8eea16019bd1c36a867c4956"
+  },
+  {
+    "id": "76b",
+    "title": "KC Command Center",
+    "brief": ".claude/work/76b-command-center/brief.md",
+    "start_sha": "abc314ed297e1f2e1da1dda5bf96479153ae2985",
+    "passes": true,
+    "scope_ok": {
+      "at": "2026-10-20T02:40:30.263Z",
+      "start_sha": "abc314ed297e1f2e1da1dda5bf96479153ae2985",
+      "mutation_evidence": true,
+      "tree": "7c2a545881eb9edd1c7c7744aab55fc5854150dbf6cd790b18449975f95e7e16"
+    },
+    "verified_at": "2026-10-20T02:41:01.576Z",
+    "tree": "7c2a545881eb9edd1c7c7744aab55fc5854150dbf6cd790b18449975f95e7e16"
   }
 ]

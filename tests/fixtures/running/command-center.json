@@ -1,0 +1,6 @@
+{"sessions":[{"pid":1111,"project":"alpha","status":"busy","name":"card 12"},{"pid":2222,"project":"beta","status":"waiting","waitingFor":"permission"}],
+ "loops":[{"project":"sembr","state":"running","card":"41","note":"building"}],
+ "tasks":[{"name":"collect-facts","status":"Ready","lastRun":"10/19/2026 5:30:00 AM","lastResult":"1","nextRun":"N/A","failed":true}],
+ "ports":[{"port":5173,"program":"node.exe","pid":7001}],
+ "system":{"connected":true,"cpu":15,"ram":54,"disk":40,"llama":false,"at":1000},
+ "at":1000,"errors":[],"stale":false}

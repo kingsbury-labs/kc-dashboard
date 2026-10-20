@@ -1,6 +1,7 @@
 // The running strip. Polls api/now.php every 5 seconds while the tab is visible and stops while it is hidden.
 // The page already renders the strip without JS; every value from the server is written with textContent.
 import { el, token } from './app.js';
+import { applyNow } from './core.js';
 
 const list = document.getElementById('running');
 const POLL_MS = 5000;
@@ -37,7 +38,9 @@ async function refresh() {
   try {
     const res = await fetch('/api/now.php', { cache: 'no-store', headers: { 'X-KC-Token': token } });
     if (!res.ok) return;
-    list.replaceChildren(...items(await res.json()));
+    const data = await res.json();
+    list.replaceChildren(...items(data));
+    applyNow(data);
   } catch {
     // Keep what is showing; the next poll tries again.
   }

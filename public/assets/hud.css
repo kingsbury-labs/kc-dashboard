@@ -1,84 +1,149 @@
-/* HUD theme over app.css: dark base, thin frame lines, cut corners, one accent. Phone first; wider layouts use min-width only. */
+/* The command center skin over app.css: near-black navy, dot grid, glowing cyan glass panels, and the motion.
+   Always dark. Phone first; wider layouts use min-width only. Everything moves only with no-preference motion. */
 :root {
-  --bg: #070b10;
-  --surface: #0d141c;
-  --text: #d9e6f0;
-  --muted: #7f95a8;
-  --line: #1f3446;
-  --accent: #35d0e6;
-  --accent-glow: rgba(53, 208, 230, 0.35);
-  --warn-bg: #2a1708;
-  --warn-text: #ffb672;
-  --cut: 10px;
-  --mono: ui-monospace, "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
-  --radius: 0;
-  color-scheme: dark light;
+  --bg: #030712;
+  --accent: #38bdf8;
+  --accent-2: #22d3ee;
+  --glow: rgba(56, 189, 248, 0.12);
+  --glow-hi: rgba(56, 189, 248, 0.18);
+  --dots: rgba(125, 211, 252, 0.04);
+  color-scheme: dark;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    --bg: #f5f8fb;
-    --surface: #e9eff5;
-    --text: #12202c;
-    --muted: #4d6172;
-    --line: #aebfce;
-    --accent: #006f86;
-    --accent-glow: rgba(0, 111, 134, 0.25);
-    --warn-bg: #fff0e3;
-    --warn-text: #8a3200;
-  }
+body {
+  background-color: #030712;
+  background-image:
+    radial-gradient(var(--dots) 1px, transparent 1.5px),
+    radial-gradient(ellipse 70% 60% at 50% 35%, #061226 0%, #04101f 45%, #030712 100%);
+  background-size: 22px 22px, 100% 100%;
+  background-attachment: fixed;
 }
 
-body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
-
-h2 { font-weight: 600; letter-spacing: 0.02em; }
-.panel, .tile, .strip-list > li, input, textarea, select, button {
-  border-radius: 0;
-  clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut));
+.panel, .rail, .footbar {
+  background: rgba(8, 20, 40, 0.72);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  box-shadow: 0 0 24px var(--glow), inset 0 0 18px rgba(56, 189, 248, 0.05);
 }
 
-.panel { border-color: var(--line); background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
-.tile { background: var(--bg); }
-.strip-list > li { --cut: 6px; font-family: var(--mono); font-size: 0.875rem; }
-.strip-list > li[data-kind="loop"] { border-color: var(--accent); }
+.panel h2::before { content: ""; display: inline-block; width: 0.375rem; height: 0.375rem; margin-right: 0.5rem; border-radius: 50%;
+  background: var(--accent-2); box-shadow: 0 0 8px var(--accent-2); vertical-align: 0.1em; }
+.core h2::before { content: none; }
 
-input, textarea, select { background: var(--bg); border-color: var(--line); }
-input:focus-visible, textarea:focus-visible, select:focus-visible, button:focus-visible, summary:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: -2px;
+input:focus-visible, textarea:focus-visible, select:focus-visible, button:focus-visible, summary:focus-visible, a:focus-visible,
+.ask .field:focus-within {
+  outline: 2px solid var(--accent-2);
+  outline-offset: 2px;
 }
 
-button { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+/* Rail */
+.mark { display: grid; grid-template-columns: auto 1fr; column-gap: 0.75rem; align-items: center; padding: 0.25rem 0.25rem 0.75rem;
+  border-bottom: 1px solid var(--line-soft); color: var(--text); text-decoration: none; }
+.mark-ring { grid-row: span 2; width: 2.5rem; height: 2.5rem; border-radius: 50%; border: 2px solid var(--accent-2);
+  box-shadow: 0 0 14px var(--accent-2), inset 0 0 10px rgba(34, 211, 238, 0.5);
+  background: radial-gradient(circle, var(--accent-2) 0 18%, transparent 22% 48%, rgba(34, 211, 238, 0.4) 50% 54%, transparent 56%); }
+.mark-name { font: 700 1.375rem/1 var(--head); letter-spacing: 0.3em; color: var(--text); }
+.mark-sub { font: 0.6875rem var(--head); color: var(--accent); letter-spacing: 0.06em; text-transform: uppercase; }
+.nav { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.125rem; }
+.nav a { display: flex; align-items: center; gap: 0.75rem; min-height: 40px; padding: 0.375rem 0.75rem; border-radius: 8px;
+  border: 1px solid transparent; color: var(--text); text-decoration: none; font-size: 0.875rem; }
+.nav a .ico { color: var(--muted); }
+.nav a:hover { border-color: var(--line-soft); background: rgba(56, 189, 248, 0.06); }
+.nav a[aria-current="page"] { border-color: var(--line); background: rgba(56, 189, 248, 0.1); box-shadow: inset 0 0 12px rgba(56, 189, 248, 0.12); }
+.nav a[aria-current="page"] .ico { color: var(--accent-2); }
+.badge { margin-left: auto; min-width: 1.5rem; padding: 0 0.375rem; border-radius: 999px; text-align: center; font: 0.6875rem/1.4rem var(--head);
+  color: var(--accent-2); background: rgba(56, 189, 248, 0.12); border: 1px solid var(--line-soft); }
 
-.meta, .tag, time, .loop, dd, .strip-list .tag { font-variant-numeric: tabular-nums; }
-.meta, time { font-family: var(--mono); }
-.loop { color: var(--accent); }
+.voice { margin-top: auto; display: grid; justify-items: center; gap: 0.5rem; padding: 0.75rem; border: 1px solid var(--line);
+  border-radius: var(--radius); background: rgba(3, 7, 18, 0.5); text-align: center; }
+.voice h2 { justify-self: start; font: 600 0.6875rem var(--head); letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent-2); margin: 0; }
+.wave-voice { width: 100%; height: 2rem; color: var(--accent-2); }
+.v-state, .v-note { margin: 0; font-size: 0.75rem; color: var(--muted); }
+.mic { display: grid; place-items: center; gap: 0.125rem; width: 6rem; height: 6rem; border-radius: 50%; border: 2px solid var(--accent-2);
+  background: radial-gradient(circle, rgba(34, 211, 238, 0.35), rgba(6, 18, 38, 0.9) 70%); color: var(--text);
+  box-shadow: 0 0 0 6px rgba(34, 211, 238, 0.08), 0 0 0 12px rgba(34, 211, 238, 0.05), 0 0 28px rgba(34, 211, 238, 0.45); font-size: 0.75rem; }
+.mic .ico { width: 1.75rem; height: 1.75rem; color: var(--accent-2); }
 
-/* The orb: a static CSS glow shows until orb.js swaps in the canvas. */
-.orb { width: 120px; height: 120px; margin: 0 auto 0.5rem; position: relative; }
-.orb-static, .orb-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
-.orb-static {
-  border-radius: 50%;
-  background: radial-gradient(circle at 50% 50%, var(--accent) 0, var(--accent-glow) 28%, transparent 62%);
-  box-shadow: 0 0 0 1px var(--accent-glow), inset 0 0 0 10px transparent, 0 0 0 14px transparent;
-}
+/* Top bar */
+.pill { background: rgba(8, 20, 40, 0.72); box-shadow: 0 0 14px var(--glow); }
+.pill .dot { color: var(--ok); box-shadow: 0 0 8px currentColor; }
+.pill[data-health="degraded"] .dot { color: var(--amber); }
+.pill[data-health="fault"] .dot { color: var(--fault); }
+.c-time { text-shadow: 0 0 18px rgba(34, 211, 238, 0.55); }
+.ask .field, .search input { box-shadow: inset 0 0 12px rgba(56, 189, 248, 0.08); }
+.ask button, #wall-full { border-color: var(--accent-2); background: rgba(34, 211, 238, 0.14); color: var(--accent-2); }
+.ask button:disabled { opacity: 0.6; }
+
+/* Core: the static globe shows until orb.js swaps in the canvas, and is what a no-JS page keeps. */
+.core { background: radial-gradient(ellipse 60% 70% at 50% 52%, rgba(14, 116, 144, 0.22), rgba(8, 20, 40, 0.72) 70%); }
+.core .core-kc { text-shadow: 0 0 22px rgba(34, 211, 238, 0.8); }
+.orb-static { display: grid; place-items: center; }
+.orb-static::before { content: ""; width: 54%; aspect-ratio: 1; border-radius: 50%;
+  border: 1px solid rgba(34, 211, 238, 0.7);
+  background:
+    repeating-radial-gradient(circle, transparent 0 9%, rgba(34, 211, 238, 0.22) 9.5% 10%),
+    repeating-linear-gradient(90deg, transparent 0 11%, rgba(34, 211, 238, 0.18) 11.5% 12%),
+    radial-gradient(circle at 40% 35%, rgba(56, 189, 248, 0.45), rgba(6, 18, 38, 0.2) 65%);
+  box-shadow: 0 0 40px rgba(34, 211, 238, 0.45), inset 0 0 30px rgba(34, 211, 238, 0.35); }
+.orb-static::after { content: ""; position: absolute; bottom: 8%; width: 62%; height: 12%; border-radius: 50%;
+  border: 1px solid rgba(34, 211, 238, 0.35); box-shadow: 0 0 18px rgba(34, 211, 238, 0.25); }
+.orb-static i { position: absolute; width: 80%; height: 26%; border-radius: 50%; border: 1px solid rgba(56, 189, 248, 0.55); }
+.orb-static i:nth-child(1) { transform: rotate(-14deg); }
+.orb-static i:nth-child(2) { width: 70%; transform: rotate(22deg); border-color: rgba(167, 139, 250, 0.45); }
+.orb-static i:nth-child(3) { width: 92%; height: 34%; transform: rotate(4deg); opacity: 0.4; }
 .orb[data-live="true"] .orb-static { display: none; }
-.orb[data-state="thinking"] .orb-static { filter: brightness(1.3); }
+
+/* Agents */
+.agent { box-shadow: inset 0 0 14px rgba(56, 189, 248, 0.04); }
+.agent[data-state="busy"] { border-color: color-mix(in srgb, var(--k) 55%, transparent); box-shadow: 0 0 14px color-mix(in srgb, var(--k) 22%, transparent); }
+.agent[data-state="busy"] .wave i { opacity: 0.95; box-shadow: 0 0 6px currentColor; }
+.agent .disc { box-shadow: 0 0 10px color-mix(in srgb, var(--k) 35%, transparent); }
+
+.disc { box-shadow: 0 0 10px rgba(56, 189, 248, 0.2); }
+.g-fill { filter: drop-shadow(0 0 4px rgba(34, 211, 238, 0.8)); }
+.stars .nodes circle { filter: drop-shadow(0 0 3px rgba(34, 211, 238, 0.9)); }
+.capsule { box-shadow: 0 0 26px rgba(34, 211, 238, 0.45), inset 0 0 18px rgba(34, 211, 238, 0.18); }
+.capsule:disabled { opacity: 1; }
+.t-main { text-shadow: 0 0 12px rgba(34, 211, 238, 0.8); }
+.feed .live { box-shadow: 0 0 10px rgba(52, 211, 153, 0.35); }
+
+/* The light lines from busy agents to the core, drawn by core.js over everything. */
+.links-layer { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5; }
 
 @media (prefers-reduced-motion: no-preference) {
-  .orb-static { animation: orb-breathe 4s ease-in-out infinite; }
-  .orb[data-state="thinking"] .orb-static { animation-duration: 1.2s; }
+  .panel, .rail, .footbar { animation: breathe 6s ease-in-out infinite; }
+  .dot, .live { animation: pulse 1.6s ease-in-out infinite; }
+  .agent[data-state="busy"] .wave i, .wave-voice i, .wave-talk i { animation: bar 1.1s ease-in-out infinite; transform-origin: 50% 50%; }
+  .wave i:nth-child(2n) { animation-delay: -0.3s; }
+  .wave i:nth-child(3n) { animation-delay: -0.55s; animation-duration: 0.9s; }
+  .wave i:nth-child(5n) { animation-delay: -0.8s; animation-duration: 1.3s; }
+  .wave i:nth-child(7n) { animation-delay: -0.15s; }
+  .orb-static i:nth-child(1) { animation: orbit-a 18s linear infinite; }
+  .orb-static i:nth-child(2) { animation: orbit-b 26s linear infinite; }
+  .orb-static::before { animation: globe-turn 40s linear infinite; }
+  .orb-static::after { animation: ripple 3s ease-out infinite; }
+  .stars .nodes circle { animation: twinkle 3.2s ease-in-out infinite; }
+  .stars .nodes circle:nth-child(3n) { animation-delay: -1.1s; }
+  .stars .nodes circle:nth-child(2n) { animation-delay: -2.2s; }
+  .mic, .capsule { animation: glow 3s ease-in-out infinite; }
+  .mark-ring { animation: globe-turn 12s linear infinite; }
 }
 
-@keyframes orb-breathe {
-  0%, 100% { transform: scale(0.94); opacity: 0.8; }
-  50% { transform: scale(1); opacity: 1; }
+@keyframes breathe {
+  0%, 100% { box-shadow: 0 0 24px rgba(56, 189, 248, 0.10), inset 0 0 18px rgba(56, 189, 248, 0.05); }
+  50% { box-shadow: 0 0 24px rgba(56, 189, 248, 0.18), inset 0 0 18px rgba(56, 189, 248, 0.07); }
 }
-
-@media (min-width: 40rem) {
-  .orb { width: 160px; height: 160px; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+@keyframes bar { 0%, 100% { transform: scaleY(0.35); } 50% { transform: scaleY(1); } }
+@keyframes orbit-a { from { transform: rotate(-14deg) scaleX(1); } 50% { transform: rotate(-14deg) scaleX(0.92); } to { transform: rotate(346deg) scaleX(1); } }
+@keyframes orbit-b { from { transform: rotate(22deg); } to { transform: rotate(-338deg); } }
+@keyframes globe-turn { to { transform: rotate(360deg); } }
+@keyframes ripple { 0% { transform: scale(0.7); opacity: 0.9; } 100% { transform: scale(1.25); opacity: 0; } }
+@keyframes twinkle { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+@keyframes glow {
+  0%, 100% { box-shadow: 0 0 22px rgba(34, 211, 238, 0.35), inset 0 0 16px rgba(34, 211, 238, 0.15); }
+  50% { box-shadow: 0 0 34px rgba(34, 211, 238, 0.6), inset 0 0 20px rgba(34, 211, 238, 0.25); }
 }
 
 @media (min-width: 64rem) {
-  .ask .orb { float: right; margin: 0 0 0.5rem 1rem; }
+  .panel h2 { font-size: 0.75rem; }
 }

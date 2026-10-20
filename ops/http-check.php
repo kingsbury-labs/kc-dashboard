@@ -83,9 +83,9 @@ function body_clean(array $r, string $label, bool $allowMeta = false): void
 
 // Every endpoint that changes state or starts a job. Named, not grepped: the handlers live in src/, so the
 // entry files in public/api/ never mention POST. A new write endpoint is added here.
-const WRITES = ['/api/ask.php'];
+const WRITES = ['/api/ask.php', '/api/feedback.php'];
 // Pages render on a navigation and carry the token in one <meta> tag. The stream is checked on its own below.
-const PAGES = ['/', '/wall.php'];
+const PAGES = ['/', '/wall.php', '/projects.php'];
 const STREAM = '/api/wall-stream.php';
 
 $apiFiles = glob($root . '/public/api/*.php') ?: [];

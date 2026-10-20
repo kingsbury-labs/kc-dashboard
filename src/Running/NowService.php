@@ -8,6 +8,7 @@ require_once __DIR__ . '/../Projects/LoopState.php';
 require_once __DIR__ . '/SessionRegistry.php';
 require_once __DIR__ . '/Ports.php';
 require_once __DIR__ . '/Tasks.php';
+require_once __DIR__ . '/SystemMonitor.php';
 
 // What is running right now: Claude Code sessions, loops, the dashboard's scheduled tasks and listening ports.
 // One scan serves every request for cache_seconds, shared through a locked file, so many open tabs cost one scan.
@@ -25,10 +26,12 @@ class NowService
     /** @var Closure(): int */
     private Closure $clock;
     private ?Log $log;
+    private ?SystemMonitor $system;
 
     public function __construct(SessionRegistry $sessions, LoopState $loops, Tasks $tasks, Ports $ports, array $projects,
-        string $cacheFile, int $cacheSeconds = 3, ?Closure $clock = null, ?Log $log = null)
+        string $cacheFile, int $cacheSeconds = 3, ?Closure $clock = null, ?Log $log = null, ?SystemMonitor $system = null)
     {
+        $this->system = $system;
         $this->sessions = $sessions;
         $this->loops = $loops;
         $this->tasks = $tasks;
@@ -54,8 +57,9 @@ class NowService
             new SessionRegistry($c['sessions_dir'], $runner, $exes['powershell'], $projects, $c['aliases'] ?? []),
             new LoopState($runner, $exes['tasklist']),
             new Tasks($runner, $exes['schtasks'], $c['task_folder']),
-            new Ports($runner, $exes['netstat'], $exes['tasklist']),
-            $projects, $dataDir . '/now-cache.json', (int) ($c['cache_seconds'] ?? 3), null, $log);
+            new Ports($runner, $exes['netstat'], $exes['tasklist'], (array) ($c['port_programs'] ?? []), (array) ($c['port_always'] ?? [])),
+            $projects, $dataDir . '/now-cache.json', (int) ($c['cache_seconds'] ?? 3), null, $log,
+            new SystemMonitor($runner, $exes['powershell'], $dataDir . '/system-cache.json', (int) ($c['system_cache_seconds'] ?? 10)));
     }
 
     // $token is called only once the address and Host checks pass, so a refused request never reads it.
@@ -148,6 +152,9 @@ class NowService
             'tasks' => $source('tasks', fn() => $this->tasks->read()),
             'ports' => $source('ports', fn() => $this->ports->read()),
         ];
+        if ($this->system !== null) {
+            $data['system'] = $this->system->read();
+        }
         $data['errors'] = $errors;
         return $data;
     }

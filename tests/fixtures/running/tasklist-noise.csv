@@ -1,0 +1,6 @@
+"System","4","Services","0","1,000 K"
+"svchost.exe","1200","Services","0","12,000 K"
+"node.exe","7001","Console","1","80,000 K"
+"steam.exe","8100","Console","1","200,000 K"
+"AVGSvc.exe","8200","Services","0","90,000 K"
+"node.exe","7300","Console","1","50,000 K"

@@ -10,4 +10,10 @@ return [
     'cache_seconds' => 3,
     // The only http://127.0.0.1 ports an attention fact may link to: 8000 is Bigcapital (the finance feed).
     'link_ports' => [8000],
+    // Running ports keeps only these programs on ports from 1024 up, plus the always ports whatever owns them
+    // (8787 is this dashboard, 8000 Bigcapital). AVG, Steam and system services are dropped.
+    'port_programs' => ['node.exe', 'php.exe', 'python.exe', 'httpd.exe'],
+    'port_always' => [8787, 8000],
+    // CPU, RAM and disk from one PowerShell CIM query, cached this long.
+    'system_cache_seconds' => 10,
 ];

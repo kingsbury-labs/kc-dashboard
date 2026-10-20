@@ -1,8 +1,8 @@
-// The project map. Rebuilds the tiles from api/projects.php every 60 seconds while the tab is visible.
-// The page already renders the tiles without JS; every value from the server is written with textContent.
+// The project map table on projects.php. Rebuilds the rows from api/projects.php every 60 seconds while the tab is
+// visible. The page already renders the rows without JS; every value from the server is written with textContent.
 import { el, token } from './app.js';
 
-const list = document.getElementById('projects');
+const body = document.getElementById('projects');
 const REFRESH_MS = 60000;
 
 // Same wording as View::age.
@@ -16,31 +16,34 @@ function age(date) {
   return `${Math.floor(s / 86400)}d ago`;
 }
 
-function tile(p) {
-  const li = el('li', 'tile');
-  li.dataset.slug = p.slug ?? '';
-  const meta = el('p', 'meta', `${p.branch ?? 'no branch'} · ${Number(p.dirty ?? 0)} dirty`);
-  const when = age(p.last_date);
-  if (when) {
-    const t = el('time', null, when);
+// Same cells as View::mapRows.
+function row(p) {
+  const tr = el('tr');
+  tr.dataset.slug = p.slug ?? '';
+  const name = el('th', null, p.slug);
+  name.scope = 'row';
+  const when = el('td');
+  const a = age(p.last_date);
+  if (a) {
+    const t = el('time', null, a);
     t.dateTime = p.last_date;
-    meta.append(' · ', t);
+    when.append(t);
   }
-  li.append(el('h3', null, p.slug), meta);
-  if (p.last_subject != null) li.append(el('p', 'subject', p.last_subject));
+  const loop = el('td');
   if (p.loop_state != null && p.loop_state !== 'none') {
-    let text = `Loop ${p.loop_state}`;
+    let text = p.loop_state;
     if (p.loop_card != null) text += `, card ${p.loop_card}`;
     if (p.loop_note != null) text += `: ${p.loop_note}`;
-    const loop = el('p', 'loop', text);
-    loop.dataset.state = p.loop_state;
-    li.append(loop);
+    const span = el('span', 'loop', text);
+    span.dataset.state = p.loop_state;
+    loop.append(span);
   }
-  if (p.checklist_cards != null) {
-    li.append(el('p', 'meta', `Checklist ${Number(p.checklist_passing ?? 0)} of ${Number(p.checklist_cards)}`));
-  }
-  if (p.error != null) li.append(el('p', 'error', p.error));
-  return li;
+  const err = el('td');
+  if (p.error != null) err.append(el('span', 'error', p.error));
+  tr.append(name, el('td', null, p.branch ?? 'no branch'), el('td', 'n', Number(p.dirty ?? 0)), when,
+    el('td', 'subject', p.last_subject ?? ''), loop,
+    el('td', 'n', p.checklist_cards != null ? `${Number(p.checklist_passing ?? 0)} of ${Number(p.checklist_cards)}` : ''), err);
+  return tr;
 }
 
 async function refresh() {
@@ -49,10 +52,10 @@ async function refresh() {
     const res = await fetch('/api/projects.php', { cache: 'no-store', headers: { 'X-KC-Token': token } });
     if (!res.ok) return;
     const data = await res.json();
-    list.replaceChildren(...(data.projects ?? []).map(tile));
+    body.replaceChildren(...(data.projects ?? []).map(row));
   } catch {
-    // Keep the tiles the page rendered.
+    // Keep the rows the page rendered.
   }
 }
 
-if (list) setInterval(() => refresh(), REFRESH_MS);
+if (body) setInterval(() => refresh(), REFRESH_MS);

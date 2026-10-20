@@ -2,6 +2,7 @@
 // EventSource cannot send X-KC-Token, so each stream starts with a one-use ticket fetched with the token.
 // The page renders everything without JS; every value from the server is written with textContent.
 import { el, token } from './app.js';
+import { applyNow } from './core.js';
 
 const list = document.getElementById('running');
 const full = document.getElementById('wall-full');
@@ -81,7 +82,9 @@ async function connect() {
   source = fresh;
   fresh.addEventListener('now', (event) => {
     try {
-      list.replaceChildren(...items(JSON.parse(event.data)));
+      const data = JSON.parse(event.data);
+      list.replaceChildren(...items(data));
+      applyNow(data);
     } catch {
       // A bad event leaves the strip as it was.
     }

@@ -107,11 +107,14 @@ test('DomSinks finds each sink it lists', function () {
     }
 });
 
-test('app.css is mobile first: no max-width media query, a dark variant on :root', function () {
+test('app.css is mobile first and always dark: no max-width media query, dark tokens on :root, no light block', function () {
     $css = (string) file_get_contents(PAGEUI_ASSETS . '/app.css');
     assert_true(preg_match('/@media[^{]*max-width/i', $css) === 0, 'max-width media query');
     assert_true(preg_match('/@media[^{]*min-width/i', $css) === 1, 'min-width layer');
-    assert_true(preg_match('/@media\s*\(prefers-color-scheme:\s*dark\)\s*\{\s*:root/i', $css) === 1, 'dark tokens');
+    assert_true(preg_match('/:root\s*\{[^}]*--bg:\s*#0[0-9a-f]0[0-9a-f]{3}\b/i', $css) === 1, 'dark tokens');
+    assert_true(preg_match('/prefers-color-scheme/i', $css) === 0, 'a colour scheme switch');
+    assert_true(preg_match('/\.rail\s*\{\s*display:\s*none/', $css) === 1, 'rail hidden on a phone');
+    assert_true(preg_match('/@media\s*\(min-width:\s*64rem\)\s*\{[^@]*\.rail\s*\{\s*display:\s*flex/', $css) === 1, 'rail at 64rem');
 });
 
 test('with JS off the search works and the ask form says it needs JS', function () {

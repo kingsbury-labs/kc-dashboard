@@ -26,6 +26,11 @@ class NowFakeRunner extends ProcessRunner
     }
 }
 
+function na_config(): array
+{
+    return require __DIR__ . '/../config/running.php';
+}
+
 function na_temp(): string
 {
     $dir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'kcna_' . bin2hex(random_bytes(6));
@@ -51,7 +56,7 @@ function na_service(NowFakeRunner $runner, int &$clock, ?string &$cache = null):
         new SessionRegistry($tmp . '\\sessions', $runner, $exe('powershell'), ['alpha' => 'D:\\Dev\\htdocs\\alpha']),
         new LoopState($runner, $exe('tasklist')),
         new Tasks($runner, $exe('schtasks'), '\\KC Dashboard\\'),
-        new Ports($runner, $exe('netstat'), $exe('tasklist')),
+        new Ports($runner, $exe('netstat'), $exe('tasklist'), na_config()['port_programs'], na_config()['port_always']),
         $projects, $cache, 3, function () use (&$clock): int {
             return $clock;
         });
@@ -186,8 +191,8 @@ test('the four keys are present with the fixture data', function () {
     assert_same([['project' => 'alpha', 'state' => 'running', 'card' => '74', 'note' => 'building']], $data['loops']);
     assert_same(['collect-projects', 'daily-read'], array_column($data['tasks'], 'name'));
     assert_same([false, true], array_column($data['tasks'], 'failed'));
+    // svchost on 135 is dropped: a system service below 1024.
     assert_same([
-        ['port' => 135, 'program' => 'svchost.exe', 'pid' => 1200],
         ['port' => 5173, 'program' => 'node.exe', 'pid' => 7001],
         ['port' => 8787, 'program' => 'httpd.exe', 'pid' => 7002],
     ], $data['ports']);
@@ -232,5 +237,40 @@ test('a failing source is named in errors and the others still come back', funct
     $data = json_decode(na_service($runner, $clock)->handle(na_server('127.0.0.1:8787'), na_token())[2], true);
     assert_same(['tasks'], $data['errors']);
     assert_same([], $data['tasks']);
-    assert_same(3, count($data['ports']));
+    assert_same(2, count($data['ports']));
+});
+
+test('a netstat with AVG, Steam, svchost and a node dev server keeps only the node port', function () {
+    $runner = new FakeProcessRunner();
+    $runner->willReturn(0, (string) file_get_contents(NA_FIX . '/netstat-noise.txt'));
+    $runner->willReturn(0, (string) file_get_contents(NA_FIX . '/tasklist-noise.csv'));
+    $c = na_config();
+    $ports = (new Ports($runner, 'C:\\Windows\\System32\\netstat.exe', 'C:\\Windows\\System32\\tasklist.exe',
+        $c['port_programs'], $c['port_always']))->read();
+    assert_same([['port' => 5173, 'program' => 'node.exe', 'pid' => 7001]], $ports);
+});
+
+test('8787 and 8000 are kept whatever owns them, and the allowed list lives in config', function () {
+    $c = na_config();
+    assert_same(['node.exe', 'php.exe', 'python.exe', 'httpd.exe'], $c['port_programs']);
+    assert_same([8787, 8000], $c['port_always']);
+    $p = new Ports(new FakeProcessRunner(), 'n', 't', $c['port_programs'], $c['port_always']);
+    assert_true($p->keeps(8000, 'com.docker.backend.exe') && $p->keeps(8787, null), 'always ports');
+    assert_true($p->keeps(1024, 'PHP.EXE') && !$p->keeps(1023, 'php.exe') && !$p->keeps(5000, 'steam.exe'), 'programs from 1024 up');
+});
+
+test('the snapshot carries the system reading when a monitor is given', function () {
+    $runner = new NowFakeRunner();
+    $clock = 1000;
+    $svc = na_service($runner, $clock, $cache);
+    $ref = new ReflectionProperty(NowService::class, 'system');
+    $ref->setAccessible(true);
+    $ps = new FakeProcessRunner();
+    $ps->willReturn(0, "12,16000000,4000000,1000,250,1\r\n");
+    $ref->setValue($svc, new SystemMonitor($ps, 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe', $cache . '.sys', 10,
+        function () use (&$clock): int {
+            return $clock;
+        }));
+    $data = json_decode($svc->handle(na_server('127.0.0.1:8787'), na_token())[2], true);
+    assert_same(['connected' => true, 'cpu' => 12, 'ram' => 75, 'disk' => 75, 'llama' => true, 'at' => 1000], $data['system']);
 });

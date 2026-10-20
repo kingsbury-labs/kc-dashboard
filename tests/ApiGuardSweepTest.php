@@ -9,7 +9,7 @@ define('SWEEP_TOKEN', str_repeat('5e', 32));
 // ask.php opens and migrates the database before AskApi::ask runs its guard, so without one installed the refused
 // request creates dashboard.sqlite. Moving that open behind the guard needs ask.php, which card 74a does not own.
 const SWEEP_NEEDS_DB = ['api/ask.php'];
-const SWEEP_PAGES = ['index.php', 'wall.php'];
+const SWEEP_PAGES = ['index.php', 'projects.php', 'wall.php'];
 // Each case runs a second time with these removed, so a start the stub misses (below) throws and gives a 500.
 const SWEEP_NO_PROCESS = '-ddisable_functions=proc_open,popen,exec,shell_exec,system,passthru,pcntl_exec';
 
@@ -236,6 +236,29 @@ test('wall.php is checkRead and starts no program at all', function () {
         assert_same([], array_values(array_filter($files, fn($f) => str_starts_with($f, 'started-'))), 'programs started');
         $allowed = ['dashboard.sqlite', 'dashboard.sqlite-shm', 'dashboard.sqlite-wal', 'token'];
         assert_same([], array_values(array_diff($files, $allowed)), 'unexpected files in data/');
+    } finally {
+        sweep_rmtree($t);
+    }
+});
+
+test('projects.php is checkRead and starts no program at all', function () {
+    $t = sweep_world();
+    try {
+        $page = str_replace('/', '\\', "$t/public/projects.php");
+        sweep_reset_data($t, false);
+        $before = sweep_snapshot("$t/data");
+        $out = sweep_request($page, 'GET', ['HTTP_HOST' => 'evil.com']);
+        assert_true(preg_match('/^Status: 403\b/mi', $out) === 1, 'foreign Host: ' . substr($out, 0, 300));
+        assert_same($before, sweep_snapshot("$t/data"), 'foreign Host changed data/');
+        foreach (['stubs' => [], 'no process functions' => [SWEEP_NO_PROCESS]] as $how => $args) {
+            $out = sweep_request($page, 'GET', ['HTTP_SEC_FETCH_SITE' => 'cross-site', 'HTTP_SEC_FETCH_MODE' => 'navigate'], '', $args);
+            assert_true(preg_match('/^Status: 200\b/mi', $out) === 1 || !preg_match('/^Status: /mi', $out), "load ($how): " . substr($out, 0, 300));
+            assert_true(str_contains($out, '<tbody id="projects">'), "load ($how) renders the map");
+        }
+        $files = array_keys(sweep_snapshot("$t/data"));
+        assert_same([], array_values(array_filter($files, fn($f) => str_starts_with($f, 'started-'))), 'programs started');
+        assert_same([], array_values(array_diff($files, ['dashboard.sqlite', 'dashboard.sqlite-shm', 'dashboard.sqlite-wal', 'token'])),
+            'unexpected files in data/');
     } finally {
         sweep_rmtree($t);
     }
