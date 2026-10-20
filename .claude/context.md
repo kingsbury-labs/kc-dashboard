@@ -22,7 +22,7 @@ THIS WINDOW:
 - `.claude/settings.json` holds browser-site approvals, uncommitted (`scope_ignore`).
 
 ## Waiting on Rob
-- Look at the command center against sample 1.
+- Rob, 2026-10-20, after seeing 76c: "Great job so far." Next voice card, another time: dictation (voice in). Mic, Brief me and Talk to Jarvis all only brief him today; nothing takes speech. Mission-control.md had voice in as Later.
 - Card 83: finance evidence (free text) now lands in vault Briefings and the briefings table; the finance contract never covered that. OK it, or scrub first.
 - OK one real `claude -p` canary in untrusted mode; confirm the daily read may send finance evidence to Anthropic.
 - Allow `project-test.cjs` past the auto-mode check for the owed mutations (cards 60, 62, 74, 79 memory neutralise, 68 -WhatIf).
