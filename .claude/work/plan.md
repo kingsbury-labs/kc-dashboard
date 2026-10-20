@@ -762,6 +762,15 @@ ops/http-check.php` exits 0, and the audit report names a test for each
 spec Security bullet, each finance never-store item, and each accepted
 review finding in revision 3's mapping, or files a card for any without one.
 
+### Filed by card 69 (not briefed yet)
+Detail and file:line in `.claude/work/69-audit/report.md`.
+- **81. .credentials on port 80.** http-check probe plus a suite test that httpd.conf denies it.
+- **82. One process starter.** Static test that proc_open and the exec family appear only in ProcessRunner.php across src/ and bin/; bind powershell, php and python to fixed argv inside ProcessRunner.
+- **83. Finance evidence scrub.** Evidence is free text (Finance.php:83) and since card 79 lands in vault Briefings and the briefings table. Needs Rob's call on the contract, then a scrub and a test.
+- **84. Read-only git in kc-finance.** AskHandler.php:87 git status gets GIT_OPTIONAL_LOCKS=0 and card 73's guards.
+- **85. SSRF and token ACL.** Redirect-to-private-host test for CurlHttpClient (Codex 9); token file ACL test (Codex 12).
+- **86. Test hygiene.** BriefingTest covers all 14 neutralised fields (loop_card); ApiGuardSweepTest points config/vault.php at a temp vault; TasksScriptTest shadows schtasks.exe and CIM.
+
 ## Waiting on Rob
 
 ### 08. Credentials in place
