@@ -81,3 +81,4 @@ Rob: the remaining cards collapse into 60-69 (feature-sized, about an hour of lo
 - Rubric basis: consensus (Rob's explicit instruction for 76b-69).
 - Parked: nothing yet.
 - Card 79: 381 passing, http-check green. Sent back once: /api/brief.php built and wrote a briefing on a GET (now POST-only via checkWrite, GET refused, test added); http-check gained remember, brief, briefings.php. Owed: memory neutralise-removal mutation (refused, Security Weaken), Opus audit (deferred by Rob). hud.css was outside the list, so briefing panels use the existing panel classes only.
+- Card 80: 387 passing, three mutations caught, no DOM sink in voice.js. Not tested in a real browser (speech synthesis). Speak/Stop/picker reuse .cmd styling; hud.css was outside the list.

@@ -433,5 +433,20 @@
     },
     "verified_at": "2026-10-20T02:53:09.910Z",
     "tree": "c70e94c715b94d93b2243042d6e41769c0d9717b0b647ba2a3a9ff218e90b090"
+  },
+  {
+    "id": "80",
+    "title": "Voice out",
+    "brief": ".claude/work/80-voice/brief.md",
+    "start_sha": "455a0484326826e6add330e6f763f1c51f0bf549",
+    "passes": true,
+    "scope_ok": {
+      "at": "2026-10-20T02:57:08.482Z",
+      "start_sha": "455a0484326826e6add330e6f763f1c51f0bf549",
+      "mutation_evidence": true,
+      "tree": "e818835b7a297f155e8aae465bb6a19eccadb8d6f43650665774d3cc152a5f51"
+    },
+    "verified_at": "2026-10-20T02:58:37.488Z",
+    "tree": "e818835b7a297f155e8aae465bb6a19eccadb8d6f43650665774d3cc152a5f51"
   }
 ]

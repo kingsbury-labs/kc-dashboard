@@ -852,7 +852,7 @@ class View
             . '</ul></section>' . "\n";
     }
 
-    // The rail: mark, nav with counts, the voice panel. Brief me and voice in wait for cards 79 and 80.
+    // The rail: mark, nav with counts, the voice panel. voice.js adds the picker and stop control; none show without JS.
     private static function rail(string $current, int $attention, int $projects): string
     {
         $link = function (string $href, string $icon, string $text, string $key, ?int $count = null) use ($current): string {
@@ -868,8 +868,8 @@ class View
             . $link('/#memory', 'vault', 'Vault', 'vault')
             . $link('/wall.php', 'screen', 'Wall', 'wall') . '</ul>'
             . '<section class="voice" id="voice" aria-labelledby="voice-h"><h2 id="voice-h">Voice status</h2>' . self::wave('wave wave-voice', 28)
-            . '<p class="v-state">Voice in not connected</p><button type="button" class="mic" id="voice-brief" data-brief disabled>' . self::icon('mic')
-            . '<span>Brief me</span></button><p class="v-note">Speaks once briefings ship</p></section></nav>';
+            . '<p class="v-state">Voice off</p><button type="button" class="mic" id="voice-brief" data-brief disabled>' . self::icon('mic')
+            . '<span>Brief me</span></button><p class="v-note">Voice needs JavaScript</p></section></nav>';
     }
 
     private static function topbar(string $health, string $label, int $now, string $extra): string
@@ -882,7 +882,7 @@ class View
     }
 
     // The footer bar: traffic and dev servers on the left with the running strip, the Talk to Jarvis capsule in the
-    // middle, the executive briefing on the right. Talk and the briefing wait for cards 79 and 80.
+    // middle (voice.js enables it when a local voice exists), the executive briefing on the right.
     private static function footer(?array $numbers, array $snap, string $strip): string
     {
         $traffic = self::traffic($numbers);
@@ -895,7 +895,7 @@ class View
             . '<section class="strip" aria-labelledby="strip-h"><h2 id="strip-h" class="hidden">Running now</h2>'
             . '<ul id="running" class="strip-list">' . $strip . '</ul></section></div>'
             . '<div class="talk" id="talk"><button type="button" class="capsule" id="talk-button" disabled>' . self::wave('wave wave-talk', 10)
-            . '<span class="t-main">Talk to Jarvis</span><span class="t-sub">Brief me now · voice in later</span>' . self::wave('wave wave-talk', 10)
+            . '<span class="t-main">Talk to Jarvis</span><span class="t-sub">Brief me now by voice</span>' . self::wave('wave wave-talk', 10)
             . '</button></div><div class="f-right"><a class="brief" id="exec-brief" href="/briefings.php">' . self::icon('doc')
             . '<span>Executive briefing</span></a></div></footer>';
     }
@@ -956,6 +956,7 @@ HTML;
 <script type="module" src="/assets/news.js"></script>
 <script type="module" src="/assets/numbers.js"></script>
 <script type="module" src="/assets/brief.js"></script>
+<script type="module" src="/assets/voice.js"></script>
 </head>
 <body class="cc">
 $banner

@@ -1,5 +1,6 @@
 // Ask Claude and the answers list. Every value from the server is written with textContent.
 // Every /api/ request sends it: reads as well as writes are refused without it.
+import { speakButton } from './voice.js';
 export const token = document.querySelector('meta[name="kc-token"]')?.content ?? '';
 const form = document.getElementById('ask-form');
 const note = document.getElementById('ask-note');
@@ -14,6 +15,14 @@ export function el(tag, cls, text) {
   return node;
 }
 
+// A speak button on a finished answer, made here so the no-JS page has none. Null when the browser cannot speak.
+function addSpeak(li) {
+  if (li.dataset.status !== 'done' || li.querySelector('[data-speak]')) return;
+  const text = li.querySelector('.answer');
+  const button = text ? speakButton(() => text.textContent) : null;
+  if (button) li.append(button);
+}
+
 function answerItem(a) {
   const li = el('li');
   li.dataset.status = a.status ?? '';
@@ -23,6 +32,7 @@ function answerItem(a) {
     el('p', 'question', a.question),
     el('p', 'answer', text),
   );
+  addSpeak(li);
   return li;
 }
 
@@ -81,4 +91,5 @@ if (form) {
   });
 }
 
+if (list) for (const li of list.querySelectorAll('li[data-status]')) addSpeak(li);
 if (list && pending()) poll();
