@@ -25,6 +25,7 @@ task, and its "Done-test:" paragraph is what done means.
 - PHP 8.2 only. Edit PHP with the Edit/Write tools only, never sed or node -e.
 - Never run `bin/register-tasks.ps1` without `-WhatIf`, and make the script's `-WhatIf` path skip `Register-ScheduledTask` entirely (print what it would do), so a test can never register a real task. Rob registers the tasks himself later (card 52). Powershell is `C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`, added to the test's own allowlist only, not to `config/executables.php`.
 - Wiring a new panel or script into the page usually needs `public/index.php` and `src/View.php`; both are in scope for that wiring only, even if not listed below. Any test may gain a case for this card. Edit PHP with Edit/Write only (no heredocs, `php -r`, sed or `node -e`).
+- UI lives inside card 76b`s KC Command Center skin: read `D:/Dev/htdocs/_kc-dashboard/.claude/work/mission-control.md` and look at `design-refs/1-jarvis-command-center.png`. New controls and panels use its panel class, colors and motion rules; nothing light-themed, nothing that looks like a plain list.
 
 ## Files you may touch
 - `D:\Dev\htdocs\_kc-dashboard\chrome-extension\manifest.json`

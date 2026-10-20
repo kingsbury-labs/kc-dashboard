@@ -24,6 +24,7 @@ task, and its "Done-test:" paragraph is what done means.
   query; JS writes text with `textContent` only (DomSinks).
 - PHP 8.2 only. Edit PHP with the Edit/Write tools only, never sed or node -e.
 - Wiring a new panel or script into the page usually needs `public/index.php` and `src/View.php`; both are in scope for that wiring only, even if not listed below. Any test may gain a case for this card. Edit PHP with Edit/Write only (no heredocs, `php -r`, sed or `node -e`).
+- UI lives inside card 76b`s KC Command Center skin: read `D:/Dev/htdocs/_kc-dashboard/.claude/work/mission-control.md` and look at `design-refs/1-jarvis-command-center.png`. New controls and panels use its panel class, colors and motion rules; nothing light-themed, nothing that looks like a plain list.
 
 ## Files you may touch
 - `D:\Dev\htdocs\_kc-dashboard\public\assets\voice.js`

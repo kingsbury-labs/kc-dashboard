@@ -1,14 +1,17 @@
 {
   "status": "finished",
   "exit_code": 0,
-  "started_at": "2026-10-19T22:33:21.713Z",
-  "finished_at": "2026-10-19T22:33:55.284Z",
-  "at": "2026-10-19T22:33:55.284Z",
-  "command": "c:\\xampp\\php\\php.exe tests/run.php",
-  "args": [],
-  "tree": "8921e691bdb6f07eeae22967489c73008230bc1f8eea16019bd1c36a867c4956",
+  "started_at": "2026-10-20T02:02:40.287Z",
+  "finished_at": "2026-10-20T02:02:41.805Z",
+  "at": "2026-10-20T02:02:41.805Z",
+  "command": "c:\\xampp\\php\\php.exe tests/run.php \"--filter\" \"Spec\"",
+  "args": [
+    "--filter",
+    "Spec"
+  ],
+  "tree": "29f7da173d25bc67a3fb06f8d236d34e06d2737a7c26313cc3ecddfe802f2970",
   "lines": 1,
-  "summary": "Tests: 348 passed, 0 failed",
+  "summary": "Tests: 20 passed, 0 failed",
   "filtered": false,
   "log": "D:\\Dev\\htdocs\\_kc-dashboard\\data\\test-last.log"
 }

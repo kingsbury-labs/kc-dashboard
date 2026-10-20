@@ -167,13 +167,18 @@ kc-finance's scheduled runs and pinned by `config/alerts.schema.json` there.
 8. **What's running.** A strip at the top: Claude Code sessions busy or
    waiting, running loops with their card, failed scheduled tasks and dev
    server ports.
-9. **HUD theme and orb.** A dark HUD look in plain CSS with a light theme
-   under `prefers-color-scheme`, and a canvas orb that shows idle, thinking
-   and speaking. Reduced motion draws one still frame; with no JS a static
-   orb shows.
-10. **Wall page.** `/wall`, a full-screen HUD for a second monitor: orb,
-    running strip, project map, attention and headline panels. Screen Wake
-    Lock; the only page that streams.
+9. **KC Command Center.** The new tab is a JARVIS-style command center,
+   always dark and animated, built to Rob's sample (design brief:
+   `.claude/work/mission-control.md`). A central AI core (a canvas wireframe
+   globe with orbit rings) has every agent connected to it: Claude Code
+   sessions, project loops and collectors, each with its own live tile. Around
+   it: AI core overview, live intelligence feed (attention), mission timeline,
+   quick commands, system monitor gauges, memory insights, LLM status and a
+   Talk to Jarvis bar. Real data only; a panel with no source says "not
+   connected". Reduced motion draws one still frame; with no JS every panel
+   renders from the server and a static core shows.
+10. **Wall page.** `/wall.php`, the command center full screen for a second
+    monitor. Screen Wake Lock; the only page that streams.
 11. **Vault.** Plain Markdown under `D:\Dev\vault\kc` that Obsidian opens.
     Per-project notes, canvas export and a board file. Obsidian draws the
     graph and kanban; the dashboard does not.

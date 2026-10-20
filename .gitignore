@@ -29,3 +29,6 @@ desktop.ini
 *.log
 .scratch/
 tmp/
+
+# Rob's visual reference images (third-party, not ours to publish)
+/design-refs/

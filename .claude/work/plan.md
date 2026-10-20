@@ -22,7 +22,13 @@ dashboard does not build those two views. Voice in, the local model, voice
 handoffs to Claude, wake word, Meta Ads and Buffer are in Later. Rob runs
 this build agentically from a fresh window, not through `claude-loop.cjs`.
 Build order is the order of the cards below: 59, 60, 62, 73, 74, 75, 76, 77,
-70, 71, 72, 63, 67, 78, 79, 80, 68, 69.
+70, 71, 72, 63, 67, 78, 76b, 79, 80, 68, 69.
+
+Revision 5.1 (2026-10-19, Rob, after seeing the built pages): the UI must look
+like the JARVIS command center in Rob's samples, dark, animated, with every agent
+connected to a central AI core. Card 76b redoes `/` and `/wall.php` in that skin
+before 79; cards 79, 80 and 68 build inside it. Design brief:
+`.claude/work/mission-control.md`; samples in `design-refs/` (gitignored).
 
 Every card leaves `c:\xampp\php\php.exe tests/run.php` green. Code cards use
 fakes; no real network, model or process calls in tests.
@@ -575,6 +581,74 @@ type, x, y, width, height`; every edge's `fromNode` and `toNode` exist; no
 two nodes overlap. BoardTest: a missing board is created with the three
 columns and the front matter; an existing board's bytes are unchanged after
 a run.
+
+### 76b. KC Command Center
+- Role: implementer. Risky path: yes (`public/`, `public/api/`, `src/Process/` via the CIM query). Depends: 63, 67, 70, 75, 76, 77, 78.
+- `public/assets/hud.css`
+- `public/assets/orb.js`
+- `public/assets/core.js`
+- `public/assets/app.css`
+- `public/assets/app.js`
+- `public/assets/now.js`
+- `public/assets/projects.js`
+- `public/assets/attention.js`
+- `public/assets/news.js`
+- `public/assets/numbers.js`
+- `public/assets/wall.js`
+- `public/assets/wall.css`
+- `public/index.php`
+- `public/wall.php`
+- `public/projects.php`
+- `src/View.php`
+- `src/Running/NowService.php`
+- `src/Running/Ports.php`
+- `src/Running/SystemMonitor.php`
+- `config/running.php`
+- `config/executables.php`
+- `tests/CommandCenterTest.php`
+- `tests/SystemMonitorTest.php`
+- `tests/HudTest.php`
+- `tests/PageUiTest.php`
+- `tests/ProjectsUiTest.php`
+- `tests/WallTest.php`
+- `tests/NowApiTest.php`
+- `tests/ApiGuardSweepTest.php`
+- `tests/fixtures/running/`
+
+Rebuild the page skin and layout to `.claude/work/mission-control.md`, which
+follows Rob's sample `design-refs/1-jarvis-command-center.png`. Always dark
+(the light theme goes). Left rail, top bar with systems pill and live clock, the
+central AI core as a canvas 2D wireframe globe with orbit rings and nodes (no
+library), AI core overview, live intelligence feed (attention), active agents
+(Claude sessions, project loops, collectors, each with a live sparkline while
+busy and a light line to the core), mission timeline, quick commands (POST only),
+system monitor gauges (CPU, RAM, disk from one PowerShell CIM query through
+ProcessRunner, cached 10 s, served in `now.php`), memory insights, LLM status,
+footer bar with the Talk to Jarvis capsule. Real data only; a panel with no
+source says "not connected". The full project map moves to `public/projects.php`
+as a dense table. The running ports list keeps only node, php, python and httpd
+on ports from 1024 up plus 8787 and 8000 (allowed names in config). `/wall.php`
+is the same page full screen without the rail. Mobile first: panels stack in
+reading order on a phone; the rail and 3-column grid appear at 1024px.
+
+Done-test: `php tests/run.php` with `--filter CommandCenter`, `SystemMonitor`,
+`Hud`, `PageUi`, `ProjectsUi`, `Wall` and `NowApi` each pass, and `php
+ops/http-check.php` exits 0. CommandCenterTest: the no-JS page has every panel
+named in the brief (rail, systems pill, clock, core, core overview, feed, active
+agents, timeline, quick commands, system monitor, memory insights, LLM status,
+footer capsule) by id; a fixture with two sessions, one loop and one failed
+collector renders four agent tiles with the right states; a panel with no source
+renders "not connected"; every agent name and feed title holding
+`<img src=x onerror=alert(1)>` renders escaped; quick commands are forms with
+`method="post"` or buttons, never GET links that start work. HudTest: `hud.css`
+has no `prefers-color-scheme: light` block and its `:root` background is dark;
+`orb.js` or `core.js` holds `requestAnimationFrame`, `prefers-reduced-motion`
+and `visibilitychange`; no `max-width` media query; no rule with
+`letter-spacing` of 0.1em or more and `text-transform: uppercase`.
+SystemMonitorTest: a CIM output fixture gives CPU, RAM and disk percentages; a
+failing query gives "not connected" and no exception; two calls within 10 s on a
+fake clock run the query once. NowApiTest adds: a netstat fixture with AVG,
+Steam, svchost and a node dev server keeps only the node port. `DomSinks` clean.
 
 ### 79. Briefing, memory and history
 - Role: implementer. Risky path: yes (`public/api/`, `src/Fs/`). Depends: 63, 67, 72, 78.
