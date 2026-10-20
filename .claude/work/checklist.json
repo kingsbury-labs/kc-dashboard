@@ -448,5 +448,20 @@
     },
     "verified_at": "2026-10-20T02:58:37.488Z",
     "tree": "e818835b7a297f155e8aae465bb6a19eccadb8d6f43650665774d3cc152a5f51"
+  },
+  {
+    "id": "68",
+    "title": "Chrome extension and Task Scheduler script",
+    "brief": ".claude/work/68-extension/brief.md",
+    "start_sha": "214fed34148963217fb28f3bac6535dee978431d",
+    "passes": true,
+    "scope_ok": {
+      "at": "2026-10-20T03:07:50.635Z",
+      "start_sha": "214fed34148963217fb28f3bac6535dee978431d",
+      "mutation_evidence": true,
+      "tree": "681d44442f686048fe91df8bf0cddaed232ec9ad27810b3a33d377d2ebd04bfb"
+    },
+    "verified_at": "2026-10-20T03:08:54.307Z",
+    "tree": "681d44442f686048fe91df8bf0cddaed232ec9ad27810b3a33d377d2ebd04bfb"
   }
 ]
