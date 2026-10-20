@@ -75,3 +75,9 @@ Rob: the remaining cards collapse into 60-69 (feature-sized, about an hour of lo
 - Card 78 round two: all fixed, mutations caught. No file-symlink test (this account lacks the symlink privilege); a hard-link test covers the target instead.
 - Session 10, Rob (22:30): speed over gating for 76b, 79, 80, 68, 69. Per card now: scope check, diff skim, full suite, --verify, --pass, commit. The per-card Opus security audit and the screenshot pass are deferred, owed for 76b, 79 and 68, to run later (card 69's cross-card audit can absorb them).
 - Card 76b: built, 366 passing, three mutations caught. Apache was down; coordinator started it. http-check had a card-70 gap (feedback.php, a POST-only write, missing from WRITES, so its token GET got 403); fixed, projects.php added to PAGES. Owed: Opus audit and the screenshot pass vs sample 1 (deferred by Rob). PHP's date.timezone is Europe/Berlin (no-JS clock and timeline wrong until JS runs; php.ini, outside the project).
+
+## 2026-10-19T22:55 AFK (no flags)
+- Decision: keep Rob's session-10 flow, each card committed straight to main and pushed by a background agent, rather than the AFK skill's PR-only default. Rob ordered that flow for this build in this window.
+- Rubric basis: consensus (Rob's explicit instruction for 76b-69).
+- Parked: nothing yet.
+- Card 79: 381 passing, http-check green. Sent back once: /api/brief.php built and wrote a briefing on a GET (now POST-only via checkWrite, GET refused, test added); http-check gained remember, brief, briefings.php. Owed: memory neutralise-removal mutation (refused, Security Weaken), Opus audit (deferred by Rob). hud.css was outside the list, so briefing panels use the existing panel classes only.

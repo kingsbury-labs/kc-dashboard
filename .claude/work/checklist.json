@@ -418,5 +418,20 @@
     },
     "verified_at": "2026-10-20T02:41:01.576Z",
     "tree": "7c2a545881eb9edd1c7c7744aab55fc5854150dbf6cd790b18449975f95e7e16"
+  },
+  {
+    "id": "79",
+    "title": "Briefing, memory and history",
+    "brief": ".claude/work/79-briefing/brief.md",
+    "start_sha": "6de2c295c26863e7be85a1d3b7c7d38632ea2c31",
+    "passes": true,
+    "scope_ok": {
+      "at": "2026-10-20T02:52:27.703Z",
+      "start_sha": "6de2c295c26863e7be85a1d3b7c7d38632ea2c31",
+      "mutation_evidence": true,
+      "tree": "c70e94c715b94d93b2243042d6e41769c0d9717b0b647ba2a3a9ff218e90b090"
+    },
+    "verified_at": "2026-10-20T02:53:09.910Z",
+    "tree": "c70e94c715b94d93b2243042d6e41769c0d9717b0b647ba2a3a9ff218e90b090"
   }
 ]

@@ -95,6 +95,65 @@ class View
         }
     }
 
+    /**
+     * GET /briefings.php: past briefings newest first, and ?day=YYYY-MM-DD opens one as it was stored that day
+     * (today's when no day is given). checkRead, then $composer; a navigation reads stored briefings and never builds.
+     */
+    public static function briefingsPage(array $server, string $tokenPath, Log $log, Closure $composer, array $query = [], ?int $now = null): array
+    {
+        try {
+            if (!(new RequestGuard(''))->checkRead($server)) {
+                return Response::json(403, ['error' => 'forbidden']);
+            }
+            $token = Token::load($tokenPath, $log);
+            $now = $now ?? time();
+            $day = is_string($query['day'] ?? null) && preg_match('/^\d{4}-\d{2}-\d{2}$/D', $query['day']) ? $query['day'] : null;
+            $history = [];
+            $open = null;
+            try {
+                $c = $composer();
+                $history = $c->history();
+                $open = $c->get($day ?? date('Y-m-d', $now)) ?? ($day === null && $history !== [] ? $c->get($history[0]['day']) : null);
+            } catch (Throwable $e) {
+                $log->info('briefings: source failed', ['error' => $e->getMessage()]);
+            }
+            $items = '';
+            foreach ($history as $h) {
+                $current = $open !== null && $h['day'] === $open['day'];
+                $items .= '<li class="b-day"><a href="/briefings.php?day=' . self::e($h['day']) . '"' . ($current ? ' aria-current="page"' : '') . '>'
+                    . '<time datetime="' . self::e($h['day']) . '">' . self::e(date('D j M Y', (int) strtotime($h['day']))) . '</time></a></li>';
+            }
+            return Response::html(200, self::renderBriefings($token, $items !== '' ? $items : '<li class="quiet">No briefings yet.</li>',
+                $open === null ? '<p class="quiet">' . ($day !== null ? 'No briefing for that day.' : 'No briefing yet. Brief me on the command center builds today\'s.') . '</p>'
+                    : self::briefingBody((string) $open['body']), $open['day'] ?? null, $now));
+        } catch (Throwable $e) {
+            return Response::error($e);
+        }
+    }
+
+    // A stored briefing's markdown as escaped HTML: `## ` lines are headings, `- ` lines list items, the rest text.
+    public static function briefingBody(string $md): string
+    {
+        $out = '';
+        $list = false;
+        foreach (preg_split('/\R/', $md) as $line) {
+            $isItem = str_starts_with($line, '- ');
+            if ($list && !$isItem) {
+                $out .= '</ul>';
+                $list = false;
+            }
+            if ($isItem) {
+                $out .= ($list ? '' : '<ul class="b-list">') . '<li>' . self::e(substr($line, 2)) . '</li>';
+                $list = true;
+            } elseif (str_starts_with($line, '## ')) {
+                $out .= '<h3>' . self::e(substr($line, 3)) . '</h3>';
+            } elseif (trim($line) !== '' && !str_starts_with($line, '# ')) {
+                $out .= '<p>' . self::e($line) . '</p>';
+            }
+        }
+        return $out . ($list ? '</ul>' : '');
+    }
+
     // Every source the command center reads, each in its own try: a failing one is null or empty, never a 500.
     private static function gather(array $deps, Log $log, int $now, bool $feed): array
     {
@@ -163,8 +222,7 @@ class View
                 }
                 return ['notes' => $notes, 'last' => $last, 'briefings' => $briefings];
             }),
-            // Card 79 builds the memory store; until then memory is not connected.
-            'memory' => null,
+            'memory' => $db instanceof PDO ? $part('memories', fn(): int => (int) $db->query('SELECT COUNT(*) FROM memories')->fetchColumn()) : null,
         ];
     }
 
@@ -773,7 +831,7 @@ class View
 
             . '<section class="panel commands" id="commands" aria-labelledby="commands-h"><h2 id="commands-h">Quick commands</h2><ul class="cmds">'
             . '<li><a class="cmd" href="#ask-question">' . self::icon('chat') . 'Ask Claude</a></li>'
-            . '<li><button type="button" class="cmd" data-command="brief" disabled>' . self::icon('mic') . 'Brief me <span class="nc-tag">not connected</span></button></li>'
+            . '<li><button type="button" class="cmd" data-command="brief" data-brief disabled>' . self::icon('mic') . 'Brief me</button></li>'
             . '<li><a class="cmd" href="/wall.php">' . self::icon('screen') . 'Open wall</a></li>'
             . '<li><button type="button" class="cmd" data-command="collect" disabled>' . self::icon('collect') . 'Run collectors now <span class="nc-tag">not connected</span></button></li>'
             . '</ul></section>' . "\n"
@@ -806,10 +864,11 @@ class View
             . '<span class="mark-sub">Command Center</span></a><ul class="nav">'
             . $link('/', 'grid', 'Command center', 'home') . $link('/projects.php', 'folder', 'Projects', 'projects', $projects)
             . $link('/#feed', 'bell', 'Attention', 'attention', $attention) . $link('/#news-h', 'news', 'News', 'news')
-            . $link('/#numbers-h', 'chart', 'Numbers', 'numbers') . $link('/#memory', 'vault', 'Vault', 'vault')
+            . $link('/#numbers-h', 'chart', 'Numbers', 'numbers') . $link('/briefings.php', 'doc', 'Briefings', 'briefings')
+            . $link('/#memory', 'vault', 'Vault', 'vault')
             . $link('/wall.php', 'screen', 'Wall', 'wall') . '</ul>'
             . '<section class="voice" id="voice" aria-labelledby="voice-h"><h2 id="voice-h">Voice status</h2>' . self::wave('wave wave-voice', 28)
-            . '<p class="v-state">Voice in not connected</p><button type="button" class="mic" id="voice-brief" disabled>' . self::icon('mic')
+            . '<p class="v-state">Voice in not connected</p><button type="button" class="mic" id="voice-brief" data-brief disabled>' . self::icon('mic')
             . '<span>Brief me</span></button><p class="v-note">Speaks once briefings ship</p></section></nav>';
     }
 
@@ -837,8 +896,8 @@ class View
             . '<ul id="running" class="strip-list">' . $strip . '</ul></section></div>'
             . '<div class="talk" id="talk"><button type="button" class="capsule" id="talk-button" disabled>' . self::wave('wave wave-talk', 10)
             . '<span class="t-main">Talk to Jarvis</span><span class="t-sub">Brief me now · voice in later</span>' . self::wave('wave wave-talk', 10)
-            . '</button></div><div class="f-right"><button type="button" class="brief" id="exec-brief" disabled>' . self::icon('doc')
-            . '<span>Executive briefing</span><span class="nc-tag">not connected</span></button></div></footer>';
+            . '</button></div><div class="f-right"><a class="brief" id="exec-brief" href="/briefings.php">' . self::icon('doc')
+            . '<span>Executive briefing</span></a></div></footer>';
     }
 
     private static function render(string $token, array $projects, array $answers, array $clients, bool $elevated,
@@ -896,6 +955,7 @@ HTML;
 <script type="module" src="/assets/attention.js"></script>
 <script type="module" src="/assets/news.js"></script>
 <script type="module" src="/assets/numbers.js"></script>
+<script type="module" src="/assets/brief.js"></script>
 </head>
 <body class="cc">
 $banner
@@ -908,6 +968,12 @@ $cc</main>
 $footer
 </div>
 <div class="deck" id="deck">
+<section class="panel briefing" id="briefing" aria-labelledby="briefing-h" hidden>
+<h2 id="briefing-h">Briefing</h2>
+<div id="briefing-body"></div>
+<p class="panel-meta"><a href="/briefings.php">Past briefings</a></p>
+</section>
+
 <section class="panel answers" aria-labelledby="answers-h">
 <h2 id="answers-h">Answers</h2>
 <ol id="answers" class="list">$answerItems</ol>
@@ -1014,6 +1080,46 @@ $top
 <section class="panel strip" aria-labelledby="strip-h">
 <h2 id="strip-h">Running now</h2>
 <ul id="running" class="strip-list">$strip</ul>
+</section>
+</main>
+</div>
+</body>
+</html>
+HTML;
+    }
+
+    private static function renderBriefings(string $token, string $items, string $body, ?string $day, int $now): string
+    {
+        $t = self::e($token);
+        $rail = self::rail('briefings', 0, 0);
+        $top = self::topbar('', '', $now, '');
+        $title = $day !== null ? 'Briefing ' . self::e($day) : 'Briefing';
+        return <<<HTML
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="kc-token" content="$t">
+<meta name="color-scheme" content="dark">
+<title>KC Briefings</title>
+<link rel="stylesheet" href="/assets/app.css">
+<link rel="stylesheet" href="/assets/hud.css">
+<script type="module" src="/assets/core.js"></script>
+</head>
+<body class="cc briefings-page">
+<h1 class="hidden">KC Briefings</h1>
+<div class="cc-shell">
+$rail
+$top
+<main class="map-main" id="main">
+<section class="panel briefing" id="briefing" aria-labelledby="briefing-h">
+<h2 id="briefing-h">$title</h2>
+<div id="briefing-body">$body</div>
+</section>
+<section class="panel history" aria-labelledby="history-h">
+<h2 id="history-h">Past briefings</h2>
+<ol id="history" class="list">$items</ol>
 </section>
 </main>
 </div>
