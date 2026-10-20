@@ -62,6 +62,31 @@ class NowService
             new SystemMonitor($runner, $exes['powershell'], $dataDir . '/system-cache.json', (int) ($c['system_cache_seconds'] ?? 10)));
     }
 
+    public const SCHEDULE_FILE = __DIR__ . '/../../bin/register-tasks.ps1';
+
+    /**
+     * The jobs bin/register-tasks.ps1 registers, read from its task table so the timeline shows them even before
+     * they are registered: [{name, every (minutes) or null, at ('HH:MM' local) or null}]. The Worker is left out:
+     * it is the queue runner, shown as the worker queue. A missing or unreadable file is no schedule.
+     */
+    public static function schedule(string $file = self::SCHEDULE_FILE): array
+    {
+        $src = @file_get_contents($file, false, null, 0, 65536);
+        if ($src === false) {
+            return [];
+        }
+        preg_match_all("/@\{\s*Name\s*=\s*'([^']{1,60})'[^}\n]*?(?:Minutes\s*=\s*(\d{1,4})|At\s*=\s*'(\d{2}:\d{2})')\s*\}/", $src, $m, PREG_SET_ORDER);
+        $out = [];
+        foreach ($m as $t) {
+            if ($t[1] === 'Worker') {
+                continue;
+            }
+            $every = ($t[2] ?? '') !== '' ? (int) $t[2] : null;
+            $out[] = ['name' => $t[1], 'every' => $every > 0 ? $every : null, 'at' => $every === null ? ($t[3] ?? null) : null];
+        }
+        return array_values(array_filter($out, fn($j) => $j['every'] !== null || $j['at'] !== null));
+    }
+
     // $token is called only once the address and Host checks pass, so a refused request never reads it.
     public static function allowed(array $server, Closure $token): bool
     {

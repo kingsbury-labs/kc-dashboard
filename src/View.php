@@ -6,6 +6,8 @@ require_once __DIR__ . '/Http/Response.php';
 require_once __DIR__ . '/Projects/ProjectList.php';
 require_once __DIR__ . '/Clients/DashboardParser.php';
 require_once __DIR__ . '/Clients/PipelineParser.php';
+require_once __DIR__ . '/Running/NowService.php';
+require_once __DIR__ . '/Claude/ClaudeRunner.php';
 
 // The KC Command Center pages and the clients endpoint. Every value from a file, the database or a model is escaped
 // here. Every panel renders from the server with its current values, so the page is complete with JS off.
@@ -34,6 +36,7 @@ class View
             $v = self::gather($deps, $log, $now, true);
             $v['clients'] = is_array($clients) ? $clients : ['clients' => [], 'leads' => []];
             $stories = self::source($deps['news'] ?? null, null, $log, 'news');
+            $v['news'] = is_array($stories) ? $stories : null;
             $news = self::section(fn() => self::news(is_array($stories) ? $stories : null), $log, 'news');
             $numbers = self::section(fn() => self::numbers($v['numbers']), $log, 'numbers');
             $cc = self::section(fn() => self::commandCenter($v, $now, true), $log, 'command center');
@@ -161,6 +164,7 @@ class View
         $facts = $feed ? self::source($deps['attention'] ?? null, null, $log, 'attention') : null;
         $numbers = self::source($deps['numbers'] ?? null, null, $log, 'numbers');
         $core = self::source($deps['core'] ?? null, [], $log, 'core');
+        $schedule = self::source($deps['schedule'] ?? fn(): array => NowService::schedule(), [], $log, 'schedule');
         $map = is_array($map) ? $map : [];
         $snap = self::cleanSnapshot(self::source($deps['now'] ?? null, [], $log, 'now'));
         $strip = self::section(fn() => self::strip($snap, $map), $log, 'strip');
@@ -171,6 +175,7 @@ class View
             'facts' => is_array($facts) ? $facts : null,
             'numbers' => is_array($numbers) ? $numbers : null,
             'core' => is_array($core) ? $core : [],
+            'schedule' => is_array($schedule) ? $schedule : [],
         ];
     }
 
@@ -622,9 +627,9 @@ class View
 
     /**
      * The agents: Claude Code sessions, each project's loop, then the collectors (the dashboard's scheduled tasks).
-     * Each is [kind, name, state, task], state one of busy, waiting, idle, stale or failed.
+     * Each is [kind, name, state, task], state one of busy, waiting, idle, stale, failed or off.
      */
-    private static function agents(array $now, array $map): array
+    private static function agents(array $now, array $map, array $schedule = []): array
     {
         $out = [];
         $stale = ($now['stale'] ?? false) === true;
@@ -647,27 +652,62 @@ class View
             $task = $failed ? 'failed ' . ($t['lastResult'] ?? '') : (($t['lastRun'] ?? null) !== null ? 'last run ' . $t['lastRun'] : 'not run yet');
             $out[] = ['collector', (string) ($t['name'] ?? ''), $state, $task];
         }
+        // A job register-tasks.ps1 sets up that Task Scheduler does not have is a collector that is off.
+        $registered = array_map(fn($t) => strtolower((string) ($t['name'] ?? '')), (array) ($now['tasks'] ?? []));
+        foreach ($schedule as $j) {
+            if (is_array($j) && is_string($j['name'] ?? null) && !in_array(strtolower($j['name']), $registered, true)) {
+                $out[] = ['collector', $j['name'], 'off', 'not registered'];
+            }
+        }
         return $out;
     }
 
     private const AGENT_ICONS = ['session' => 'code', 'loop' => 'loop', 'collector' => 'collect'];
 
-    private static function agentTile(array $a): string
+    // $tone (0 to 3) picks one of four hues of the kind's colour, so three sessions do not read as one.
+    private static function agentTile(array $a, int $tone = 0): string
     {
         [$kind, $name, $state, $task] = $a;
-        return '<li class="agent" data-kind="' . self::e($kind) . '" data-state="' . self::e($state) . '">'
+        return '<li class="agent" data-kind="' . self::e($kind) . '" data-state="' . self::e($state) . '" data-tone="' . ($tone % 4) . '">'
             . '<span class="disc">' . self::icon(self::AGENT_ICONS[$kind] ?? 'bolt') . '</span>'
             . '<p class="a-name">' . self::e($name) . '</p><p class="a-state"><span class="dot"></span>' . self::e($state) . '</p>'
-            . '<p class="a-task">' . self::e($task) . '</p>' . self::wave() . '</li>';
+            . '<p class="a-task">' . self::e($task) . '</p>' . self::sine() . '</li>';
+    }
+
+    // A smooth waveform: two sine paths three times the width of the view, which hud.css slides one period sideways
+    // and loops while the agent is busy. core.js draws the same paths with sinePath().
+    private static function sine(): string
+    {
+        return '<span class="wave" aria-hidden="true"><svg viewBox="0 0 120 24" preserveAspectRatio="none" focusable="false">'
+            . '<path class="w1" d="' . self::sinePath(40, 7) . '"/><path class="w2" d="' . self::sinePath(60, 4) . '"/></svg></span>';
+    }
+
+    private static function sinePath(int $period, int $amp): string
+    {
+        $d = 'M0 12';
+        for ($x = 2; $x <= 360; $x += 2) {
+            $d .= 'L' . $x . ' ' . round(12 - $amp * sin($x * 2 * M_PI / $period), 1);
+        }
+        return $d;
     }
 
     /**
      * The mission timeline: due dates from the attention facts and the clients file, and the scheduled tasks' next
      * runs, soonest first, at most eight. Each is [at, label, kind, dateOnly].
      */
-    private static function missions(?array $facts, array $clients, array $now, int $time): array
+    private static function missions(?array $facts, array $clients, array $now, int $time, array $schedule = []): array
     {
         $out = [];
+        // The jobs register-tasks.ps1 sets up, unless the snapshot already has the registered task's own next run.
+        $registered = array_map(fn($t) => strtolower((string) ($t['name'] ?? '')), (array) ($now['tasks'] ?? []));
+        foreach ($schedule as $j) {
+            if (is_array($j) && is_string($j['name'] ?? null) && !in_array(strtolower($j['name']), $registered, true)) {
+                $next = self::nextRun($j, $time);
+                if ($next !== null) {
+                    $out[] = [$next[0], $j['name'], 'job', false, $j, $next[1]];
+                }
+            }
+        }
         $day = fn(?string $d) => is_string($d) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $d) ? strtotime($d . ' 23:59:59') : false;
         foreach (array_merge((array) ($facts['items'] ?? []), (array) ($facts['also'] ?? [])) as $f) {
             $at = $day($f['due_date'] ?? null);
@@ -688,15 +728,39 @@ class View
             }
         }
         usort($out, fn($a, $b) => [$a[0], $a[1]] <=> [$b[0], $b[1]]);
-        return array_slice($out, 0, 8);
+        return array_slice($out, 0, 12);
+    }
+
+    // A job's next run and how far through its period it is (0 to 100). Repeating jobs start at midnight, as the
+    // Task Scheduler trigger does; daily ones run at their time. core.js does the same sums in the browser's time zone.
+    private static function nextRun(array $j, int $time): ?array
+    {
+        $midnight = (int) strtotime('today', $time);
+        if (is_int($j['every'] ?? null) && $j['every'] > 0) {
+            $period = $j['every'] * 60;
+            $next = $midnight + (intdiv($time - $midnight, $period) + 1) * $period;
+        } elseif (is_string($j['at'] ?? null) && preg_match('/^(\d{2}):(\d{2})$/', $j['at'], $hm)) {
+            $period = 86400;
+            $next = $midnight + (int) $hm[1] * 3600 + (int) $hm[2] * 60;
+            $next += $next <= $time ? 86400 : 0;
+        } else {
+            return null;
+        }
+        return [$next, (int) round(100 * (1 - ($next - $time) / $period))];
     }
 
     private static function missionItem(array $m, int $now): string
     {
         [$at, $label, $kind, $dateOnly] = $m;
-        return '<li class="mission" data-kind="' . self::e($kind) . '"><time datetime="' . self::e(date($dateOnly ? 'Y-m-d' : 'c', $at)) . '">'
+        $job = $kind === 'job' ? $m[4] : null;
+        $when = $job === null ? '' : (is_int($job['every'] ?? null) ? ' data-every="' . $job['every'] . '"' : ' data-daily="' . self::e($job['at']) . '"');
+        $bar = $job === null ? '' : '<svg class="m-bar" viewBox="0 0 100 4" preserveAspectRatio="none" aria-hidden="true" focusable="false">'
+            . '<rect class="m-track" width="100" height="4" rx="2"/><rect class="m-fill" width="' . max(2, min(100, $m[5])) . '" height="4" rx="2"/></svg>';
+        $sub = $job === null ? '' : '<p class="m-sub">' . self::e(is_int($job['every'] ?? null) ? 'every ' . $job['every'] . ' min' : 'daily ' . $job['at']) . '</p>';
+        return '<li class="mission" data-kind="' . self::e($kind) . '"' . $when . '><time datetime="' . self::e(date($dateOnly ? 'Y-m-d' : 'c', $at)) . '">'
             . self::e(date($dateOnly ? 'M j' : 'H:i', $at)) . '</time><p class="m-what">' . self::e($label) . '</p>'
-            . '<p class="eta" data-at="' . $at . '">' . self::e($dateOnly ? ($at - $now < 86400 ? 'today' : self::eta($at, $now)) : self::eta($at, $now)) . '</p></li>';
+            . '<p class="eta" data-at="' . $at . '">' . self::e($dateOnly ? ($at - $now < 86400 ? 'today' : self::eta($at, $now)) : self::eta($at, $now)) . '</p>'
+            . $sub . $bar . '</li>';
     }
 
     private static function gauge(string $id, string $label, $pct): string
@@ -739,29 +803,117 @@ class View
         return $any ? $sum : null;
     }
 
-    // The constellation of vault notes in Memory insights: one star per note up to 18, placed on a fixed pattern,
-    // each joined to the one before. The count is real; the places are only a pattern.
-    private static function constellation(int $notes): string
+    // The constellation in Memory insights (sample 7 in miniature): one star per project, then one per vault note, up
+    // to 72 in all, on a golden-angle spiral squashed into a disc; the first few stars of each arm are joined. The
+    // counts are real; the places are only a pattern.
+    private static function constellation(int $projects, int $notes): string
     {
-        $n = min(18, max(0, $notes));
-        if ($n === 0) {
+        $p = min(48, max(0, $projects));
+        $n = min(72 - $p, max(0, $notes));
+        if ($p + $n === 0) {
             return '';
         }
         $pts = [];
-        for ($i = 0; $i < $n; $i++) {
-            $pts[] = [14 + ($i * 67) % 212, 12 + ($i * 41 + intdiv($i, 3) * 13) % 96];
+        for ($i = 0; $i < $p + $n; $i++) {
+            $r = sqrt(($i + 0.6) / ($p + $n)) * 54;
+            $a = $i * 2.39996;
+            $pts[] = [round(120 + cos($a) * $r * 1.9, 1), round(60 + sin($a) * $r, 1)];
         }
         $lines = '';
         $stars = '';
         foreach ($pts as $i => [$x, $y]) {
-            if ($i > 0) {
-                $lines .= '<line x1="' . $pts[$i - 1][0] . '" y1="' . $pts[$i - 1][1] . '" x2="' . $x . '" y2="' . $y . '"/>';
+            if ($i >= 8 && $i < 40 && $i % 4 !== 0) {
+                $lines .= '<line x1="' . $pts[$i - 8][0] . '" y1="' . $pts[$i - 8][1] . '" x2="' . $x . '" y2="' . $y . '"/>';
             }
-            $stars .= '<circle cx="' . $x . '" cy="' . $y . '" r="' . (2 + $i % 3) . '"/>';
+            $stars .= '<circle class="' . ($i < $p ? 'st-p' : 'st-n') . '" cx="' . $x . '" cy="' . $y . '" r="' . (1 + ($i * 7 % 5) * 0.4) . '"/>';
         }
-        return '<svg class="stars" id="stars" viewBox="0 0 240 120" aria-hidden="true"><g class="links">' . $lines . '</g><g class="nodes">'
-            . $stars . '</g></svg>';
+        return '<svg class="stars" id="stars" viewBox="0 0 240 120" aria-hidden="true" focusable="false"><g class="links">' . $lines
+            . '</g><g class="nodes">' . $stars . '</g></svg>';
     }
+
+    private const FEED_ICONS = ['LIVE' => 'loop', 'TIP' => 'cpu', 'WARN' => 'bell', 'INFO' => 'news'];
+
+    // A row of the feed fill: icon disc, title, one line and its tag. A url is a link only if it starts http(s)://.
+    private static function feedRow(string $src, string $tag, string $title, string $line, ?string $url = null, ?string $icon = null): string
+    {
+        $t = is_string($url) && (str_starts_with($url, 'https://') || str_starts_with($url, 'http://'))
+            ? '<a href="' . self::e($url) . '" rel="noopener noreferrer" target="_blank">' . self::e($title) . '</a>' : self::e($title);
+        return '<li class="fi" data-src="' . $src . '" data-tag="' . $tag . '"><span class="disc">' . self::icon($icon ?? self::FEED_ICONS[$tag] ?? 'bolt')
+            . '</span><p class="fi-title">' . $t . '</p><p class="fi-line">' . self::e($line) . '</p><span class="feed-tag" data-tag="' . $tag . '">'
+            . $tag . '</span></li>';
+    }
+
+    /**
+     * What the feed shows besides the attention list, from data the page already has: running loops and busy or
+     * waiting sessions (LIVE), failed tasks (WARN), system monitor notes such as a nearly full disk (TIP), then the
+     * hottest headlines (INFO), and the newest commits across the projects until there are seven rows. core.js
+     * rebuilds the live, warn and tip rows from each now.php snapshot.
+     */
+    private static function feedMore(array $snap, array $map, ?array $news, int $now, array $schedule = []): string
+    {
+        $rows = self::feedLive($snap, $map);
+        $registered = array_map(fn($t) => strtolower((string) ($t['name'] ?? '')), (array) ($snap['tasks'] ?? []));
+        $off = count(array_filter($schedule, fn($j) => is_array($j) && is_string($j['name'] ?? null) && !in_array(strtolower($j['name']), $registered, true)));
+        if ($off > 0) {
+            $rows .= self::feedRow('sched', 'WARN', $off . ' ' . ($off === 1 ? 'job' : 'jobs') . ' not scheduled', 'Run bin\register-tasks.ps1');
+        }
+        $count = substr_count($rows, '<li ');
+        foreach (array_slice((array) ($news['stories'] ?? []), 0, 5) as $s) {
+            if (is_array($s) && is_string($s['title'] ?? null)) {
+                $count++;
+                $rows .= self::feedRow('news', 'INFO', $s['title'], implode(', ', array_map('strval', (array) ($s['sources'] ?? [])))
+                    . (($s['points'] ?? 0) > 0 ? ' · ' . (int) $s['points'] . ' points' : ''), is_string($s['url'] ?? null) ? $s['url'] : null);
+            }
+        }
+        $commits = array_filter($map, fn($r) => is_array($r) && is_string($r['last_subject'] ?? null) && is_string($r['last_date'] ?? null)
+            && strtotime($r['last_date']) !== false);
+        usort($commits, fn($a, $b) => strtotime($b['last_date']) <=> strtotime($a['last_date']));
+        foreach (array_slice($commits, 0, max(0, 7 - $count)) as $r) {
+            $rows .= self::feedRow('commit', 'INFO', (string) ($r['slug'] ?? '') . ': ' . $r['last_subject'],
+                'commit · ' . self::age($r['last_date'], $now) . ((int) ($r['dirty'] ?? 0) > 0 ? ' · ' . (int) $r['dirty'] . ' dirty' : ''), null, 'code');
+        }
+        return $rows;
+    }
+
+    private static function feedLive(array $snap, array $map): string
+    {
+        $rows = '';
+        foreach (self::loopList($snap, $map) as $l) {
+            if (($l['state'] ?? null) === 'running') {
+                $rows .= self::feedRow('live', 'LIVE', (string) ($l['project'] ?? '') . ' loop running',
+                    (($l['card'] ?? null) !== null ? 'card ' . $l['card'] : 'between cards') . (($l['note'] ?? null) !== null ? ': ' . $l['note'] : ''));
+            }
+        }
+        foreach ((array) ($snap['sessions'] ?? []) as $s) {
+            if (in_array($s['status'] ?? null, ['busy', 'waiting'], true)) {
+                $rows .= self::feedRow('live', 'LIVE', (string) ($s['project'] ?? $s['name'] ?? 'session') . ' session ' . $s['status'],
+                    $s['status'] === 'waiting' && ($s['waitingFor'] ?? '') !== '' ? 'waiting: ' . $s['waitingFor'] : (string) ($s['name'] ?? 'Claude Code'));
+            }
+        }
+        foreach ((array) ($snap['tasks'] ?? []) as $t) {
+            if (($t['failed'] ?? false) === true) {
+                $rows .= self::feedRow('live', 'WARN', (string) ($t['name'] ?? '') . ' failed', 'last result ' . ($t['lastResult'] ?? '?'));
+            }
+        }
+        $sys = is_array($snap['system'] ?? null) && ($snap['system']['connected'] ?? false) === true ? $snap['system'] : [];
+        foreach (self::SYSTEM_NOTES as $key => [$limit, $title, $line]) {
+            if (is_int($sys[$key] ?? null) && $sys[$key] >= $limit) {
+                $rows .= self::feedRow('live', 'TIP', sprintf($title, $sys[$key]), $line);
+            }
+        }
+        return $rows;
+    }
+
+    // System monitor readings worth a feed row: [at or above, title, line]. core.js holds the same table.
+    private const SYSTEM_NOTES = [
+        'disk' => [90, 'Disk %d%% full', 'System drive is nearly out of space'],
+        'ram' => [85, 'RAM at %d%%', 'Memory pressure is high'],
+        'cpu' => [90, 'CPU at %d%%', 'Something is working the processor hard'],
+    ];
+
+    // The models reachable through the configured claude CLI: [name, alias]. The one ClaudeRunner asks with is
+    // marked as the one Ask Claude uses.
+    private const MODELS = [['Opus', 'opus'], ['Sonnet', 'sonnet'], ['Haiku', 'haiku']];
 
     private const NC = '<p class="nc">not connected</p>';
 
@@ -791,12 +943,18 @@ class View
             . self::overviewRow('memory', 'memory', 'Memory', is_int($memory) ? $memory . ' entries' : 'not connected', is_int($memory) ? 'ok' : 'off')
             . self::overviewRow('system', 'shield', 'System', strtolower($healthLabel), ['optimal' => 'ok', 'degraded' => 'warn', 'fault' => 'fault'][$healthKey]);
 
-        $agents = self::agents($snap, $v['map']);
+        $agents = self::agents($snap, $v['map'], $v['schedule'] ?? []);
         $busy = count(array_filter($agents, fn($a) => $a[2] === 'busy'));
-        $agentItems = implode('', array_map([self::class, 'agentTile'], $agents));
+        $tones = [];
+        $agentItems = '';
+        foreach ($agents as $a) {
+            $tones[$a[0]] = ($tones[$a[0]] ?? -1) + 1;
+            $agentItems .= self::agentTile($a, $tones[$a[0]]);
+        }
 
-        $missions = self::missions($v['facts'], $v['clients'] ?? [], $snap, $now);
-        $missionItems = implode('', array_map(fn($m) => self::missionItem($m, $now), $missions));
+        $missions = self::missions($v['facts'], $v['clients'] ?? [], $snap, $now, $v['schedule'] ?? []);
+        $missionItems = implode('', array_map(fn($m) => self::missionItem($m, $now), array_slice($missions, 0, 5)));
+        $moreMissions = implode('', array_map(fn($m) => self::missionItem($m, $now), array_slice($missions, 5)));
 
         $sys = is_array($snap['system'] ?? null) && ($snap['system']['connected'] ?? false) === true ? $snap['system'] : null;
         $gauges = self::gauge('cpu', 'CPU', $sys['cpu'] ?? null) . self::gauge('ram', 'RAM', $sys['ram'] ?? null)
@@ -804,17 +962,28 @@ class View
 
         $notes = $vault !== null ? (int) ($vault['notes'] ?? 0) : null;
         $llama = $sys === null ? null : (($sys['llama'] ?? false) === true);
+        $projects = count($v['map']);
 
-        $feedBody = $feed ? self::attention($v['facts']) : self::NC;
+        $feedBody = ($feed ? self::attention($v['facts']) : self::NC)
+            . '<ul class="list feed-more" id="feed-more">' . self::feedMore($snap, $v['map'], $v['news'] ?? null, $now, $v['schedule'] ?? []) . '</ul>'
+            . '<p class="more-link"><a href="/#news-h">View all intelligence</a></p>';
         $feedCount = $v['facts'] !== null ? count((array) ($v['facts']['items'] ?? [])) : 0;
 
         $coreLabel = $version !== null ? 'Claude Code v' . $version : 'Claude Code not connected';
         $orb = '<div class="orb" aria-hidden="true"><div class="orb-static" id="orb-static"><i></i><i></i><i></i></div>'
             . '<canvas id="orb" class="orb-canvas" width="720" height="540" hidden></canvas></div>';
 
-        return '<section class="panel core" id="core" aria-labelledby="core-h" data-busy="' . $busy . '">'
-            . '<h2 id="core-h" class="core-title"><span class="core-kc">KC</span> <span class="core-sub">AI core</span></h2>' . $orb
-            . '<p class="core-version" id="core-version">' . self::e($coreLabel) . '</p></section>' . "\n"
+        $models = '';
+        foreach (self::MODELS as [$name, $alias]) {
+            $models .= '<li class="provider" data-on="' . ($present ? '1' : '0') . '"><span class="disc">' . self::icon('code') . '</span><p class="p-name">'
+                . $name . '</p><p class="p-state">' . ($present ? 'Connected' : 'not connected') . '</p><p class="p-meta">'
+                . self::e($present ? 'claude -p --model ' . $alias . ($alias === ClaudeRunner::ARGS[2] ? ' · Ask' : '') : 'claude.exe missing') . '</p></li>';
+        }
+        $connected = ($present ? count(self::MODELS) : 0) + ($llama === true ? 1 : 0);
+
+        return '<section class="panel core" id="core" aria-labelledby="core-h" data-busy="' . $busy . '">' . $orb
+            . '<div class="core-label"><h2 id="core-h" class="core-title"><span class="core-kc">KC</span> <span class="core-sub">AI core</span></h2>'
+            . '<p class="core-version" id="core-version">' . self::e($coreLabel) . '</p></div></section>' . "\n"
 
             . '<section class="panel overview" id="overview" aria-labelledby="overview-h"><h2 id="overview-h">AI core overview</h2>'
             . '<ul class="ov-list">' . $overview . '</ul></section>' . "\n"
@@ -823,11 +992,14 @@ class View
             . '<span class="live" aria-hidden="true">LIVE</span><span class="hidden" id="feed-count">' . $feedCount . '</span>' . $feedBody . '</section>' . "\n"
 
             . '<section class="panel agents" id="agents" aria-labelledby="agents-h"><h2 id="agents-h">Active agents</h2>'
-            . '<p class="panel-meta" id="agents-meta">' . $busy . ' busy of ' . count($agents) . '</p>'
+            . '<p class="panel-meta chip" id="agents-meta">' . $busy . ' busy of ' . count($agents) . '</p>'
             . '<ul class="agent-grid" id="agent-list">' . ($agentItems !== '' ? $agentItems : '<li class="quiet">No agent running.</li>') . '</ul></section>' . "\n"
 
             . '<section class="panel timeline" id="timeline" aria-labelledby="timeline-h"><h2 id="timeline-h">Mission timeline</h2>'
-            . '<ol class="missions">' . ($missionItems !== '' ? $missionItems : '<li class="quiet">Nothing scheduled.</li>') . '</ol></section>' . "\n"
+            . '<p class="panel-meta chip">Today</p>'
+            . '<ol class="missions">' . ($missionItems !== '' ? $missionItems : '<li class="quiet">Nothing scheduled.</li>') . '</ol>'
+            . ($moreMissions !== '' ? '<details class="more"><summary>View full schedule</summary><ol class="missions">' . $moreMissions . '</ol></details>' : '')
+            . '</section>' . "\n"
 
             . '<section class="panel commands" id="commands" aria-labelledby="commands-h"><h2 id="commands-h">Quick commands</h2><ul class="cmds">'
             . '<li><a class="cmd" href="#ask-question">' . self::icon('chat') . 'Ask Claude</a></li>'
@@ -840,13 +1012,15 @@ class View
             . '<ul class="gauges">' . $gauges . '</ul>' . ($sys === null ? self::NC : '') . '</section>' . "\n"
 
             . '<section class="panel memory" id="memory" aria-labelledby="memory-h"><h2 id="memory-h">Memory insights</h2>'
-            . ($notes !== null ? self::constellation($notes) : '') . '<dl class="counts"><dt>Notes</dt><dd class="num">' . ($notes !== null ? $notes : 'not connected') . '</dd>'
+            . self::constellation($projects, $notes ?? 0) . '<dl class="counts"><dt>Projects</dt><dd class="num">' . $projects . '</dd>'
+            . '<dt>Notes</dt><dd class="num">' . ($notes !== null ? $notes : 'not connected') . '</dd>'
             . '<dt>Memories</dt><dd class="num">' . (is_int($memory) ? $memory : 'not connected') . '</dd>'
-            . '<dt>Briefings</dt><dd class="num">' . ($vault !== null ? (int) ($vault['briefings'] ?? 0) : 'not connected') . '</dd></dl></section>' . "\n"
+            . '<dt>Briefings</dt><dd class="num">' . ($vault !== null ? (int) ($vault['briefings'] ?? 0) : 'not connected') . '</dd></dl>'
+            . '<p class="more-link"><a href="/projects.php">View project map</a></p></section>' . "\n"
 
-            . '<section class="panel llm" id="llm" aria-labelledby="llm-h"><h2 id="llm-h">LLM status</h2><ul class="providers">'
-            . '<li class="provider" data-on="' . ($present ? '1' : '0') . '"><span class="disc">' . self::icon('code') . '</span><p class="p-name">Claude Code</p>'
-            . '<p class="p-state">' . ($present ? 'Connected' : 'not connected') . '</p><p class="p-meta">' . self::e($version !== null ? 'v' . $version . ' · sonnet via claude -p' : 'claude.exe missing') . '</p></li>'
+            . '<section class="panel llm" id="llm" aria-labelledby="llm-h"><h2 id="llm-h">LLM status</h2>'
+            . '<p class="panel-meta chip ok" id="llm-meta" data-models="' . ($present ? count(self::MODELS) : 0) . '">' . $connected . ' connected</p><ul class="providers">'
+            . $models
             . '<li class="provider" id="llm-local" data-on="' . ($llama === true ? '1' : '0') . '"><span class="disc">' . self::icon('chip') . '</span><p class="p-name">Local model</p>'
             . '<p class="p-state">' . ($llama === null ? 'not connected' : ($llama ? 'Running' : 'Off')) . '</p><p class="p-meta">llama-server · port 8081</p></li>'
             . '</ul></section>' . "\n";
@@ -867,9 +1041,9 @@ class View
             . $link('/#numbers-h', 'chart', 'Numbers', 'numbers') . $link('/briefings.php', 'doc', 'Briefings', 'briefings')
             . $link('/#memory', 'vault', 'Vault', 'vault')
             . $link('/wall.php', 'screen', 'Wall', 'wall') . '</ul>'
-            . '<section class="voice" id="voice" aria-labelledby="voice-h"><h2 id="voice-h">Voice status</h2>' . self::wave('wave wave-voice', 28)
+            . '<section class="voice" id="voice" aria-labelledby="voice-h"><h2 id="voice-h">Voice status</h2>' . self::wave('wave wave-voice', 24)
             . '<p class="v-state">Voice off</p><button type="button" class="mic" id="voice-brief" data-brief disabled>' . self::icon('mic')
-            . '<span>Brief me</span></button><p class="v-note">Voice needs JavaScript</p></section></nav>';
+            . '<span class="mic-label">Brief me</span></button><p class="v-note">Voice needs JavaScript</p></section></nav>';
     }
 
     private static function topbar(string $health, string $label, int $now, string $extra): string
@@ -887,15 +1061,17 @@ class View
     {
         $traffic = self::traffic($numbers);
         $ports = count((array) ($snap['ports'] ?? []));
+        // Three tiles; the dev servers tile opens the running strip (sessions, loops, failed tasks, ports) in place.
         return '<footer class="footbar" id="footer"><div class="f-left">'
             . '<p class="f-tile">' . self::icon('chart') . '<span class="f-k">Traffic</span><span class="f-v num" id="f-traffic">'
             . ($traffic === null ? 'not connected' : $traffic['sessions'] . ' sessions · ' . $traffic['users'] . ' users') . '</span></p>'
-            . '<p class="f-tile">' . self::icon('net') . '<span class="f-k">Network</span><span class="f-v num" id="f-net">'
-            . $ports . ' dev ' . ($ports === 1 ? 'server' : 'servers') . '</span></p>'
-            . '<section class="strip" aria-labelledby="strip-h"><h2 id="strip-h" class="hidden">Running now</h2>'
-            . '<ul id="running" class="strip-list">' . $strip . '</ul></section></div>'
+            . '<p class="f-tile">' . self::icon('net') . '<span class="f-k">Network</span><span class="f-v" id="f-online">Local</span></p>'
+            . '<details class="f-tile f-run"><summary>' . self::icon('screen') . '<span class="f-k">Dev servers</span><span class="f-v num" id="f-net">'
+            . $ports . ' dev ' . ($ports === 1 ? 'server' : 'servers') . '</span></summary>'
+            . '<section class="strip" aria-labelledby="strip-h"><h2 id="strip-h">Running now</h2>'
+            . '<ul id="running" class="strip-list">' . $strip . '</ul></section></details></div>'
             . '<div class="talk" id="talk"><button type="button" class="capsule" id="talk-button" disabled>' . self::wave('wave wave-talk', 10)
-            . '<span class="t-main">Talk to Jarvis</span><span class="t-sub">Brief me now by voice</span>' . self::wave('wave wave-talk', 10)
+            . '<span class="t-text"><span class="t-main">Talk to Jarvis</span><span class="t-sub">Brief me now by voice</span></span>' . self::wave('wave wave-talk', 10)
             . '</button></div><div class="f-right"><a class="brief" id="exec-brief" href="/briefings.php">' . self::icon('doc')
             . '<span>Executive briefing</span></a></div></footer>';
     }

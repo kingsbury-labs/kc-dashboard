@@ -31,7 +31,7 @@ function cc_snapshot(): array
 // [kind, state, name] for every agent tile, in page order.
 function cc_agents(string $body): array
 {
-    preg_match_all('#<li class="agent" data-kind="([^"]*)" data-state="([^"]*)">.*?<p class="a-name">([^<]*)</p>#', $body, $m, PREG_SET_ORDER);
+    preg_match_all('#<li class="agent" data-kind="([^"]*)" data-state="([^"]*)"[^>]*>.*?<p class="a-name">([^<]*)</p>#', $body, $m, PREG_SET_ORDER);
     return array_map(fn($x) => [$x[1], $x[2], $x[3]], $m);
 }
 
@@ -56,7 +56,7 @@ test('the no-JS page has every panel of the brief by id', function () {
 });
 
 test('two sessions, one loop and one failed collector render four agent tiles with the right states', function () {
-    $body = cc_page(['now' => fn() => cc_snapshot()]);
+    $body = cc_page(['now' => fn() => cc_snapshot(), 'schedule' => fn() => []]);
     assert_same([
         ['session', 'busy', 'alpha'],
         ['session', 'waiting', 'beta'],
@@ -173,4 +173,72 @@ test('core.js rebuilds agents with textContent, and DomSinks is clean', function
     }
     assert_true(str_contains((string) file_get_contents(__DIR__ . '/../public/assets/now.js'), 'applyNow(data)'), 'now.js feeds it');
     assert_same([], DomSinks::find(__DIR__ . '/../public/assets'));
+});
+
+test('with no attention items the feed shows headlines, live loops and system notes', function () {
+    $snap = cc_snapshot();
+    $snap['system']['disk'] = 96;
+    $news = ['stories' => [['title' => 'Headline <b>one</b>', 'url' => 'https://example.com/a', 'sources' => ['HN'], 'points' => 120],
+        ['title' => 'Headline two', 'url' => 'javascript:alert(1)', 'sources' => ['Lobsters']]]];
+    $body = cc_page(['now' => fn() => $snap, 'news' => fn() => $news, 'attention' => fn() => ['items' => [], 'also' => [], 'sources' => []]]);
+    $feed = cc_panel($body, 'feed');
+    assert_true(str_contains($feed, 'Nothing needs you.'), 'attention still says so');
+    assert_same(2, substr_count($feed, 'data-src="news" data-tag="INFO"'), 'one INFO row per headline');
+    assert_true(str_contains($feed, '<a href="https://example.com/a" rel="noopener noreferrer" target="_blank">Headline &lt;b&gt;one&lt;/b&gt;</a>'), 'linked and escaped');
+    assert_true(!str_contains($feed, 'javascript:'), 'a bad url is not a link');
+    assert_true(str_contains($feed, 'sembr loop running') && str_contains($feed, 'data-tag="LIVE"'), 'running loop is LIVE');
+    assert_true(str_contains($feed, 'Disk 96% full') && str_contains($feed, 'data-tag="TIP"'), 'disk note is a TIP');
+    assert_true(str_contains($feed, 'collect-facts failed') && str_contains($feed, 'data-tag="WARN"'), 'failed task is a WARN');
+    assert_true(str_contains($feed, 'View all intelligence'), 'view all link');
+});
+
+test('the timeline lists the scheduled jobs from register-tasks.ps1 with countdowns and progress', function () {
+    $jobs = NowService::schedule();
+    assert_same(['Fetch news', 'Collect facts', 'Collect projects', 'Collect KC', 'Daily read', 'Brief'], array_column($jobs, 'name'));
+    assert_same([15, '06:00'], [$jobs[0]['every'], $jobs[4]['at']]);
+    assert_same([], NowService::schedule(__DIR__ . '/nope.ps1'), 'missing file is no schedule');
+    $body = cc_page(['now' => fn() => ['tasks' => []], 'schedule' => fn() => $jobs]);
+    $tl = cc_panel($body, 'timeline');
+    foreach (['Fetch news', 'Collect facts', 'Collect projects', 'Collect KC', 'Daily read', 'Brief'] as $name) {
+        assert_true(str_contains($tl, '<p class="m-what">' . $name . '</p>'), "job $name");
+    }
+    assert_true(str_contains($tl, 'data-every="15"') && str_contains($tl, 'data-daily="06:00"'), 'schedule kept for core.js');
+    assert_true(str_contains($tl, 'in 15 min'), 'fetch news countdown at 12:00');
+    assert_true(preg_match('/<rect class="m-fill" width="(\d+)"/', $tl) === 1, 'progress bar');
+    assert_true(str_contains($tl, 'View full schedule'), 'the rest behind View full schedule');
+    $off = array_filter(cc_agents($body), fn($a) => $a[0] === 'collector' && $a[1] === 'off');
+    assert_same(6, count($off), 'unregistered jobs are off collectors');
+    assert_true(str_contains(cc_panel($body, 'feed'), '6 jobs not scheduled'), 'the feed warns');
+    $registered = cc_page(['now' => fn() => ['tasks' => [['name' => 'Fetch news', 'status' => 'Ready', 'nextRun' => '2026-10-19 12:42:00 UTC']]],
+        'schedule' => fn() => $jobs]);
+    assert_same(1, substr_count(cc_panel($registered, 'timeline'), '>Fetch news<'), 'a registered job shows once, from Task Scheduler');
+});
+
+test('LLM status has a tile per model reachable through claude -p, plus the local model, and a connected count', function () {
+    $core = ['claude' => ['present' => true, 'version' => '2.1.9']];
+    $llm = cc_panel(cc_page(['now' => fn() => cc_snapshot(), 'core' => fn() => $core]), 'llm');
+    foreach (['Opus', 'Sonnet', 'Haiku', 'Local model'] as $name) {
+        assert_same(1, substr_count($llm, '<p class="p-name">' . $name . '</p>'), "tile $name");
+    }
+    assert_same(3, substr_count($llm, '<p class="p-state">Connected</p>'), 'three models connected');
+    assert_true(str_contains($llm, '>3 connected<'), 'count in the title row');
+    assert_true(str_contains($llm, 'claude -p --model sonnet · Ask'), 'the model Ask uses is marked');
+    $none = cc_panel(cc_page(['core' => fn() => ['claude' => ['present' => false, 'version' => null]]]), 'llm');
+    assert_same(3, substr_count($none, 'claude.exe missing'), 'no CLI, no model connected');
+    assert_true(str_contains($none, '>0 connected<'), 'zero connected');
+});
+
+test('nothing in the voice panel can be wider than the rail', function () {
+    $voice = cc_panel(cc_page(), 'voice');
+    preg_match_all('/class="([^"]+)"/', $voice, $m);
+    foreach ($m[1] as $cls) {
+        assert_true(in_array($cls, ['wave wave-voice', 'v-state', 'mic', 'ico', 'mic-label', 'v-note'], true), "unexpected class in the voice panel: $cls");
+    }
+    assert_true(preg_match('/<(select|input|textarea)\b/', $voice) === 0, 'a form control in the voice panel markup');
+    $css = (string) file_get_contents(__DIR__ . '/../public/assets/hud.css');
+    assert_true(preg_match('/\.voice\s*\{[^}]*min-width:\s*0;[^}]*max-width:\s*100%;[^}]*overflow:\s*hidden/', $css) === 1, '.voice is held to the rail');
+    assert_true(preg_match('/\.voice > \*\s*\{\s*max-width:\s*100%;\s*min-width:\s*0;/', $css) === 1, 'every child of .voice fits it');
+    assert_true(preg_match('/\.v-set select\s*\{[^}]*max-width:\s*100%/', $css) === 1, 'the voice picker fits');
+    $js = (string) file_get_contents(__DIR__ . '/../public/assets/voice.js');
+    assert_true(str_contains($js, "settings.className = 'v-set'") && str_contains($js, 'settings.append(summary, lab, picker)'), 'the picker sits in the settings fold');
 });

@@ -5,6 +5,7 @@
 
 @media (min-width: 64rem) {
   .wall .cc-shell { padding: 0.75rem 1rem; }
+  .wall .topbar { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); }
   .wall .c-time { font-size: 2.25rem; }
 }
 

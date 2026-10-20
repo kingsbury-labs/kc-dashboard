@@ -29,7 +29,8 @@ function wall_row(array $over = []): array
 
 test('the no-JS wall is the command center without the rail, with a 30 second refresh and the script', function () {
     [$status, $headers, $body] = wall_page(['map' => fn() => [wall_row(), wall_row(['slug' => 'beta', 'loop_state' => 'none'])],
-        'now' => fn() => ['sessions' => [['status' => 'busy', 'project' => 'alpha']], 'ports' => [['port' => 8787, 'program' => 'httpd.exe']]]]);
+        'now' => fn() => ['sessions' => [['status' => 'busy', 'project' => 'alpha']], 'ports' => [['port' => 8787, 'program' => 'httpd.exe']]],
+        'schedule' => fn() => []]);
     assert_same(200, $status);
     assert_true(str_starts_with($headers['Content-Type'], 'text/html'), 'html');
     assert_true(str_contains($body, '<noscript><meta http-equiv="refresh" content="30"></noscript>'), 'no-JS refresh');

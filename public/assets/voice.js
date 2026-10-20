@@ -155,12 +155,27 @@ function init() {
   picker.addEventListener('change', () => remember(picker.value));
   stopButton = document.createElement('button');
   stopButton.type = 'button';
-  stopButton.className = 'cmd';
+  stopButton.className = 'v-stop';
   stopButton.id = 'voice-stop';
   stopButton.textContent = 'Stop';
   stopButton.hidden = true;
   stopButton.addEventListener('click', stop);
-  note?.before(lab, picker, stopButton);
+  // The voice picker sits in a small settings fold at the panel's corner, so nothing runs past the rail.
+  const settings = document.createElement('details');
+  settings.className = 'v-set';
+  const summary = document.createElement('summary');
+  summary.setAttribute('aria-label', 'Voice settings');
+  const gear = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  gear.setAttribute('class', 'ico');
+  gear.setAttribute('viewBox', '0 0 24 24');
+  gear.setAttribute('aria-hidden', 'true');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M12 9a3 3 0 1 0 0 6a3 3 0 1 0 0-6zM12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1');
+  gear.append(path);
+  summary.append(gear);
+  settings.append(summary, lab, picker);
+  panel.querySelector('h2')?.after(settings);
+  note?.before(stopButton);
   if (note) note.textContent = 'Reads the briefing aloud';
 
   document.addEventListener('click', (event) => {
