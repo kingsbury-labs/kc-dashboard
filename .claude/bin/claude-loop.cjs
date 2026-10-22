@@ -12,7 +12,11 @@
 //        [--model opus] [--effort low|medium|high|xhigh|max]
 //        [--afk-flags "--merge-allowed"] [--max-turns N]
 //        [--pause-at 0.85] [--weekly-ceiling 0.8] [--max-gate-rounds 3]
-//        [--fable-audits 0.25] [--no-handoff] [--claude CMD]
+//        [--fable-audits 0.25] [--no-handoff] [--claude CMD] [--spawn-retry-ms 30000]
+//
+// --spawn-retry-ms is the wait before the one retry of a pass whose `claude`
+// was "not recognized" (a Claude Code auto-update replaces the binary for a
+// moment; the loop died on that at 01:02 on 2026-10-19). Tests pass 0.
 //
 // --fable-audits lets audits (the security-auditor, a gate's diff audit) run
 // on Fable, never workers or the planner, until Fable's share of the weekly
@@ -26,7 +30,10 @@
 //
 // The coordinator stops at the gate (status "gate"); this script runs the
 // full suite, extra_checks and --verify itself, then resumes that session
-// with the result, at most --max-gate-rounds (3) rounds per card. On green
+// with the result, at most --max-gate-rounds (3) rounds per card. When the
+// gate status carries "audit" (the diff touches a risky path), a security
+// audit runs as its own pass at the same time as the suite, and its findings
+// fail the round like a red suite. On green
 // the session commits without pushing (status "committed"); this script
 // checks the commit is the tree it tested, then resumes it to push.
 //
@@ -61,7 +68,7 @@ function parseArgs(argv) {
     // gate step run, against $1.04 and a skipped scope check for Sonnet and
     // about $1.90 for Opus at its default effort.
     project: process.cwd(), maxCards: 10, model: 'opus', effort: 'low', afkFlags: '',
-    maxTurns: 400, handoff: true, claude: 'claude', limitWaits: 6, maxGateRounds: 3,
+    maxTurns: 400, handoff: true, claude: 'claude', limitWaits: 6, maxGateRounds: 3, spawnRetryMs: 30e3,
     pauseAt: 0.85, weeklyCeiling: 0.8, fableAudits: 0,
   };
   for (let i = 0; i < argv.length; i++) {
@@ -83,6 +90,7 @@ function parseArgs(argv) {
     else if (a === '--fable-audits') o.fableAudits = parseFloat(next());
     else if (a === '--no-handoff') o.handoff = false;
     else if (a === '--claude') o.claude = next();
+    else if (a === '--spawn-retry-ms') o.spawnRetryMs = parseInt(next(), 10);
     else throw new Error(`unknown argument: ${a}`);
   }
   if (o.effort && !['low', 'medium', 'high', 'xhigh', 'max'].includes(o.effort)) {
@@ -95,6 +103,7 @@ function parseArgs(argv) {
   for (const [k, v] of [['--pause-at', o.pauseAt], ['--weekly-ceiling', o.weeklyCeiling]]) {
     if (!(v > 0 && v <= 1)) throw new Error(`${k} is a fraction of the window, above 0 and at most 1`);
   }
+  if (!(o.spawnRetryMs >= 0)) throw new Error('--spawn-retry-ms is the wait in milliseconds before the one retry, 0 or more');
   if (!(o.fableAudits >= 0 && o.fableAudits <= 1)) throw new Error('--fable-audits is a fraction of the weekly window, from 0 to 1');
   return o;
 }
@@ -337,7 +346,7 @@ function passProblem(p) {
 // planner, audit or risky-path worker.
 function tierLine(model) {
   if (/opus/i.test(model)) return '';
-  return `\n- You are the coordinator on ${model}, to save usage. Set model "opus" on every planner Agent call, every security-auditor, and the worker for any card on a risky path in project.md. Other workers stay on Sonnet, sweeps on Haiku. If the gate's diff review leaves you unsure, start a security-auditor on Opus rather than passing it.`;
+  return `\n- You are the coordinator on ${model}, to save usage. Set model "opus" on every planner Agent call, every security-auditor, and the worker for any card on a risky path in project.md. Other workers stay on Sonnet, sweeps on Haiku. If the gate's diff review leaves you unsure, add "audit" to the gate status rather than passing it.`;
 }
 
 function cardPrompt(o, statusRel) {
@@ -350,13 +359,13 @@ You are one pass of an unattended loop (claude-loop). Nobody is at the keyboard.
 - Exactly one card. Pick it as the coordinate skill says, take it through the whole gate, commit it, then stop. Never start a second card.
 - Behave as /afk with these flags: ${o.afkFlags || 'none'}. .claude/skills/afk/SKILL.md says what they allow. Never ask a question, never ScheduleWakeup or CronCreate.
 ${o.fableOk
-    ? `- Fable is allowed for audits only: Rob gave it for this run, up to ${Math.round(o.fableAudits * 100)}% of the weekly limit, which claude-loop tracks. Set model "fable" on every security-auditor and audit Agent call. Workers and the planner never run on Fable; Opus is their top tier.`
+    ? `- Fable is allowed for audits only: Rob gave it for this run, up to ${Math.round(o.fableAudits * 100)}% of the weekly limit, which claude-loop tracks. claude-loop runs the gate's security audit on Fable itself; set model "fable" on any other security-auditor or audit Agent call. Workers and the planner never run on Fable; Opus is their top tier.`
     : "- No Fable, for any worker or audit: Fable needs Rob's permission each time and he is not here to give it. Opus is the top tier for this pass."}${tierLine(o.model)}
-- Start workers and the security-auditor with run_in_background false, so this pass waits for them. Never end your turn while anything you started is still running.
+- Start workers with run_in_background false, so this pass waits for them. Never end your turn while anything you started is still running.
 - Never use SendMessage in this pass. Ending your turn ends this session and kills any agent still working, so a card that goes back for another round gets a fresh foreground worker (run_in_background false) whose prompt is the brief's path plus the failing command's output. This overrides the coordinate skill's "back to the same worker".
 - A parked card's unfinished work never goes on the branch other cards build on. Commit it to its own branch, wip/<card id>-<short name>, cut from where the card started, push that branch, return to the working branch, and leave the working tree clean. Ungated work on the shared branch turns the suite red for every card after it. On the working branch a park may commit only the board, files under .claude/work/ and the afk log, nothing else.
 - State lives on disk, not in this conversation: the board, .claude/work/checklist.json, the afk log. claude-loop refuses to start a pass on a dirty tree, so the tree you start on is clean; leave it clean.
-- Gate steps 4 and 5 (the full suite, extra_checks, R --verify) are run by claude-loop in code, not by you. Never run them yourself. When a card has passed gate steps 1 to 3 (scope check, diff read, security-auditor where the skill calls for one), write ${statusRel} as {"status": "gate", "card": "<id and title>", "note": "<one plain line>"} and end your turn without touching the tree again. claude-loop then runs steps 4 and 5 and resumes this same session with the result: on a pass you commit without pushing and stop, claude-loop checks the commit is the tree it tested, then resumes you once more to push and open the PR. On a failure the card goes another round. This overrides the skill's steps 4 to 6 for this pass only.
+- Gate steps 4 and 5 (the full suite, extra_checks, R --verify) are run by claude-loop in code, not by you. Never run them yourself. Step 3, the security audit, is claude-loop's too: never start a security-auditor for the gate. When a card has passed gate steps 1 and 2 (scope check, diff read), write ${statusRel} as {"status": "gate", "card": "<id and title>", "note": "<one plain line>"} and end your turn without touching the tree again. When step 3 applies (the diff touches a risky path in project.md), add "audit": "<one line: which risky path the diff touches>" to that status; claude-loop then runs a security-auditor on the diff at the same time as the suite. Leave "audit" out otherwise. claude-loop then runs the gate and resumes this same session with the result (the suite's, and the audit's when it ran): on a pass you commit without pushing and stop, claude-loop checks the commit is the tree it tested, then resumes you once more to push and open the PR. On a failure the card goes another round. This overrides the skill's steps 4 to 6 for this pass only.
 - claude-loop checks every outcome in git, not in your status. It takes continue, done or blocked only when the working branch is where the card started (apart from a commit of only the board, .claude/work/ and the afk log) with a clean tree, or after a commit it checked itself. Anything else, a pass that ends on an error, or a commit pushed before its check stops the whole loop for Rob.
 - The last thing you do: write ${statusRel} as JSON, {"status": "gate" | "continue" | "done" | "blocked", "card": "<id and title>", "note": "<one plain line>"} ("committed" only when the gate result tells you to). continue means the card was committed or parked and more remain. done means no unparked card is left. blocked means something stops every remaining card (a broken suite, a refused permission, anything that needs Rob).`;
 }
@@ -433,6 +442,11 @@ function trimmedSettings(project, home) {
   for (const p of Object.keys(user.enabledPlugins || {})) enabledPlugins[p] = false;
   return {
     claudeMdExcludes: LOOP_MD_EXCLUDES,
+    // A subagent's prompt cache lives 5 minutes even on a subscription, where
+    // the pass itself gets an hour (research/verified.md, 2026-10-22). A
+    // worker that waits on a 5-minute test run comes back to a cold cache and
+    // writes its 22-40k token start again. Setting since Claude Code 2.1.242.
+    subagentPromptCacheTtl: '1h',
     disableBundledSkills: true,
     skillListingMaxDescChars: 1,
     skillOverrides,
@@ -493,61 +507,242 @@ const BUSY_MAX_MS = 30 * 60e3;
 
 function sleepSync(ms) { Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms); }
 
-function runGate(project, cfg, runner = path.join(__dirname, 'project-test.cjs'), opts = {}) {
-  const timeout = (parseInt(cfg.test_timeout_s, 10) || 1800) * 1000 + 60e3;
-  const busy = cfg.test_busy ? new RegExp(cfg.test_busy) : null;
-  const waitMs = opts.busyWaitMs ?? BUSY_WAIT_MS;
-  // At least as long as the runner's stale line (two timeouts and five
-  // minutes), so a lock left by a pid Windows reused can be outwaited.
-  const maxMs = opts.busyMaxMs ?? Math.max(BUSY_MAX_MS, ((parseInt(cfg.test_timeout_s, 10) || 1800) * 2 + 360) * 1000);
-  const t0 = Date.now();
-  let busyWaits = 0;
+// What runGate and runGateAsync share: the steps, the timeout, the busy
+// bounds, and how one step's exit is read (null: it passed; wait: busy, run
+// it again; otherwise the failure to hand back).
+function gatePlan(cfg, runner, opts) {
   const steps = [
     { name: 'full suite', label: 'node project-test.cjs', cmd: process.execPath, args: [runner] },
   ];
   if (cfg.extra_checks) steps.push({ name: 'extra_checks', label: cfg.extra_checks, cmd: cfg.extra_checks, args: [], shell: true });
   steps.push({ name: 'verify', label: 'node project-test.cjs --verify', cmd: process.execPath, args: [runner, '--verify'] });
-  for (const s of steps) {
+  return {
+    steps,
+    timeout: opts.timeoutMs ?? (parseInt(cfg.test_timeout_s, 10) || 1800) * 1000 + 60e3,
+    busy: cfg.test_busy ? new RegExp(cfg.test_busy) : null,
+    waitMs: opts.busyWaitMs ?? BUSY_WAIT_MS,
+    // At least as long as the runner's stale line (two timeouts and five
+    // minutes), so a lock left by a pid Windows reused can be outwaited.
+    maxMs: opts.busyMaxMs ?? Math.max(BUSY_MAX_MS, ((parseInt(cfg.test_timeout_s, 10) || 1800) * 2 + 360) * 1000),
+  };
+}
+
+function judgeStep(plan, s, code, all) {
+  if (code === 0) return null;
+  const tail = all.split(/\r?\n/).slice(-80).join('\n').slice(-6000);
+  const fail = { ok: false, step: s.name, command: s.label, code, output: tail };
+  const plain = all.replace(/\u001b\[[0-9;?]*[ -/]*[@-~]/g, '');
+  const runnerBusy = code === 75 && s.name !== 'extra_checks' && plain.includes(RUNNER_BUSY);
+  return { fail, wait: runnerBusy || !!(plan.busy && plan.busy.test(plain)) };
+}
+
+function runGate(project, cfg, runner = path.join(__dirname, 'project-test.cjs'), opts = {}) {
+  const plan = gatePlan(cfg, runner, opts);
+  const t0 = Date.now();
+  let busyWaits = 0;
+  for (const s of plan.steps) {
     for (;;) {
-      const r = spawnSync(s.cmd, s.args, { cwd: project, shell: !!s.shell, encoding: 'utf8', timeout, windowsHide: true, maxBuffer: 1 << 28 });
-      const code = r.status === null ? 124 : r.status;
-      if (code === 0) break;
-      const all = `${r.stdout || ''}${r.stderr || ''}${r.error ? r.error.message + '\n' : ''}`;
-      const tail = all.split(/\r?\n/).slice(-80).join('\n').slice(-6000);
-      const fail = { ok: false, step: s.name, command: s.label, code, output: tail };
-      const plain = all.replace(/\u001b\[[0-9;?]*[ -/]*[@-~]/g, '');
-      const runnerBusy = code === 75 && s.name !== 'extra_checks' && plain.includes(RUNNER_BUSY);
-      if (!runnerBusy && !(busy && busy.test(plain))) return fail;
-      if (Date.now() - t0 + waitMs > maxMs) return { ...fail, busy: true, busyWaits };
+      const r = spawnSync(s.cmd, s.args, { cwd: project, shell: !!s.shell, encoding: 'utf8', timeout: plan.timeout, windowsHide: true, maxBuffer: 1 << 28 });
+      const j = judgeStep(plan, s, r.status === null ? 124 : r.status, `${r.stdout || ''}${r.stderr || ''}${r.error ? r.error.message + '\n' : ''}`);
+      if (!j) break;
+      if (!j.wait) return j.fail;
+      if (Date.now() - t0 + plan.waitMs > plan.maxMs) return { ...j.fail, busy: true, busyWaits };
       busyWaits++;
       if (opts.onBusy) opts.onBusy(s.name, busyWaits);
-      sleepSync(waitMs);
+      sleepSync(plan.waitMs);
     }
   }
-  return busyWaits ? { ok: true, steps: steps.map((s) => s.name), busyWaits } : { ok: true, steps: steps.map((s) => s.name) };
+  return busyWaits ? { ok: true, steps: plan.steps.map((s) => s.name), busyWaits } : { ok: true, steps: plan.steps.map((s) => s.name) };
+}
+
+// One gate step without blocking the loop, so a security audit pass can run
+// beside the suite. A step past its timeout is killed with everything it
+// started (the suite's own test processes too, which spawnSync's timeout
+// left running) and reads as exit 124, as spawnSync's did.
+function spawnStep(project, s, timeout) {
+  return new Promise((resolve) => {
+    const child = spawn(s.cmd, s.args, { cwd: project, shell: !!s.shell, windowsHide: true });
+    let all = '';
+    let timedOut = false;
+    child.stdout.setEncoding('utf8');
+    child.stderr.setEncoding('utf8');
+    child.stdout.on('data', (b) => { all += b; });
+    child.stderr.on('data', (b) => { all += b; });
+    child.on('error', (e) => { all += `${e.message}\n`; });
+    const timer = setTimeout(() => {
+      timedOut = true;
+      if (process.platform === 'win32') spawnSync('taskkill', ['/F', '/T', '/PID', String(child.pid)], { windowsHide: true });
+      else child.kill('SIGTERM');
+    }, timeout);
+    child.on('close', (code) => {
+      clearTimeout(timer);
+      resolve({ code: timedOut || code === null ? 124 : code, all: all + (timedOut ? `timed out after ${Math.round(timeout / 1000)}s\n` : '') });
+    });
+  });
+}
+
+async function runGateAsync(project, cfg, runner = path.join(__dirname, 'project-test.cjs'), opts = {}) {
+  const plan = gatePlan(cfg, runner, opts);
+  const t0 = Date.now();
+  let busyWaits = 0;
+  for (const s of plan.steps) {
+    for (;;) {
+      const r = await spawnStep(project, s, plan.timeout);
+      const j = judgeStep(plan, s, r.code, r.all);
+      if (!j) break;
+      if (!j.wait) return j.fail;
+      if (Date.now() - t0 + plan.waitMs > plan.maxMs) return { ...j.fail, busy: true, busyWaits };
+      busyWaits++;
+      if (opts.onBusy) opts.onBusy(s.name, busyWaits);
+      await new Promise((res) => setTimeout(res, plan.waitMs));
+    }
+  }
+  return busyWaits ? { ok: true, steps: plan.steps.map((s) => s.name), busyWaits } : { ok: true, steps: plan.steps.map((s) => s.name) };
+}
+
+// ---- The security audit, beside the suite ---------------------------------
+//
+// Gate step 3 used to run inside the card pass: the coordinator started an
+// Opus security-auditor and only then stopped at the gate. Over 333 passes
+// (research/buildpass.md) that audit ran in 45% of builds and was about 26%
+// of build time and 36% of cost, all of it before the suite could start. Now
+// the coordinator names the risky path in its gate status ("audit") and this
+// script runs the audit as its own pass at the same time as the suite.
+//
+// The pass runs as the security-auditor agent (the project's copy if it has
+// one) through --agent, which gives it that agent's tools, Read, Grep and
+// Glob, and nothing else: measured on 2.1.304, --agent overrides --tools, so
+// it has no Bash and no Write. The diff is therefore made here and handed to
+// it as a file, and its verdict comes back as JSON at the end of its reply,
+// which this script writes to audit.json and judges from there. Anything
+// but a clean "pass" in that file fails the round.
+const AUDIT_HEAD = 'Security audit from claude-loop.';
+const AUDIT_TOOLS = 'Read,Grep,Glob';
+
+function auditAgent(project, home = claudeHome()) {
+  return [path.join(project, '.claude', 'agents', 'security-auditor.md'), path.join(home, 'agents', 'security-auditor.md')]
+    .some((f) => fs.existsSync(f)) ? 'security-auditor' : null;
+}
+
+// The card's brief and start sha from checklist.json: the entry whose id the
+// gate status names, else the last one not yet passed. The loop's own start
+// sha stands in when the entry has none, so the diff is never empty by
+// accident.
+function auditTarget(project, card, startSha) {
+  let list = [];
+  try { list = JSON.parse(fs.readFileSync(path.join(project, '.claude', 'work', 'checklist.json'), 'utf8')); } catch { /* none */ }
+  if (!Array.isArray(list)) list = [];
+  const open = list.filter((e) => e && typeof e === 'object' && e.passes !== true);
+  const named = open.filter((e) => e.id !== undefined && String(e.id) && String(card || '').includes(String(e.id)));
+  const e = named[named.length - 1] || open[open.length - 1] || {};
+  const sha = typeof e.start_sha === 'string' && /^[0-9a-f]{7,40}$/i.test(e.start_sha)
+    && gitOut(project, ['rev-parse', '--verify', '-q', `${e.start_sha}^{commit}`]) ? e.start_sha : startSha;
+  return { brief: typeof e.brief === 'string' && e.brief ? e.brief : null, sha };
+}
+
+// The change under audit, written to the loop folder: git diff from the
+// start sha to the working tree, and the untracked files beside it, which
+// git diff leaves out (the loop folder itself aside).
+function writeAuditDiff(project, dir, sha) {
+  const d = spawnSync('git', ['-c', 'core.quotepath=off', 'diff', '--relative', sha], { cwd: project, encoding: 'utf8', windowsHide: true, maxBuffer: 1 << 28 });
+  const file = path.join(dir, 'audit-diff.patch');
+  fs.writeFileSync(file, d.status === 0 ? d.stdout : '');
+  const u = gitOut(project, ['-c', 'core.quotepath=off', 'ls-files', '--others', '--exclude-standard']);
+  const untracked = (u || '').split('\n').map((f) => f.trim()).filter((f) => f && !f.startsWith('.claude/work/loop/'));
+  return { ok: d.status === 0, untracked };
+}
+
+function auditPrompt(a) {
+  return `${AUDIT_HEAD}
+
+You are the security audit for one card of an unattended loop. claude-loop runs you beside the card's test suite. Nobody is at the keyboard: never ask a question. Your tools are read-only; change nothing.
+
+The card: ${a.card || '?'}
+Why it is audited: ${a.why}
+Its brief: ${a.brief || 'checklist.json names none; the card\'s brief is under .claude/work/ if it has one'}
+The card started at ${a.sha}. The whole change is in ${a.diffRel} (git diff ${short(a.sha)} against the working tree, written by claude-loop). Files the change adds that git does not track yet, each to be read in full: ${a.untracked.length ? a.untracked.join(', ') : 'none'}.
+
+Review that change: can someone make this code do something on behalf of someone not entitled to it? A finding is a concrete, exploitable problem the change brings in or exposes, written as file:line and the attack in one sentence. Untidy code, hardening wishes and problems older than this change are not findings. Read the surrounding code and the project's own security rules as far as you need to be sure.
+
+End your reply with the verdict as one JSON object, with nothing after it:
+{"verdict": "pass" | "findings", "findings": ["<file:line, concrete exploitable problem>"]}
+"pass" goes with an empty list. claude-loop writes this object to .claude/work/loop/audit.json and reads nothing else of your reply, so a reply without it fails the gate.`;
+}
+
+// The last JSON object in the reply that has a verdict, or null. Tried from
+// each "{" backwards, so braces inside a finding's text do not end it early.
+function parseAuditVerdict(text) {
+  const t = String(text || '');
+  const end = t.lastIndexOf('}');
+  for (let i = t.lastIndexOf('{', end); i >= 0; i = t.lastIndexOf('{', i - 1)) {
+    try {
+      const v = JSON.parse(t.slice(i, end + 1));
+      if (v && typeof v === 'object' && 'verdict' in v) return v;
+    } catch { /* not this one */ }
+    if (i === 0) break;
+  }
+  return null;
+}
+
+// Judges audit.json. Fails closed: a missing or unparseable file, a verdict
+// that is not "pass", or a pass that still lists findings are all a failed
+// round; only {"verdict": "pass", "findings": []} passes.
+function auditFromFile(file) {
+  let v;
+  try { v = JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return { ok: false, findings: [], why: 'the audit left no readable verdict' }; }
+  const findings = v && Array.isArray(v.findings) ? v.findings.map((f) => String(f)).filter((f) => f.trim()) : null;
+  if (!v || !findings) return { ok: false, findings: [], why: 'the audit verdict has no findings list' };
+  if (v.verdict === 'pass' && !findings.length) return { ok: true, findings: [] };
+  if (v.verdict === 'pass' || v.verdict === 'findings') return findings.length ? { ok: false, findings } : { ok: false, findings: [], why: 'the audit said findings but listed none' };
+  return { ok: false, findings, why: `the audit verdict was ${JSON.stringify(v.verdict)}, not pass or findings` };
+}
+
+// What the audit pass may not change: HEAD, the branch, the fingerprinted
+// tree, and the list of dirty paths (which also covers .claude/work/, left
+// out of the fingerprint). The runner's own records and the loop folder are
+// not in either, so the suite running beside it does not move this.
+function treeSnapshot(project, ptCfg) {
+  const pt = require('./project-test.cjs');
+  const h = headState(project);
+  return JSON.stringify([h.sha, h.branch, pt.treeFingerprint(project, ptCfg), pt.dirtyPaths(project, ptCfg)]);
 }
 
 const GATE_PASSED = 'Gate result from claude-loop: passed.';
 const GATE_FAILED = 'Gate result from claude-loop: failed.';
 
+function auditReport(a) {
+  if (a.findings.length) return `The security audit found:\n${a.findings.map((f) => `- ${f}`).join('\n')}`;
+  return `The security audit gave no usable verdict: ${a.why}. Nothing in the code is known to be wrong from it; the audit has to run again.`;
+}
+
 function gatePrompt(g, cfg, statusRel, round, maxRounds) {
   if (g.ok) {
     return `${GATE_PASSED}
 
-After you stopped, claude-loop ran gate steps 4 and 5 on the tree exactly as you left it: the full suite through R exited 0${cfg.extra_checks ? `, extra_checks (${cfg.extra_checks}) exited 0` : ''}, and R --verify exited 0. Do not run them again. Carry on from step 6 (Commit) for this card, in this order: branch if the card needs one; move the card on the board; R --pass <id> (it verifies again, and the board is left out of what it compares); stage every file the gate tested together with the board move and checklist.json, leaving out only the scope_ignore files in project.md; commit. Do not change any other file after the gate, do not push and do not open the PR yet. Then write ${statusRel} as {"status": "committed", "card": "<id and title>", "note": "<one plain line>"} and stop. claude-loop checks that the commit is exactly the tree it tested and the tree is clean, then resumes you to push and open the PR. If R --pass refuses, do not commit: park the card as the skill says and write continue, done or blocked.`;
+After you stopped, claude-loop ran gate steps 4 and 5 on the tree exactly as you left it: the full suite through R exited 0${cfg.extra_checks ? `, extra_checks (${cfg.extra_checks}) exited 0` : ''}, and R --verify exited 0.${g.audit ? ' The security audit it ran beside them (step 3) found nothing.' : ''} Do not run them again. Carry on from step 6 (Commit) for this card, in this order: branch if the card needs one; move the card on the board; R --pass <id> (it verifies again, and the board is left out of what it compares); stage every file the gate tested together with the board move and checklist.json, leaving out only the scope_ignore files in project.md; commit. Do not change any other file after the gate, do not push and do not open the PR yet. Then write ${statusRel} as {"status": "committed", "card": "<id and title>", "note": "<one plain line>"} and stop. claude-loop checks that the commit is exactly the tree it tested and the tree is clean, then resumes you to push and open the PR. If R --pass refuses, do not commit: park the card as the skill says and write continue, done or blocked.`;
   }
   const last = round >= maxRounds;
-  return `${GATE_FAILED}
-
-After you stopped, claude-loop ran gate steps 4 and 5 on the tree as you left it. ${g.step} failed: \`${g.command}\` exited ${g.code}. Its output, the last lines:
+  const audited = g.audit ? ` and the security audit (step 3) beside them` : '';
+  const suite = g.step
+    ? `${g.step} failed: \`${g.command}\` exited ${g.code}. Its output, the last lines:
 
 \`\`\`
 ${g.output}
-\`\`\`
+\`\`\``
+    : `The full suite${cfg.extra_checks ? ', extra_checks' : ''} and R --verify all exited 0.`;
+  const audit = !g.audit ? '' : g.audit.ok ? '\n\nThe security audit found nothing.' : `\n\n${auditReport(g.audit)}`;
+  // An audit that gave no verdict over a green suite found nothing to fix, so
+  // no worker is started; the coordinator asks for the audit again.
+  const rerunAudit = !g.step && g.audit && !g.audit.ok && !g.audit.findings.length;
+  return `${GATE_FAILED}
+
+After you stopped, claude-loop ran gate steps 4 and 5${audited} on the tree as you left it. ${suite}${audit}
 
 ${last
     ? `This was round ${round} of ${maxRounds} for this card at the gate. Park it as the coordinate skill says, log why, and write ${statusRel} (continue, done or blocked).`
-    : `The card goes back for another round as the pass rules say: a fresh foreground worker whose prompt is the brief's path plus this output (step up a tier if this is its second failure). Gate the new work again from step 1, and when it passes steps 1 to 3, write status "gate" again and stop.`}`;
+    : rerunAudit
+      ? `No worker is needed for this. Without touching the tree, write status "gate" again with the same "audit" line and stop; claude-loop runs the suite and the audit again.`
+      : `The card goes back for another round as the pass rules say: a fresh foreground worker whose prompt is the brief's path plus ${g.audit && !g.audit.ok ? 'the output and findings above' : 'this output'} (step up a tier if this is its second failure). Gate the new work again from step 1, and when it passes steps 1 and 2, write status "gate" again (with "audit" if step 3 applies to the new diff) and stop.`}`;
 }
 
 const COMMIT_CHECKED = 'Commit check from claude-loop: passed.';
@@ -734,28 +929,49 @@ function killSurvivors(seen) {
   return n;
 }
 
-function runPass(o, prompt, streamFile, resume) {
+// A pass that never started: the shell or the OS could not find `claude`
+// (cmd.exe: "is not recognized as an internal or external command", sh:
+// "command not found" or "not found", spawn: ENOENT). It printed no stream
+// line at all, so a real pass whose own text says "not found" does not match.
+const NOT_RECOGNIZED = /is not recognized as an internal or external command|\bENOENT\b|command not found|: not found\s*$/im;
+function notRecognized(r) {
+  return !!r && r.code !== 0 && !String(r.text || '').trim() && NOT_RECOGNIZED.test(String(r.err || ''));
+}
+
+// x changes one pass from the run's own settings: model, tools, effort (null
+// leaves --effort off), agent (--agent, the session runs as that agent) and
+// env (added to the pass's environment). The audit pass is the one user.
+function runPass(o, prompt, streamFile, resume, x = {}) {
   return new Promise((resolve) => {
     for (const p of [o.mcp, o.settings]) {
       if (/["%^&|<>]/.test(p)) throw new Error(`config path has a character the shell would act on: ${p}`);
     }
     if (resume && !/^[\w-]{8,64}$/.test(resume)) throw new Error(`session id has a character the shell would act on: ${resume}`);
+    const model = x.model || o.model;
+    const tools = x.tools !== undefined ? x.tools : o.tools;
+    const effort = x.effort !== undefined ? x.effort : o.effort;
+    for (const v of [model, tools || '', effort || '', x.agent || '']) {
+      if (!SAFE_ARG.test(v)) throw new Error(`pass argument has a character the shell would act on: ${v}`);
+    }
     const args = ['-p', '--output-format', 'stream-json', '--verbose',
-      '--permission-mode', 'auto', '--model', o.model, '--max-turns', String(o.maxTurns),
+      '--permission-mode', 'auto', '--model', model, '--max-turns', String(o.maxTurns),
       '--strict-mcp-config', '--mcp-config', `"${o.mcp}"`, '--settings', `"${o.settings}"`]
-      .concat(o.tools ? ['--tools', o.tools] : [])
-      .concat(o.effort ? ['--effort', o.effort] : [])
+      .concat(x.agent ? ['--agent', x.agent] : [])
+      .concat(tools ? ['--tools', tools] : [])
+      .concat(effort ? ['--effort', effort] : [])
       .concat(resume ? ['--resume', resume] : []);
     // claude is an npm .cmd shim on Windows, which Node only starts through
     // the shell. Every argument is fixed or checked by SAFE_ARG; the prompt
     // goes in on stdin, never through the shell.
     // CLAUDE_LOOP_PASS marks a headless pass so coordinator-only.cjs lets it write code and commit.
-    const child = spawn(o.claude, args, { cwd: o.project, shell: true, windowsHide: true, env: { ...process.env, CLAUDE_LOOP_PASS: '1' } });
+    const child = spawn(o.claude, args, { cwd: o.project, shell: true, windowsHide: true, env: { ...process.env, CLAUDE_LOOP_PASS: '1', ...(x.env || {}) } });
     const out = fs.createWriteStream(streamFile);
     let text = '';
     let err = '';
     child.stdout.on('data', (b) => { out.write(b); text += b; });
     child.stderr.on('data', (b) => { err += b; });
+    // A spawn that fails outright (ENOENT without a shell) is an event, not a throw.
+    child.on('error', (e) => { err += `${e.message}\n`; });
     // A pass is over only when everything it started is gone: a background
     // agent left running edits the tree under the next card.
     const seen = new Map();
@@ -839,17 +1055,27 @@ async function main() {
   try { fableBudget = JSON.parse(fs.readFileSync(fableFile, 'utf8')); } catch { /* none yet */ }
 
   // A pass that ends on a usage limit is rerun after the reset. Returns the
-  // pass summary, or null when the loop should stop. refresh, when given,
-  // rebuilds the prompt before a rerun (a gate result goes stale in a wait)
-  // and returns it, or null to stop.
-  async function pass(label, prompt, resume, refresh) {
+  // pass summary, or null when the loop should stop; waited counts the
+  // limits it waited out. refresh, when given, rebuilds the prompt before a
+  // rerun (a gate result goes stale in a wait) and returns it, or null to
+  // stop. x goes to runPass.
+  async function pass(label, prompt, resume, refresh, x) {
     for (let waits = 0; ; waits++) {
       if (waits && refresh) {
-        prompt = refresh();
+        prompt = await refresh();
         if (prompt === null) return null;
       }
       const streamFile = path.join(dir, `${stamp}-${label}${waits ? '-retry' + waits : ''}.jsonl`);
-      const r = await runPass(o, prompt, streamFile, resume);
+      let r = await runPass(o, prompt, streamFile, resume, x);
+      // `claude` not recognized: an auto-update was swapping the binary. Wait
+      // once, run the same pass again, and let a second failure stop the loop
+      // as any pass with no result does.
+      if (notRecognized(r)) {
+        log(`${label}: claude was not recognized (${r.err.trim().split(/\r?\n/)[0]}), trying once more in ${Math.round(o.spawnRetryMs / 1000)}s`);
+        if (!(await waitUntil(Date.now() + o.spawnRetryMs))) return null;
+        r = await runPass(o, prompt, streamFile.replace(/\.jsonl$/, '-respawn.jsonl'), resume, x);
+        if (notRecognized(r)) log(`${label}: claude was not recognized again, giving up`);
+      }
       const s = summarise(r.text);
       const res = s.result || {};
       if (s.limits) {
@@ -871,7 +1097,7 @@ async function main() {
       if (r.code !== 0 && r.err.trim()) log(`${label}: stderr, last lines:\n${r.err.trim().split(/\r?\n/).slice(-15).join('\n')}`);
       const said = `${res.result || ''}\n${r.err}`;
       const rejected = s.limits && s.limits.status === 'rejected';
-      if (!rejected && !LIMIT.test(said)) return { r, res, sessionId: s.sessionId };
+      if (!rejected && !LIMIT.test(said)) return { r, res, sessionId: s.sessionId, waited: waits };
       if (waits >= o.limitWaits) { log(`${label}: usage limit ${waits + 1} times running, stopping`); return null; }
       const reset = rejected && s.limits.resetsAt ? new Date(s.limits.resetsAt * 1000) : parseReset(said);
       const until = reset ? reset.getTime() + 2 * 60e3 : Date.now() + 30 * 60e3;
@@ -889,19 +1115,69 @@ async function main() {
     log(`card-${n}: protocol failure: ${why}. Stopping the loop; git is left as it is for Rob.`);
   };
 
-  // One gate round: the suite, extra_checks and verify, then the fingerprint
-  // of the tree they passed on, which a later commit must match.
-  function gateRound(n, round, card) {
-    log(`card-${n}: gate round ${round}: running the suite, extra checks and verify for ${card || '?'}`);
-    const g = runGate(o.project, cfg, undefined, {
+  // The suite, extra_checks and verify for one round.
+  function suiteRun(n, round) {
+    return runGateAsync(o.project, cfg, undefined, {
       onBusy: (step, k) => log(`card-${n}: gate round ${round}: ${step} found the test command busy (test_busy), waiting to run it again (${k})`),
     });
+  }
+
+  // The audit pass for one round, beside the suite. Returns the judged
+  // audit.json, { halt: true } when the pass could not run (STOP, or the
+  // usage limit waited out too often), or with waited set when it sat out a
+  // usage limit, which leaves the suite's run too old for R --pass.
+  async function auditRun(n, round, card, why, startSha) {
+    const auditFile = path.join(dir, 'audit.json');
+    try { fs.unlinkSync(auditFile); } catch { /* none */ }
+    const t = auditTarget(o.project, card, startSha);
+    const diff = writeAuditDiff(o.project, dir, t.sha);
+    if (!diff.ok) return { ok: false, findings: [], why: `git diff ${short(t.sha)} failed, so there was nothing to audit` };
+    const agent = auditAgent(o.project);
+    const prompt = auditPrompt({ card, why, brief: t.brief, sha: t.sha, diffRel: '.claude/work/loop/audit-diff.patch', untracked: diff.untracked });
+    // Auto memory off for this pass only: it reads code, and memory's 9k
+    // tokens a start (research/verified.md) buy it nothing. The coordinator
+    // keeps it, because the afk skill says memory rules still apply there.
+    const p = await pass(`card-${n}-audit${round}`, agent ? prompt : `${prompt}\n\nWork as a security auditor: hunt for what an attacker can do, not for style.`, undefined, undefined, {
+      model: o.fableOk ? 'fable' : 'opus', tools: AUDIT_TOOLS, effort: null, agent, env: { CLAUDE_CODE_DISABLE_AUTO_MEMORY: '1' },
+    });
+    if (!p) return { halt: true };
+    const bad = passProblem(p);
+    if (bad) return { ok: false, findings: [], why: `the audit pass did not finish: ${bad}`, waited: p.waited };
+    const v = parseAuditVerdict(p.res.result);
+    if (v) fs.writeFileSync(auditFile, JSON.stringify(v, null, 2) + '\n');
+    return { ...auditFromFile(auditFile), waited: p.waited };
+  }
+
+  // One gate round: the suite, extra_checks and verify, and the security
+  // audit beside them when the coordinator asked for one, then the
+  // fingerprint of the tree they passed on, which a later commit must match.
+  // treeChanged says the tree moved while they ran, which stops the loop.
+  async function gateRound(n, round, card, audit, startSha) {
+    log(`card-${n}: gate round ${round}: running the suite, extra checks and verify${audit ? ', and the security audit beside them,' : ''} for ${card || '?'}`);
+    if (audit) log(`card-${n}: gate round ${round}: audit asked for: ${audit}`);
+    const before = audit ? treeSnapshot(o.project, ptCfg) : null;
+    let [g, a] = await Promise.all([suiteRun(n, round), audit ? auditRun(n, round, card, audit, startSha) : null]);
+    if (a && a.halt) { g.halt = true; return g; }
+    if (a && a.waited && !g.busy) {
+      log(`card-${n}: gate round ${round}: the audit waited out a usage limit, so the suite runs again`);
+      g = await suiteRun(n, round);
+    }
+    if (audit && treeSnapshot(o.project, ptCfg) !== before) {
+      g.treeChanged = 'the tree, HEAD or the branch changed while the suite and the security audit ran, and the audit may change nothing';
+      return g;
+    }
     if (g.busy) {
       log(`card-${n}: gate round ${round}: the test command was still busy after ${Math.round(BUSY_MAX_MS / 60e3)} min, stopping without counting a round`);
       return g;
     }
+    if (a) {
+      log(`card-${n}: gate round ${round}: audit ${a.ok ? 'passed' : a.findings.length ? `found ${a.findings.length} problem${a.findings.length === 1 ? '' : 's'}` : `failed closed: ${a.why}`}`);
+      g.audit = a;
+    }
+    const suiteOk = g.ok;
+    g.ok = suiteOk && (!a || a.ok);
     g.tree = g.ok ? require('./project-test.cjs').treeFingerprint(o.project, ptCfg) : null;
-    log(`card-${n}: gate round ${round}: ${g.ok ? 'passed' : `${g.step} failed, exit ${g.code}`}`);
+    log(`card-${n}: gate round ${round}: ${suiteOk ? (a ? 'the suite passed' : 'passed') : `${g.step} failed, exit ${g.code}`}`);
     return g;
   }
 
@@ -1129,16 +1405,28 @@ async function main() {
           if (!(await waitUntil(q2.until))) { halted = true; break; }
         }
         const round = rounds;
-        let g = gateRound(n, round, st.card);
-        if (g.busy) { halted = true; break; }
+        // A round audits only when this gate status asks: a round-2 gate
+        // after a fix re-audits only if the coordinator sets it again.
+        const audit = typeof st.audit === 'string' && st.audit.trim() ? st.audit.trim().replace(/\s+/g, ' ').slice(0, 300) : null;
+        let g = await gateRound(n, round, st.card, audit, start.sha);
+        if (g.treeChanged) { protocolFailure(n, g.treeChanged); break; }
+        if (g.busy || g.halt) { halted = true; break; }
         gateTree = g.tree;
         try { fs.unlinkSync(statusFile); } catch { /* gone */ }
         const sid = p.sessionId;
         const card = st.card;
-        p = await pass(`card-${n}-gate${round}`, gatePrompt(g, cfg, statusRel, round, o.maxGateRounds), sid, () => {
+        p = await pass(`card-${n}-gate${round}`, gatePrompt(g, cfg, statusRel, round, o.maxGateRounds), sid, async () => {
+          // The suite's run went stale in the wait; the audit's verdict did
+          // not (the tree is the same), so only the suite runs again.
           log(`card-${n}: gate round ${round}: the resume waited out a usage limit, so the gate runs again`);
-          g = gateRound(n, round, card);
+          const a = g.audit;
+          g = await gateRound(n, round, card, null, start.sha);
           if (g.busy) return null;
+          if (a) {
+            g.audit = a;
+            g.ok = g.ok && a.ok;
+            if (!g.ok) g.tree = null;
+          }
           gateTree = g.tree;
           return gatePrompt(g, cfg, statusRel, round, o.maxGateRounds);
         });
@@ -1237,7 +1525,8 @@ if (require.main === module) {
 }
 
 module.exports = {
-  parseArgs, parseReset, chargeFable, fableAllowed, collectTree, killSurvivors, runPass, summarise, readStatus, quotaCall, tierLine, modelSplit, LIMIT,
-  trimmedSettings, mergeSettings, loopSettings, loopTools, runGate, gatePrompt, cardPrompt, pushPrompt, LOOP_TOOLS,
+  parseArgs, parseReset, chargeFable, fableAllowed, collectTree, killSurvivors, runPass, notRecognized, NOT_RECOGNIZED, summarise, readStatus, quotaCall, tierLine, modelSplit, LIMIT,
+  trimmedSettings, mergeSettings, loopSettings, loopTools, runGate, runGateAsync, gatePrompt, cardPrompt, pushPrompt, LOOP_TOOLS,
+  auditPrompt, auditTarget, parseAuditVerdict, auditFromFile, AUDIT_HEAD,
   parkProblem, commitProblem, afterPushProblem, passProblem, ciState, ciRepairPrompt, RUNNER_BUSY,
 };

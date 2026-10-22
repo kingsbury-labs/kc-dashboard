@@ -6,7 +6,7 @@ const os = require('os');
 const path = require('path');
 const { spawnSync } = require('child_process');
 const {
-  parseArgs, parseReset, chargeFable, fableAllowed, summarise, readStatus, quotaCall, tierLine, modelSplit, LIMIT,
+  parseArgs, parseReset, chargeFable, fableAllowed, notRecognized, summarise, readStatus, quotaCall, tierLine, modelSplit, LIMIT,
   trimmedSettings, mergeSettings, loopTools, runGate, gatePrompt, cardPrompt, pushPrompt, LOOP_TOOLS, ciState, ciRepairPrompt, RUNNER_BUSY,
 } = require('./claude-loop.cjs');
 
@@ -17,7 +17,9 @@ const LOOP = path.join(__dirname, 'claude-loop.cjs');
 // the prompt it was given, writes the status file, prints stream-json.
 // A step may also write files ("write": {path: text}), run commands in the
 // project ("run": [[cmd, ...args]], RUNNER is project-test.cjs), exit
-// nonzero ("exit") and report another result subtype ("subtype").
+// nonzero ("exit"), report another result subtype ("subtype") and add
+// fields to the status ("extra"). env.txt records whether auto memory was
+// switched off for each call.
 const FAKE = `
 const fs = require('fs');
 const path = require('path');
@@ -27,11 +29,15 @@ const n = fs.existsSync(path.join(dir, 'calls.txt')) ? fs.readFileSync(path.join
 let prompt = '';
 process.stdin.on('data', (b) => { prompt += b; });
 process.stdin.on('end', () => {
-  fs.appendFileSync(path.join(dir, 'calls.txt'), prompt.split('\\n')[0] + '\\n');
+  // A project copy's coordinator prompt reads its own skill copy instead of
+  // invoking /coordinate; record it under the name the assertions use.
+  const first = prompt.split('\\n')[0];
+  fs.appendFileSync(path.join(dir, 'calls.txt'), (first.startsWith('Read .claude/skills/coordinate/') ? '/coordinate' : first) + '\\n');
   fs.writeFileSync(path.join(dir, 'last-prompt.txt'), prompt);
   fs.writeFileSync(path.join(dir, 'last-args.json'), JSON.stringify(process.argv.slice(2)));
   fs.appendFileSync(path.join(dir, 'args.txt'), JSON.stringify(process.argv.slice(2)) + '\\n');
   fs.appendFileSync(path.join(dir, 'prompts.txt'), JSON.stringify(prompt) + '\\n');
+  fs.appendFileSync(path.join(dir, 'env.txt'), JSON.stringify(process.env.CLAUDE_CODE_DISABLE_AUTO_MEMORY || null) + '\\n');
   console.log(JSON.stringify({ type: 'system', subtype: 'init', session_id: 'sess-' + n + '-abcdef' }));
   const step = plan[n] || { status: 'done', say: 'ok' };
   for (const [f, c] of Object.entries(step.write || {})) {
@@ -45,7 +51,7 @@ process.stdin.on('end', () => {
   }
   if (step.status) {
     fs.mkdirSync(path.join(process.cwd(), '.claude/work/loop'), { recursive: true });
-    fs.writeFileSync(path.join(process.cwd(), '.claude/work/loop/status.json'), JSON.stringify({ status: step.status, card: 'c' + n, note: 'n' }));
+    fs.writeFileSync(path.join(process.cwd(), '.claude/work/loop/status.json'), JSON.stringify({ status: step.status, card: 'c' + n, note: 'n', ...(step.extra || {}) }));
   }
   if (step.limits) console.log(JSON.stringify({ type: 'rate_limit_event', rate_limit_info: step.limits }));
   console.log(JSON.stringify({ type: 'assistant', message: { usage: { input_tokens: 5, cache_read_input_tokens: 1000 * (n + 1), cache_creation_input_tokens: 10 } } }));
@@ -81,14 +87,14 @@ function gitIn(dir, ...cmds) {
 
 // Files a test adds before the run are committed first, so the loop starts
 // on a clean tree, unless the test is about a dirty one.
-function run({ proj, bin }, extra = [], { dirty = false } = {}) {
+function run({ proj, bin }, extra = [], { dirty = false, env = {} } = {}) {
   if (!dirty && fs.existsSync(path.join(proj, '.git'))) {
     gitIn(proj, ['add', '-A']);
     if (spawnSync('git', ['diff', '--cached', '--quiet'], { cwd: proj }).status === 1) gitIn(proj, ['commit', '-q', '-m', 'test setup']);
   }
   const home = path.join(path.dirname(bin), 'home');
   fs.mkdirSync(home, { recursive: true });
-  const r = spawnSync(process.execPath, [LOOP, '--project', proj, '--claude', `node "${path.join(bin, 'fake.cjs')}"`, ...extra], { encoding: 'utf8', timeout: 60000, env: { ...process.env, CLAUDE_CONFIG_DIR: home } });
+  const r = spawnSync(process.execPath, [LOOP, '--project', proj, '--claude', `node "${path.join(bin, 'fake.cjs')}"`, ...extra], { encoding: 'utf8', timeout: 60000, env: { ...process.env, CLAUDE_CONFIG_DIR: home, ...env } });
   const calls = fs.existsSync(path.join(bin, 'calls.txt')) ? fs.readFileSync(path.join(bin, 'calls.txt'), 'utf8').split('\n').filter(Boolean) : [];
   const logf = path.join(proj, '.claude/work/loop/loop.log');
   return { ...r, calls, log: fs.existsSync(logf) ? fs.readFileSync(logf, 'utf8') : '' };
@@ -1157,4 +1163,269 @@ test('runGate: a red suite that prints the busy line without exit 75 is red at o
   assert.strictEqual(g.ok, false);
   assert.strictEqual(g.busy, undefined);
   assert.strictEqual(g.busyWaits, undefined);
+});
+
+// A `claude` that is "not recognized" for its first `failures` calls, then the
+// fake. The message is the one cmd.exe prints; the exit code is cmd's 1.
+function flakySetup(plan, failures) {
+  const s = setup(plan);
+  fs.writeFileSync(path.join(s.bin, 'flaky.cjs'), `
+const fs = require('fs');
+const path = require('path');
+const f = path.join(__dirname, 'attempts.txt');
+const n = fs.existsSync(f) ? fs.readFileSync(f, 'utf8').split('\\n').filter(Boolean).length : 0;
+fs.appendFileSync(f, 'x\\n');
+if (n < ${failures}) {
+  process.stderr.write("'claude' is not recognized as an internal or external command,\\noperable program or batch file.\\n");
+  process.exit(1);
+}
+require('./fake.cjs');
+`);
+  return s;
+}
+function runFlaky({ proj, bin }, extra = []) {
+  gitIn(proj, ['add', '-A']);
+  if (spawnSync('git', ['diff', '--cached', '--quiet'], { cwd: proj }).status === 1) gitIn(proj, ['commit', '-q', '-m', 'test setup']);
+  const home = path.join(path.dirname(bin), 'home');
+  fs.mkdirSync(home, { recursive: true });
+  const r = spawnSync(process.execPath, [LOOP, '--project', proj, '--claude', `node "${path.join(bin, 'flaky.cjs')}"`, '--no-handoff', ...extra], { encoding: 'utf8', timeout: 60000, env: { ...process.env, CLAUDE_CONFIG_DIR: home } });
+  const count = (f) => (fs.existsSync(path.join(bin, f)) ? fs.readFileSync(path.join(bin, f), 'utf8').split('\n').filter(Boolean).length : 0);
+  const logf = path.join(proj, '.claude/work/loop/loop.log');
+  return { ...r, attempts: count('attempts.txt'), calls: count('calls.txt'), log: fs.existsSync(logf) ? fs.readFileSync(logf, 'utf8') : '' };
+}
+
+test('notRecognized: only a pass that printed nothing and whose stderr says the command is missing', () => {
+  const cmd = "'claude' is not recognized as an internal or external command,\r\noperable program or batch file.\r\n";
+  assert.strictEqual(notRecognized({ code: 1, text: '', err: cmd }), true);
+  assert.strictEqual(notRecognized({ code: -4058, text: '', err: 'spawn claude ENOENT' }), true);
+  assert.strictEqual(notRecognized({ code: 127, text: '', err: 'sh: 1: claude: not found\n' }), true);
+  assert.strictEqual(notRecognized({ code: 127, text: '', err: 'bash: claude: command not found' }), true);
+  // a real pass: it printed stream lines, or exited 0, or failed for another reason
+  assert.strictEqual(notRecognized({ code: 1, text: '{"type":"system"}\n', err: cmd }), false);
+  assert.strictEqual(notRecognized({ code: 0, text: '', err: cmd }), false);
+  assert.strictEqual(notRecognized({ code: 1, text: '', err: 'Error: something else broke' }), false);
+  assert.strictEqual(notRecognized({ code: 1, text: '', err: 'config file not found: x.json' }), false);
+  assert.strictEqual(notRecognized(null), false);
+});
+
+test('--spawn-retry-ms: default 30 s, 0 allowed, junk refused', () => {
+  assert.strictEqual(parseArgs([]).spawnRetryMs, 30000);
+  assert.strictEqual(parseArgs(['--spawn-retry-ms', '0']).spawnRetryMs, 0);
+  assert.throws(() => parseArgs(['--spawn-retry-ms', 'soon']), /spawn-retry-ms/);
+});
+
+test('spawn: claude not recognized once is retried once, and the card carries on', () => {
+  const s = flakySetup([{ status: 'done', say: 'ok' }], 1);
+  const r = runFlaky(s, ['--spawn-retry-ms', '0']);
+  assert.strictEqual(r.status, 0, r.stderr + r.log);
+  assert.strictEqual(r.attempts, 2);
+  assert.strictEqual(r.calls, 1);
+  assert.match(r.log, /card-1: claude was not recognized .*trying once more/);
+  assert.doesNotMatch(r.log, /giving up/);
+  assert.match(r.log, /card-1: done/);
+});
+
+test('spawn: claude not recognized twice stops the loop after exactly two attempts', () => {
+  const s = flakySetup([{ status: 'done', say: 'ok' }], 99);
+  const r = runFlaky(s, ['--spawn-retry-ms', '0']);
+  assert.strictEqual(r.attempts, 2);
+  assert.strictEqual(r.calls, 0);
+  assert.match(r.log, /claude was not recognized again, giving up/);
+  assert.doesNotMatch(r.log, /card-1: done/);
+  assert.doesNotMatch(r.log, /card-2/);
+});
+
+test('spawn: a pass that fails for another reason is not retried', () => {
+  const s = setup([{ status: null, say: 'boom', exit: 1 }]);
+  const r = run(s, ['--no-handoff', '--spawn-retry-ms', '0']);
+  assert.strictEqual(r.calls.length, 1);
+  assert.doesNotMatch(r.log, /not recognized/);
+});
+
+// ---- The security audit beside the suite -----------------------------------
+
+const { runGateAsync, parseAuditVerdict, auditFromFile, AUDIT_HEAD } = require('./claude-loop.cjs');
+const VERDICT = (v, f = []) => JSON.stringify({ verdict: v, findings: f });
+
+test('trimmedSettings gives subagents a one-hour prompt cache', () => {
+  const t = trimmedSettings(fs.mkdtempSync(path.join(os.tmpdir(), 'cl-proj-')), fakeHome());
+  assert.strictEqual(t.subagentPromptCacheTtl, '1h');
+});
+
+test('a card pass leaves the gate audit to claude-loop and names the risky path in "audit"', () => {
+  const p = cardPrompt(parseArgs([]), '.claude/work/loop/status.json');
+  assert.match(p, /never start a security-auditor for the gate/);
+  assert.match(p, /passed gate steps 1 and 2 \(scope check, diff read\)/);
+  assert.match(p, /add "audit": "<one line: which risky path the diff touches>"/);
+  assert.doesNotMatch(p, /Start workers and the security-auditor/);
+  assert.match(tierLine('sonnet'), /add "audit" to the gate status rather than passing it/);
+});
+
+test('gatePrompt: findings fail the round and go to a worker, no verdict asks for the audit again, a clean audit is named', () => {
+  const ok = gatePrompt({ ok: true, audit: { ok: true, findings: [] } }, {}, 's.json', 1, 3);
+  assert.match(ok, /^Gate result from claude-loop: passed\./);
+  assert.match(ok, /security audit it ran beside them \(step 3\) found nothing/);
+  const found = gatePrompt({ ok: false, audit: { ok: false, findings: ["app/A.php:12, any member can read another tenant's invoice"] } }, {}, 's.json', 1, 3);
+  assert.match(found, /^Gate result from claude-loop: failed\./);
+  assert.match(found, /The full suite and R --verify all exited 0/);
+  assert.match(found, /The security audit found:\n- app\/A\.php:12, any member/);
+  assert.match(found, /fresh foreground worker whose prompt is the brief's path plus the output and findings above/);
+  assert.match(found, /write status "gate" again \(with "audit" if step 3 applies/);
+  const both = gatePrompt({ ok: false, step: 'full suite', command: 'node project-test.cjs', code: 1, output: 'FAILED X', audit: { ok: false, findings: ['b.php:3, x'] } }, {}, 's.json', 1, 3);
+  assert.match(both, /full suite failed[\s\S]*FAILED X[\s\S]*- b\.php:3, x/);
+  const none = gatePrompt({ ok: false, audit: { ok: false, findings: [], why: 'the audit left no readable verdict' } }, {}, 's.json', 1, 3);
+  assert.match(none, /gave no usable verdict: the audit left no readable verdict/);
+  assert.match(none, /No worker is needed for this\. Without touching the tree, write status "gate" again with the same "audit" line/);
+  assert.match(gatePrompt({ ok: false, audit: { ok: false, findings: ['x'] } }, {}, 's.json', 3, 3), /round 3 of 3 .*Park it/);
+});
+
+test('parseAuditVerdict takes the last verdict object; auditFromFile fails closed on anything but a clean pass', () => {
+  assert.deepStrictEqual(parseAuditVerdict(`Looked at {the diff}.\n\n${VERDICT('pass')}`), { verdict: 'pass', findings: [] });
+  assert.deepStrictEqual(parseAuditVerdict('```json\n' + VERDICT('findings', ['a.php:1, {braces} in text']) + '\n```'), { verdict: 'findings', findings: ['a.php:1, {braces} in text'] });
+  assert.strictEqual(parseAuditVerdict('no verdict here'), null);
+  assert.strictEqual(parseAuditVerdict('{not json'), null);
+  const f = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'cl-audit-')), 'audit.json');
+  assert.match(auditFromFile(f).why, /no readable verdict/);
+  const judge = (text) => { fs.writeFileSync(f, text); return auditFromFile(f); };
+  assert.deepStrictEqual(judge(VERDICT('pass')), { ok: true, findings: [] });
+  assert.strictEqual(judge('{bad').ok, false);
+  assert.deepStrictEqual(judge(VERDICT('findings', ['x.php:2, y'])), { ok: false, findings: ['x.php:2, y'] });
+  assert.deepStrictEqual(judge(VERDICT('pass', ['x.php:2, y'])), { ok: false, findings: ['x.php:2, y'] }, 'a pass that lists findings is not a pass');
+  assert.match(judge(VERDICT('findings')).why, /listed none/);
+  assert.match(judge(VERDICT('maybe')).why, /not pass or findings/);
+  assert.match(judge('{"verdict":"pass"}').why, /no findings list/);
+});
+
+test('runGateAsync gives what runGate gives: a pass, a red suite, a busy wait', async () => {
+  let proj = gitProject();
+  assert.deepStrictEqual(await runGateAsync(proj, cfgOf(proj)), { ok: true, steps: ['full suite', 'extra_checks', 'verify'] });
+  fs.writeFileSync(path.join(proj, 'suite-exit.txt'), '1');
+  const red = await runGateAsync(proj, cfgOf(proj));
+  assert.strictEqual(red.ok, false);
+  assert.strictEqual(red.step, 'full suite');
+  assert.strictEqual(red.code, 1);
+  assert.match(red.output, /FAILED SomeTest/);
+  proj = busyProject(2);
+  const seen = [];
+  const g = await runGateAsync(proj, cfgOf(proj), undefined, { busyWaitMs: 20, onBusy: (step, k) => seen.push(`${step} ${k}`) });
+  assert.strictEqual(g.ok, true, g.output);
+  assert.strictEqual(g.busyWaits, 2);
+  assert.deepStrictEqual(seen, ['full suite 1', 'full suite 2']);
+  proj = busyProject(1000);
+  const b = await runGateAsync(proj, cfgOf(proj), undefined, { busyWaitMs: 50, busyMaxMs: 1000 });
+  assert.strictEqual(b.busy, true);
+});
+
+test('runGateAsync kills a step past its timeout and reads it as exit 124', async () => {
+  const proj = gitProject(false);
+  fs.writeFileSync(path.join(proj, 'suite.cjs'), 'setTimeout(() => {}, 60000);\n');
+  gitIn(proj, ['add', '-A'], ['commit', '-q', '-m', 'slow suite']);
+  const t0 = Date.now();
+  const g = await runGateAsync(proj, cfgOf(proj), undefined, { timeoutMs: 1500 });
+  assert.strictEqual(g.ok, false);
+  assert.strictEqual(g.code, 124);
+  assert.match(g.output, /timed out after/);
+  assert.ok(Date.now() - t0 < 30000, `took ${Date.now() - t0} ms`);
+});
+
+// A gate project with a tracked app.txt, a checklist entry naming a brief and
+// its start sha, and a security-auditor agent in the loop's home, so a card
+// can stop at the gate with "audit" and the audit pass can be inspected.
+function auditSetup(plan) {
+  const s = commitSetup(plan);
+  fs.writeFileSync(path.join(s.proj, 'app.txt'), 'app\n');
+  gitIn(s.proj, ['add', '-A'], ['commit', '-q', '-m', 'app']);
+  fs.writeFileSync(path.join(s.proj, '.claude', 'work', 'checklist.json'), JSON.stringify([{ id: '07', title: 'x', brief: '.claude/work/07-x/brief.md', start_sha: head(s), passes: false }]));
+  const home = path.join(path.dirname(s.bin), 'home');
+  fs.mkdirSync(path.join(home, 'agents'), { recursive: true });
+  fs.writeFileSync(path.join(home, 'agents', 'security-auditor.md'), '---\nname: security-auditor\n---\n');
+  return s;
+}
+const AUDITED = { status: 'gate', write: { 'app.txt': 'app changed\n', 'src.txt': 'work\n' }, extra: { audit: 'touches the invoice controller' } };
+const AUDIT = (say) => ({ status: null, say });
+const envLog = (s) => fs.readFileSync(path.join(s.bin, 'env.txt'), 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l));
+const GATE_OK = 'Gate result from claude-loop: passed.';
+const GATE_RED = 'Gate result from claude-loop: failed.';
+
+test('a gate status with "audit" runs a read-only Opus audit pass beside the suite, and the resume carries both results', () => {
+  const s = auditSetup([]);
+  const startSha = head(s);
+  const saw = path.join(s.bin, 'audit-saw.txt');
+  // The suite holds until the audit has looked, so the audit can only see it
+  // running when the two run at the same time.
+  fs.writeFileSync(path.join(s.proj, 'suite.cjs'), `const fs=require('fs');fs.mkdirSync('storage',{recursive:true});fs.writeFileSync('storage/suite-running.txt','1');const t=Date.now();while(!fs.existsSync(${JSON.stringify(saw)})&&Date.now()-t<15000){}fs.rmSync('storage/suite-running.txt');console.log('Tests: 3 passed');\n`);
+  const look = ['node', '-e', `const fs=require('fs');const t=Date.now();while(!fs.existsSync('storage/suite-running.txt')&&Date.now()-t<15000){}fs.writeFileSync(${JSON.stringify(saw)},fs.existsSync('storage/suite-running.txt')?'running':'not running')`];
+  fs.writeFileSync(path.join(s.bin, 'plan.json'), JSON.stringify([AUDITED, { ...AUDIT(`Nothing exploitable.\n${VERDICT('pass')}`), run: [look] }, { status: 'done' }]));
+  // The loop's own environment has auto memory on, whatever this shell has.
+  const r = run(s, ['--no-handoff'], { env: { CLAUDE_CODE_DISABLE_AUTO_MEMORY: '' } });
+  assert.strictEqual(r.status, 0, r.stderr + r.log);
+  assert.deepStrictEqual(r.calls, ["Coordinate from this project's own copy of the skill.", AUDIT_HEAD, GATE_OK]);
+  assert.strictEqual(fs.readFileSync(saw, 'utf8'), 'running', 'the audit ran while the suite was running');
+  const a = argsLog(s)[1];
+  assert.strictEqual(a[a.indexOf('--agent') + 1], 'security-auditor');
+  assert.strictEqual(a[a.indexOf('--model') + 1], 'opus');
+  assert.strictEqual(a[a.indexOf('--tools') + 1], 'Read,Grep,Glob');
+  assert.ok(!a.includes('--effort') && !a.includes('--resume'), a.join(' '));
+  assert.deepStrictEqual(envLog(s), [null, '1', null], 'auto memory is off for the audit pass only');
+  const prompt = promptsLog(s)[1];
+  assert.match(prompt, /Why it is audited: touches the invoice controller/);
+  assert.match(prompt, /Its brief: \.claude\/work\/07-x\/brief\.md/);
+  assert.ok(prompt.includes(`The card started at ${startSha}.`), prompt);
+  assert.match(prompt, /each to be read in full: src\.txt\./);
+  assert.match(fs.readFileSync(path.join(s.proj, '.claude/work/loop/audit-diff.patch'), 'utf8'), /\+app changed/);
+  assert.deepStrictEqual(JSON.parse(fs.readFileSync(path.join(s.proj, '.claude/work/loop/audit.json'), 'utf8')), { verdict: 'pass', findings: [] });
+  assert.match(promptsLog(s)[2], /The security audit it ran beside them \(step 3\) found nothing/);
+  assert.match(r.log, /card-1-audit1: exit=0/);
+  assert.match(r.log, /gate round 1: audit passed/);
+});
+
+test('audit findings fail a green round and go back for another, and a round-2 gate without "audit" runs no audit', () => {
+  const s = auditSetup([AUDITED, AUDIT(VERDICT('findings', ['app.txt:1, anyone can read it'])), { status: 'gate' }, { status: 'done' }]);
+  const r = run(s, ['--no-handoff']);
+  assert.strictEqual(r.status, 0, r.stderr + r.log);
+  assert.deepStrictEqual(r.calls, ["Coordinate from this project's own copy of the skill.", AUDIT_HEAD, GATE_RED, GATE_OK]);
+  assert.match(promptsLog(s)[2], /The security audit found:\n- app\.txt:1, anyone can read it/);
+  assert.match(r.log, /gate round 1: audit found 1 problem/);
+  assert.match(r.log, /gate round 2: passed/);
+  assert.strictEqual((r.log.match(/-audit\d: exit/g) || []).length, 1);
+});
+
+test('an audit that ends without a verdict fails the round closed', () => {
+  const s = auditSetup([AUDITED, AUDIT('Looks fine to me.'), { status: 'blocked' }]);
+  const r = run(s, ['--no-handoff']);
+  assert.deepStrictEqual(r.calls, ["Coordinate from this project's own copy of the skill.", AUDIT_HEAD, GATE_RED]);
+  assert.match(promptsLog(s)[2], /gave no usable verdict: the audit left no readable verdict/);
+  assert.match(r.log, /gate round 1: audit failed closed/);
+  assert.ok(!fs.existsSync(path.join(s.proj, '.claude/work/loop/audit.json')));
+});
+
+test('an audit pass that exits nonzero fails the round closed, whatever it said', () => {
+  const s = auditSetup([AUDITED, { ...AUDIT(VERDICT('pass')), exit: 1 }, { status: 'blocked' }]);
+  const r = run(s, ['--no-handoff']);
+  assert.deepStrictEqual(r.calls, ["Coordinate from this project's own copy of the skill.", AUDIT_HEAD, GATE_RED]);
+  assert.match(promptsLog(s)[2], /the audit pass did not finish: claude exited 1/);
+});
+
+test('an audit pass that changes the tree stops the loop for Rob, with no resume', () => {
+  const s = auditSetup([AUDITED, { ...AUDIT(VERDICT('pass')), write: { 'app.txt': 'audit edited this\n' } }, { status: 'done' }]);
+  const r = run(s);
+  assert.deepStrictEqual(r.calls, ["Coordinate from this project's own copy of the skill.", AUDIT_HEAD]);
+  assert.match(r.log, /protocol failure: the tree, HEAD or the branch changed while the suite and the security audit ran/);
+  assert.match(r.log, /no handoff: a protocol failure/);
+});
+
+test('--fable-audits runs the audit pass on Fable', () => {
+  const s = auditSetup([AUDITED, AUDIT(VERDICT('pass')), { status: 'done' }]);
+  run(s, ['--no-handoff', '--fable-audits', '0.25']);
+  const a = argsLog(s)[1];
+  assert.strictEqual(a[a.indexOf('--model') + 1], 'fable');
+});
+
+test('an audit that waits out a usage limit runs the suite again before the resume', () => {
+  const past = Math.floor(Date.now() / 1000) - 600;
+  const s = auditSetup([AUDITED, AUDIT(`Claude AI usage limit reached|${past}`), AUDIT(VERDICT('pass')), { status: 'done' }]);
+  const r = run(s, ['--no-handoff']);
+  assert.strictEqual(r.status, 0, r.stderr + r.log);
+  assert.deepStrictEqual(r.calls, ["Coordinate from this project's own copy of the skill.", AUDIT_HEAD, AUDIT_HEAD, GATE_OK]);
+  assert.match(r.log, /the audit waited out a usage limit, so the suite runs again/);
 });

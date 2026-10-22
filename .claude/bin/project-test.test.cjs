@@ -387,6 +387,63 @@ test('pass: a failed scope check records nothing, and a scope from another sha d
   assert.match(r.stdout, /no passing --check-scope/);
 });
 
+test('check-scope: a short start sha is resolved and recorded in full, and --pass accepts it', () => {
+  const dir = project('ok\n', 0);
+  const { sha, brief } = briefCard(dir, ['src/a.txt']);
+  fs.writeFileSync(path.join(dir, 'src', 'a.txt'), 'two\n');
+  runner(dir);
+  let r = runner(dir, ['--check-scope', brief, sha.slice(0, 7)]);
+  assert.strictEqual(r.status, 0, r.stdout);
+  assert.match(r.stdout, /recorded on 07/);
+  assert.strictEqual(JSON.parse(checklist(dir))[0].scope_ok.start_sha, sha);
+  r = runner(dir, ['--pass', '07']);
+  assert.strictEqual(r.status, 0, r.stdout);
+  assert.strictEqual(JSON.parse(checklist(dir))[0].passes, true);
+});
+
+test('pass: a short start_sha in the checklist still matches the full one in the scope record', () => {
+  const dir = project('ok\n', 0);
+  const { sha, brief } = briefCard(dir, ['src/a.txt']);
+  fs.writeFileSync(path.join(dir, 'src', 'a.txt'), 'two\n');
+  runner(dir);
+  assert.strictEqual(runner(dir, ['--check-scope', brief, sha]).status, 0);
+  const list = JSON.parse(checklist(dir));
+  list[0].start_sha = sha.slice(0, 9);
+  fs.writeFileSync(work(dir, 'checklist.json'), JSON.stringify(list));
+  runner(dir);
+  const r = runner(dir, ['--pass', '07']);
+  assert.strictEqual(r.status, 0, r.stdout);
+  assert.strictEqual(JSON.parse(checklist(dir))[0].passes, true);
+});
+
+test('check-scope: an unknown or option-like start sha is refused and records nothing', () => {
+  const dir = project('ok\n', 0);
+  const { brief } = briefCard(dir, ['src/a.txt']);
+  for (const bad of ['deadbeef0', '--help', 'not-a-ref']) {
+    const r = runner(dir, ['--check-scope', brief, bad]);
+    assert.strictEqual(r.status, 1, bad + ': ' + r.stdout);
+    assert.match(r.stdout, /project-test: (cannot resolve start sha|not a commit)/);
+    assert.doesNotMatch(r.stdout, /scope: ok/);
+    assert.strictEqual(JSON.parse(checklist(dir))[0].scope_ok, undefined);
+  }
+});
+
+test('pass: a start_sha in the checklist that resolves to nothing is refused, never matched as a string', () => {
+  const dir = project('ok\n', 0);
+  const { sha, brief } = briefCard(dir, ['src/a.txt']);
+  runner(dir);
+  assert.strictEqual(runner(dir, ['--check-scope', brief, sha]).status, 0);
+  const list = JSON.parse(checklist(dir));
+  list[0].start_sha = 'deadbeef0';
+  list[0].scope_ok.start_sha = 'deadbeef0';
+  fs.writeFileSync(work(dir, 'checklist.json'), JSON.stringify(list));
+  runner(dir);
+  const r = runner(dir, ['--pass', '07']);
+  assert.strictEqual(r.status, 1);
+  assert.match(r.stdout, /cannot resolve start sha/);
+  assert.strictEqual(JSON.parse(checklist(dir))[0].passes, false);
+});
+
 test('check-scope: a scope_ignore file is never judged, any other unlisted file still is', () => {
   const dir = project('ok\n', 0, ['scope_ignore: local.json, other/keep.txt']);
   const sha = git(dir, 'rev-parse', 'HEAD');
@@ -753,4 +810,305 @@ test('lock: a takeover that finds a fresh lock moved aside puts it back and coun
     assert.strictEqual(pt.acquireLock(dir, cfg), null);
   } finally { fs.readFileSync = realRead; }
   assert.strictEqual(fs.readFileSync(file, 'utf8'), fresh);
+});
+
+// ---- Sharded full runs --------------------------------------------------------
+
+// A list command that prints every file under tests/ as an absolute path, in
+// PHPUnit's --list-test-files shape, with a noise line first.
+const LIST = `
+const fs = require('fs');
+const path = require('path');
+if (fs.existsSync(__dirname + '/list-fail.txt')) { console.log('list broke'); process.exit(4); }
+console.log('Available test files:');
+const walk = (d) => fs.readdirSync(d, { withFileTypes: true }).flatMap((e) =>
+  e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)]);
+const dir = path.join(__dirname, 'tests');
+if (fs.existsSync(dir)) for (const f of walk(dir).sort()) console.log(' - ' + f);
+`;
+
+// A shard: records which files it got under which SHARD, then passes, fails,
+// crashes, sleeps or waits per file content. A shard with no files says so and
+// fails, because a real test command given no files runs the whole suite.
+const SHARD = `
+const fs = require('fs');
+const args = process.argv.slice(2);
+if (args.some((a) => a.startsWith('--'))) { console.log('FILTERED ' + args.join(' ')); process.exit(0); }
+const n = process.env.SHARD;
+fs.appendFileSync(__dirname + '/ran-' + n + '.txt', args.join('\\n') + '\\n');
+if (!args.length) { console.log('NO FILES, the whole suite would run'); process.exit(3); }
+let failed = 0, passed = 0;
+const blocks = [];
+for (let i = 0; i < 15; i++) console.log('  progress line ' + n + '-' + i);
+function finish() {
+  console.log(blocks.join('\\n'));
+  console.log('  Tests:    ' + (failed ? failed + ' failed, ' : '') + passed + ' passed');
+  console.log('  Duration: 0.1s');
+  process.exit(failed ? 1 : 0);
+}
+for (const f of args) {
+  const t = fs.readFileSync(f, 'utf8');
+  if (t.includes('CRASH')) { console.log('Fatal error in ' + f); process.exit(255); }
+  if (t.includes('SLEEP')) {
+    fs.writeFileSync(__dirname + '/pid-' + n + '.txt', String(process.pid));
+    setTimeout(() => {}, 60000);
+    return;
+  }
+  if (t.includes('WAIT')) {
+    fs.writeFileSync(__dirname + '/started.txt', n);
+    const go = setInterval(() => { if (fs.existsSync(__dirname + '/go.txt')) { clearInterval(go); passed++; finish(); } }, 50);
+    return;
+  }
+  if (t.includes('FAIL')) { failed++; blocks.push('   FAILED  ' + f + ' > planted', '  planted failure in ' + f, ''); } else passed++;
+}
+finish();
+`;
+
+const SETUP = `
+const fs = require('fs');
+const busy = __dirname + '/setup-busy.txt';
+if (fs.existsSync(busy)) fs.writeFileSync(__dirname + '/setup-overlap.txt', process.env.SHARD);
+fs.writeFileSync(busy, process.env.SHARD);
+fs.appendFileSync(__dirname + '/setup-' + process.env.SHARD + '.txt', 'setup\\n');
+setTimeout(() => {
+  fs.rmSync(busy, { force: true });
+  if (fs.existsSync(__dirname + '/setup-fail-' + process.env.SHARD + '.txt')) { console.log('setup broke in shard ' + process.env.SHARD); process.exit(7); }
+}, 300);
+`;
+
+// files: { 'tests/a.test': 'ok', ... }. extra: more frontmatter lines.
+function shardProject(files, extra = []) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pt-shard-'));
+  fs.mkdirSync(path.join(dir, '.claude'), { recursive: true });
+  fs.writeFileSync(path.join(dir, '.claude', 'project.md'), [
+    '---',
+    'test_command: node shard.cjs',
+    'test_failure_start: ^\\s*FAILED\\s',
+    'test_summary: ^\\s*(Tests|Duration):\\s',
+    'test_output_max_lines: 20',
+    'test_shards: 3',
+    'test_shard_list: node list.cjs',
+    'test_shard_env: SHARD={n}, OTHER=x{n}y',
+  ].concat(extra, ['---']).join('\n'));
+  fs.writeFileSync(path.join(dir, 'list.cjs'), LIST);
+  fs.writeFileSync(path.join(dir, 'shard.cjs'), SHARD);
+  fs.writeFileSync(path.join(dir, 'setup.cjs'), SETUP);
+  // What the fixture writes while it runs is not part of the tree under test.
+  fs.writeFileSync(path.join(dir, '.gitignore'), ['ran-*', 'pid-*', 'setup-*.txt', 'env-*', 'started.txt', 'go.txt', 'list-fail.txt', ''].join('\n'));
+  for (const [f, body] of Object.entries(files)) {
+    fs.mkdirSync(path.dirname(path.join(dir, f)), { recursive: true });
+    fs.writeFileSync(path.join(dir, f), body);
+  }
+  git(dir, 'init', '-q');
+  git(dir, 'add', '-A');
+  git(dir, 'commit', '-q', '-m', 'base');
+  return dir;
+}
+
+function nineFiles(over = {}) {
+  const f = {};
+  for (const x of ['a', 'b', 'c', 'd', 'e', 'f']) f['tests/' + x + '.test'] = 'ok ' + x;
+  f['tests/group/g1.test'] = 'ok g1';
+  f['tests/group/g2.test'] = 'ok g2';
+  f['tests/group/g3.test'] = 'ok g3';
+  return Object.assign(f, over);
+}
+
+// What each shard was given, from the ran-<n>.txt files the fixture writes.
+function ranByShard(dir) {
+  const out = {};
+  for (const f of fs.readdirSync(dir)) {
+    const m = /^ran-(.+)\.txt$/.exec(f);
+    if (m) out[m[1]] = fs.readFileSync(path.join(dir, f), 'utf8').split('\n').filter(Boolean).map((p) => p.split('\\').join('/'));
+  }
+  return out;
+}
+
+test('shards: assignment puts every file in exactly one shard, keeps a together group whole, never makes an empty shard', () => {
+  const files = ['t/a', 't/b', 't/c', 't/d', 't/ops/x', 't/ops/y', 't/ops/z', 't/e'];
+  const shards = pt.assignShards(files, 3, ['t/ops/'], () => 1);
+  assert.strictEqual(shards.length, 3);
+  assert.deepStrictEqual(shards.flat().sort(), files.slice().sort());
+  assert.ok(shards.every((s) => s.length > 0));
+  assert.strictEqual(shards.filter((s) => s.includes('t/ops/x')).length, 1);
+  const ops = shards.find((s) => s.includes('t/ops/x'));
+  assert.ok(ops.includes('t/ops/y') && ops.includes('t/ops/z'));
+  assert.deepStrictEqual(pt.checkAssignment(files, shards), []);
+  // Same input, same answer.
+  assert.deepStrictEqual(pt.assignShards(files, 3, ['t/ops/'], () => 1), shards);
+  // Fewer files than shards: fewer shards, none empty.
+  const two = pt.assignShards(['t/a', 't/b'], 4, [], () => 1);
+  assert.strictEqual(two.length, 2);
+  assert.ok(two.every((s) => s.length === 1));
+  // The checker catches a missing, a doubled and a stray file, and an empty shard.
+  assert.match(pt.checkAssignment(['a', 'b'], [['a']]).join('\n'), /not in any shard: b/);
+  assert.match(pt.checkAssignment(['a'], [['a'], ['a']]).join('\n'), /in 2 shards: a/);
+  assert.match(pt.checkAssignment(['a'], [['a', 'z']]).join('\n'), /not listed: z/);
+  assert.match(pt.checkAssignment(['a'], [['a'], []]).join('\n'), /shard 2 is empty/);
+});
+
+test('shards: a shard command too long for the shell, or a file name the shell would read, is refused', () => {
+  const cfg = pt.loadConfig(shardProject(nineFiles()));
+  assert.strictEqual(pt.shardCommand(cfg, ['tests/a.test', 'tests/b c.test']).command, 'node shard.cjs "tests/a.test" "tests/b c.test"');
+  const many = [];
+  for (let i = 0; i < 3000; i++) many.push('tests/Feature/Some/Deep/Folder/File' + i + 'Test.php');
+  assert.match(pt.shardCommand(cfg, many).error, /characters.*raise test_shards/);
+  assert.match(pt.shardCommand(cfg, ['tests/50%.test']).error, /refused file name/);
+});
+
+test('shards: a green sharded run gives every listed file to exactly one shard, each with its own env, and verifies', () => {
+  const dir = shardProject(nineFiles(), ['test_shard_together: tests/group/']);
+  const r = runner(dir);
+  assert.strictEqual(r.status, 0, r.stdout);
+  const ran = ranByShard(dir);
+  assert.deepStrictEqual(Object.keys(ran).sort(), ['1', '2', '3']);
+  const all = Object.values(ran).flat();
+  assert.deepStrictEqual(all.slice().sort(), Object.keys(nineFiles()).sort());
+  assert.strictEqual(new Set(all).size, all.length, 'no file ran twice');
+  assert.strictEqual(Object.values(ran).filter((l) => l.some((p) => p.startsWith('tests/group/'))).length, 1);
+  const x = rec(dir);
+  assert.strictEqual(x.status, 'finished');
+  assert.strictEqual(x.exit_code, 0);
+  assert.deepStrictEqual(x.args, []);
+  assert.strictEqual(x.shards.length, 3);
+  assert.deepStrictEqual(x.shards.map((s) => s.exit_code), [0, 0, 0]);
+  assert.strictEqual(x.shards.reduce((a, s) => a + s.files, 0), 9);
+  assert.match(r.stdout, /Tests: {4}\d passed/);
+  assert.doesNotMatch(r.stdout, /progress line/);
+  assert.match(r.stdout, /3 shards, all passed/);
+  assert.strictEqual(journal(dir).length, 1);
+  assert.strictEqual(runner(dir, ['--verify']).status, 0);
+});
+
+test('shards: the {n} placeholder reaches each shard as its own value', () => {
+  const dir = shardProject(nineFiles());
+  fs.writeFileSync(path.join(dir, 'shard.cjs'), "require('fs').writeFileSync(__dirname + '/env-' + process.env.SHARD + '.txt', process.env.OTHER); console.log('  Tests:    1 passed');");
+  git(dir, 'add', '-A');
+  git(dir, 'commit', '-q', '-m', 'env');
+  assert.strictEqual(runner(dir).status, 0);
+  for (const n of [1, 2, 3]) assert.strictEqual(fs.readFileSync(path.join(dir, 'env-' + n + '.txt'), 'utf8'), 'x' + n + 'y');
+});
+
+test('shards: one failing shard fails the run, its failure block is printed, and --verify refuses', () => {
+  const dir = shardProject(nineFiles({ 'tests/d.test': 'FAIL here' }));
+  const r = runner(dir);
+  assert.strictEqual(r.status, 1, r.stdout);
+  assert.match(r.stdout, /FAILED {2}.*d\.test > planted/);
+  assert.match(r.stdout, /planted failure in .*d\.test/);
+  assert.match(r.stdout, /Tests: {4}1 failed/);
+  assert.doesNotMatch(r.stdout, /progress line/);
+  assert.match(r.stdout, /Full output: /);
+  assert.match(r.stdout, /1 of 3 shards failed/);
+  assert.strictEqual(rec(dir).exit_code, 1);
+  assert.ok(fs.readFileSync(logOf(dir), 'utf8').includes('progress line 1-0'), 'the log keeps everything');
+  assert.strictEqual(runner(dir, ['--verify']).status, 1);
+});
+
+test('shards: a shard that crashes without a summary fails the run and its tail is printed', () => {
+  const dir = shardProject(nineFiles({ 'tests/e.test': 'CRASH' }));
+  const r = runner(dir);
+  assert.strictEqual(r.status, 255, r.stdout);
+  assert.match(r.stdout, /Fatal error in .*e\.test/);
+  assert.match(r.stdout, /printed no summary line/);
+  assert.strictEqual(rec(dir).exit_code, 255);
+  assert.strictEqual(runner(dir, ['--verify']).status, 1);
+});
+
+test('shards: a failed setup fails its shard and that shard\'s tests never run', () => {
+  const dir = shardProject(nineFiles(), ['test_shard_setup: node setup.cjs']);
+  fs.writeFileSync(path.join(dir, 'setup-fail-2.txt'), 'x');
+  const r = runner(dir);
+  assert.strictEqual(r.status, 7, r.stdout);
+  assert.match(r.stdout, /setup broke in shard 2/);
+  assert.match(r.stdout, /shard 2 of 3: exit 7.*setup failed/);
+  const ran = ranByShard(dir);
+  assert.ok(!ran['2'], 'shard 2 ran tests after its setup failed');
+  assert.ok(ran['1'] && ran['3']);
+  for (const n of [1, 2, 3]) assert.ok(fs.existsSync(path.join(dir, 'setup-' + n + '.txt')));
+  assert.strictEqual(rec(dir).exit_code, 7);
+});
+
+test('shards: setups run one at a time, never two at once', () => {
+  // Sembr, 2026-10-22: four migrate:fresh at once failed two shards with
+  // "tuple concurrently updated" on ALTER ROLE, a role being cluster-wide.
+  const dir = shardProject(nineFiles(), ['test_shard_setup: node setup.cjs']);
+  const r = runner(dir);
+  assert.strictEqual(r.status, 0, r.stdout);
+  for (const n of [1, 2, 3]) assert.ok(fs.existsSync(path.join(dir, 'setup-' + n + '.txt')));
+  assert.ok(!fs.existsSync(path.join(dir, 'setup-overlap.txt')), 'two setups ran at once');
+});
+
+test('shards: a list command that fails, or lists nothing, fails the run and starts no shard', () => {
+  const dir = shardProject(nineFiles());
+  fs.writeFileSync(path.join(dir, 'list-fail.txt'), 'x');
+  let r = runner(dir);
+  assert.strictEqual(r.status, 4, r.stdout);
+  assert.match(r.stdout, /test_shard_list/);
+  assert.deepStrictEqual(ranByShard(dir), {});
+  assert.strictEqual(rec(dir).status, 'finished');
+  assert.strictEqual(rec(dir).exit_code, 4);
+  fs.rmSync(path.join(dir, 'list-fail.txt'));
+  fs.rmSync(path.join(dir, 'tests'), { recursive: true });
+  r = runner(dir);
+  assert.strictEqual(r.status, 1, r.stdout);
+  assert.match(r.stdout, /listed no test files/);
+  assert.deepStrictEqual(ranByShard(dir), {});
+  assert.strictEqual(runner(dir, ['--verify']).status, 1);
+});
+
+test('shards: test_shards without test_shard_list is refused before anything runs', () => {
+  const dir = project('ok\n', 0, ['test_shards: 4']);
+  const r = runner(dir);
+  assert.strictEqual(r.status, 2);
+  assert.match(r.stdout, /test_shard_list/);
+  assert.ok(!fs.existsSync(work(dir, 'last-test-run.json')));
+});
+
+test('shards: past test_timeout_s every shard is killed, exit 124, timed_out', () => {
+  const dir = shardProject(nineFiles({ 'tests/a.test': 'SLEEP' }), ['test_timeout_s: 3']);
+  const t0 = Date.now();
+  const r = runner(dir);
+  assert.strictEqual(r.status, 124, r.stdout);
+  assert.ok(Date.now() - t0 < 30000);
+  assert.strictEqual(rec(dir).status, 'timed_out');
+  assert.strictEqual(rec(dir).exit_code, 124);
+  assert.match(r.stdout, /timed out after 3 s/);
+  const pidFile = fs.readdirSync(dir).find((f) => /^pid-/.test(f));
+  const pid = parseInt(fs.readFileSync(path.join(dir, pidFile), 'utf8'), 10);
+  let alive = true;
+  try { process.kill(pid, 0); } catch (e) { alive = false; }
+  assert.strictEqual(alive, false, 'shard ' + pid + ' still running');
+  assert.strictEqual(runner(dir, ['--verify']).status, 1);
+});
+
+test('shards: the project lock is held for the whole sharded run', async () => {
+  const { spawn } = require('child_process');
+  const dir = shardProject(nineFiles({ 'tests/a.test': 'WAIT' }));
+  const first = spawn('node', [RUNNER], { cwd: dir });
+  let out = '';
+  first.stdout.on('data', (d) => { out += d; });
+  const closed = new Promise((res) => first.on('close', res));
+  const t0 = Date.now();
+  while (!fs.existsSync(path.join(dir, 'started.txt'))) {
+    assert.ok(Date.now() - t0 < 30000, 'the waiting shard never started');
+    await new Promise((res) => setTimeout(res, 50));
+  }
+  assert.ok(fs.existsSync(pt.lockPath(dir)));
+  const second = runner(dir);
+  assert.strictEqual(second.status, 75);
+  assert.strictEqual(second.stdout.trim(), pt.BUSY);
+  fs.writeFileSync(path.join(dir, 'go.txt'), 'x');
+  assert.strictEqual(await closed, 0, out);
+  assert.strictEqual(fs.existsSync(pt.lockPath(dir)), false);
+  assert.strictEqual(journal(dir).length, 1);
+});
+
+test('shards: a run with args is a partial run and is not sharded', () => {
+  const dir = shardProject(nineFiles());
+  const r = runner(dir, ['--filter=Foo']);
+  assert.strictEqual(r.status, 0, r.stdout);
+  assert.match(r.stdout, /FILTERED --filter=Foo/);
+  assert.deepStrictEqual(ranByShard(dir), {});
+  assert.strictEqual(rec(dir).shards, undefined);
+  assert.strictEqual(runner(dir, ['--verify']).status, 1);
 });

@@ -12,9 +12,11 @@ its path.
    change turns out to need a judgement call (two plausible readings, a
    rename that would change behaviour, a file not on the list), stop and
    say so in `result.md`. Do not pick.
-3. Run the full suite through the shared runner, from the project folder:
-   `node D:\Dev\htdocs\_kc-dashboard\.claude\bin\project-test.cjs`, in the background
-   if it takes over a minute. Never the raw test command.
+3. Run the tests that cover the changed files through the shared runner,
+   filtered, from the project folder:
+   `node D:\Dev\htdocs\_kc-dashboard\.claude\bin\project-test.cjs <file or filter>`.
+   Not the full suite: the coordinator's gate runs it once. No test
+   covers them: run nothing and say so. Never the raw test command.
 4. Write `result.md` beside the brief, under 100 words: files changed, how
    many edits in each, the runner's exit code, anything skipped and why.
 

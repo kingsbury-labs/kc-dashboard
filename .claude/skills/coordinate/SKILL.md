@@ -106,9 +106,14 @@ read them.
    that was tested. Push in its own call. Open the PR. Merge only when
    `ci: required` checks are green and Rob has said PRs may merge this
    session; with `ci: none`, the gate above was the check. Under
-   claude-loop the pass prompt replaces steps 4 to 6: the loop runs the
-   suite, you commit without pushing, the loop checks the commit is the
-   tested tree, then it resumes you to push. With `ci: required` you open
+   claude-loop the pass prompt replaces steps 3 to 6: you stop at the gate
+   after step 2, and when step 3 applies you name the risky path in the
+   gate status's `audit` field instead of starting a `security-auditor`.
+   The loop runs that audit as its own pass beside the suite, sends
+   findings back like a red suite, and fails the round if the audit gives
+   no clean verdict. On green you commit without pushing, the loop checks
+   the commit is the tested tree, then it resumes you to push. Outside
+   claude-loop, step 3 is yours as written. With `ci: required` you open
    the PR and stop: the loop watches CI, holds the next push while
    `ci_max` PRs are in CI, merges green PRs in the order they were pushed
    (with `--merge-allowed`), and stops on a red one. The next card builds

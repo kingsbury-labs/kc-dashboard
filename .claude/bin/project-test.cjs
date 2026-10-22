@@ -30,6 +30,22 @@
  *
  * NEVER HIDES A FAILURE. A long run with no summary line prints the tail and
  * says so, rather than guessing what mattered.
+ *
+ * SHARDS (opt-in). With test_shards >= 2 a full run (no args) is split into
+ * that many processes, each test_command plus a subset of the files that
+ * test_shard_list prints, each with its own test_shard_env ({n} is the shard
+ * number), after an optional test_shard_setup run with the same env. Files
+ * under one test_shard_together prefix go to one shard. It counts as one full
+ * run only if every listed file went to exactly one shard and every shard
+ * finished green; the lock, the record and the gate are the same as a serial
+ * run. A run with args is never sharded. Sembr, 2026-10-22: its suite is 11
+ * min serial and Laravel's --parallel would point every worker at one
+ * database (#1841), so the runner gives each shard its own.
+ *
+ * TRIALS. PROJECT_TEST_TRIAL=<dir> reads <dir>/project.md over the project's
+ * own keys and keeps the records and the lock in <dir>, so a config can be
+ * tried on a project whose .claude/work records are committed. Never set it
+ * for a gate.
  */
 'use strict';
 
@@ -72,14 +88,34 @@ function posInt(v, dflt) {
   return Number.isFinite(n) && n > 0 ? n : dflt;
 }
 
-function loadConfig(projectDir) {
-  let text;
+function readFrontmatter(file) {
   try {
-    text = fs.readFileSync(path.join(projectDir, '.claude', 'project.md'), 'utf8');
+    return parseFrontmatter(fs.readFileSync(file, 'utf8').replace(/^﻿/, ''));
   } catch (e) {
     return null;
   }
-  const fm = parseFrontmatter(text.replace(/^﻿/, ''));
+}
+
+function trialDir() {
+  return process.env.PROJECT_TEST_TRIAL ? path.resolve(process.env.PROJECT_TEST_TRIAL) : null;
+}
+
+// "A=1, B=x{n}" to [['A', '1'], ['B', 'x{n}']]. A name that is not an
+// environment variable name is dropped rather than guessed at.
+function parseEnvList(v) {
+  const out = [];
+  for (const part of String(v || '').split(',')) {
+    const m = /^\s*([A-Za-z_][A-Za-z0-9_]*)=(.*?)\s*$/.exec(part);
+    if (m) out.push([m[1], m[2]]);
+  }
+  return out;
+}
+
+function loadConfig(projectDir) {
+  const fm = readFrontmatter(path.join(projectDir, '.claude', 'project.md'));
+  if (!fm) return null;
+  const trial = trialDir();
+  if (trial) Object.assign(fm, readFrontmatter(path.join(trial, 'project.md')) || {});
   if (!fm.test_command) return null;
   const max = parseInt(fm.test_output_max_lines, 10);
   return {
@@ -103,6 +139,12 @@ function loadConfig(projectDir) {
     // The board file is moved after --pass, in the same commit as the work,
     // so it is left out of the tree fingerprint like checklist.json.
     board: fm.board || null,
+    // Sharded full runs, off unless test_shards is 2 or more.
+    shards: posInt(fm.test_shards, 0) >= 2 ? posInt(fm.test_shards, 0) : 0,
+    shardList: fm.test_shard_list || null,
+    shardEnv: parseEnvList(fm.test_shard_env),
+    shardSetup: fm.test_shard_setup || null,
+    shardTogether: String(fm.test_shard_together || '').split(',').map((s) => s.trim()).filter(Boolean),
   };
 }
 
@@ -127,6 +169,14 @@ function splitLines(text) {
 function filterLines(lines, cfg) {
   const sumIdx = cfg.summary ? lines.findIndex((l) => cfg.summary.test(l)) : -1;
   if (sumIdx < 0) return null;
+  const out = failureBlocks(lines, sumIdx, cfg);
+  out.push(...lines.slice(sumIdx));
+  return { text: out.join('\n'), summary: lines[sumIdx].trim() };
+}
+
+// The lines from each failure start up to the next one or the summary, each
+// block followed by one blank line.
+function failureBlocks(lines, sumIdx, cfg) {
   const blocks = [];
   if (cfg.failureStart) {
     let cur = null;
@@ -145,8 +195,7 @@ function filterLines(lines, cfg) {
     while (b.length && b[b.length - 1].trim() === '') b.pop();
     out.push(...b, '');
   }
-  out.push(...lines.slice(sumIdx));
-  return { text: out.join('\n'), summary: lines[sumIdx].trim() };
+  return out;
 }
 
 // Characters cmd.exe reads as syntax in or around quotes. Refused before any
@@ -173,10 +222,25 @@ function git(cwd, args) {
   return spawnSync('git', args, { cwd, maxBuffer: 1 << 30 });
 }
 
+// A start sha as the caller typed it (7 chars is common) to the full commit id.
+// The checklist holds the full id and --pass compares strings, so a short one
+// recorded verbatim parked good cards (p1-02, p2-05, p2-12, p2-40 in
+// kc-finance). Unresolvable or ambiguous is an error, never a pass.
+function resolveSha(cwd, sha) {
+  const s = String(sha || '').trim();
+  if (!s || s.startsWith('-')) return { error: 'not a commit: ' + JSON.stringify(s) };
+  const r = git(cwd, ['rev-parse', '--verify', '-q', s + '^{commit}']);
+  const out = r.status === 0 ? r.stdout.toString('utf8').trim() : '';
+  if (!/^[0-9a-f]{40,64}$/.test(out)) {
+    return { error: 'cannot resolve start sha ' + s + ' to one commit (unknown or ambiguous)' };
+  }
+  return { sha: out };
+}
+
 // The runner's own records. Left out of the tree fingerprint and the scope
 // check, or writing a record would change the tree it records.
 function workDir(projectDir) {
-  return path.join(projectDir, '.claude', 'work');
+  return trialDir() || path.join(projectDir, '.claude', 'work');
 }
 
 function relUnix(projectDir, abs) {
@@ -342,9 +406,12 @@ function doPass(projectDir, cfg, id, cb) {
   // the scope step; the record is what makes it unskippable.
   if (entry.brief) {
     const s = entry.scope_ok;
-    if (!s || !entry.start_sha || s.start_sha !== entry.start_sha) {
+    // Both sides to full ids first: a short sha on either side is the same commit.
+    const want = entry.start_sha ? resolveSha(projectDir, entry.start_sha) : null;
+    const got = s && s.start_sha ? resolveSha(projectDir, s.start_sha) : null;
+    if (!s || !want || !got || want.error || got.error || want.sha !== got.sha) {
       cb(1, 'not passed: no passing --check-scope ' + entry.brief + ' ' + (entry.start_sha || '<start_sha>')
-        + ' on record for ' + id + '. Run it first.\n');
+        + ' on record for ' + id + '. Run it first.' + (want && want.error ? ' (' + want.error + ')' : '') + '\n');
       return;
     }
     // The scope check judged one tree. A file added or changed after it was
@@ -397,6 +464,9 @@ function doCheckScope(projectDir, cfg, briefPath, sha, cb) {
   if (top.status !== 0) { cb(1, 'project-test: not a git repo\n'); return; }
   const topDir = real(top.stdout.toString('utf8').trim());
   const root = real(projectDir);
+  const resolved = resolveSha(topDir, sha);
+  if (resolved.error) { cb(1, 'project-test: ' + resolved.error + '\n'); return; }
+  sha = resolved.sha;
   const diff = git(topDir, ['-c', 'core.quotepath=off', 'diff', '--name-only', '-z', sha]);
   if (diff.status !== 0) {
     cb(1, 'project-test: git diff ' + sha + ' failed: ' + diff.stderr.toString('utf8').trim() + '\n');
@@ -526,6 +596,268 @@ function doRun(projectDir, cfg, args, cb) {
   });
 }
 
+// ---- Sharded full runs -------------------------------------------------------
+
+// The files a list command printed, relative to the project, in the order
+// printed, each once. A line counts only if it names a file that exists, after
+// an optional "- " bullet (PHPUnit's --list-test-files shape), so headers and
+// warnings drop out.
+function parseFileList(text, projectDir) {
+  const out = [];
+  const seen = new Set();
+  for (const raw of splitLines(text)) {
+    const l = raw.trim().replace(/^[-*]\s+/, '');
+    if (!l) continue;
+    const abs = path.resolve(projectDir, l);
+    let isFile = false;
+    try { isFile = fs.statSync(abs).isFile(); } catch (e) { /* not a path */ }
+    if (!isFile) continue;
+    const key = normPath(abs);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const rel = path.relative(projectDir, abs);
+    out.push(rel.startsWith('..') || path.isAbsolute(rel) ? abs : rel);
+  }
+  return out;
+}
+
+// Files into at most n shards. Files under one `together` prefix are one unit
+// (Sembr's tests/Feature/Ops share a named database across files). Units go
+// heaviest first to the lightest shard, ties to the lower shard, so the same
+// list always gives the same shards. Empty shards are dropped: a test command
+// given no files runs the whole suite.
+function assignShards(files, n, together, weightOf) {
+  const pre = (together || []).map((p) => normPath(p));
+  const units = new Map();
+  for (const f of files) {
+    const nf = normPath(f);
+    const key = pre.find((p) => nf.startsWith(p)) || nf;
+    if (!units.has(key)) units.set(key, { key, files: [], weight: 0 });
+    const u = units.get(key);
+    u.files.push(f);
+    u.weight += weightOf(f);
+  }
+  const order = [...units.values()].sort((a, b) => b.weight - a.weight || (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
+  const shards = [];
+  for (let i = 0; i < n; i++) shards.push({ files: [], weight: 0 });
+  for (const u of order) {
+    let best = 0;
+    for (let i = 1; i < n; i++) if (shards[i].weight < shards[best].weight) best = i;
+    shards[best].files.push(...u.files);
+    shards[best].weight += u.weight;
+  }
+  return shards.filter((s) => s.files.length).map((s) => s.files.slice().sort());
+}
+
+// The gate checks its own split: every listed file in exactly one shard,
+// nothing else in any, no shard empty. Empty means the split is sound.
+function checkAssignment(files, shards) {
+  const want = new Set(files.map(normPath));
+  const count = new Map();
+  const why = [];
+  shards.forEach((s, i) => {
+    if (!s.length) why.push('shard ' + (i + 1) + ' is empty');
+    for (const f of s) count.set(normPath(f), (count.get(normPath(f)) || 0) + 1);
+  });
+  for (const f of files) {
+    const c = count.get(normPath(f)) || 0;
+    if (c === 0) why.push('not in any shard: ' + f);
+    else if (c > 1) why.push('in ' + c + ' shards: ' + f);
+  }
+  for (const f of count.keys()) if (!want.has(f)) why.push('in a shard but not listed: ' + f);
+  return why;
+}
+
+// cmd.exe refuses a line past 8191 characters; on POSIX the command is one
+// argument to sh -c, capped at 128 KiB. A margin under each.
+const MAX_COMMAND = process.platform === 'win32' ? 8000 : 120000;
+
+function shardCommand(cfg, files) {
+  const bad = files.find((f) => BAD_ARG.test(f));
+  if (bad !== undefined) return { error: 'refused file name ' + JSON.stringify(bad) + ', it contains one of & | < > ^ % "' };
+  const command = [cfg.command].concat(files.map(quoteArg)).join(' ');
+  if (command.length > MAX_COMMAND) {
+    return { error: 'a shard command is ' + command.length + ' characters and the shell takes ' + MAX_COMMAND + '; raise test_shards' };
+  }
+  return { command };
+}
+
+function shardEnv(cfg, n) {
+  const env = Object.assign({}, process.env);
+  for (const [k, v] of cfg.shardEnv) env[k] = v.split('{n}').join(String(n));
+  return env;
+}
+
+// One shell command, its output and exit code. live holds the running
+// children so a timeout can kill them all.
+function runShell(command, cwd, env, live) {
+  return new Promise((resolve) => {
+    let out = '';
+    let child;
+    try {
+      child = spawn(command, { cwd, shell: true, env, detached: process.platform !== 'win32' });
+    } catch (e) {
+      resolve({ code: 1, out: 'project-test: ' + e.message + '\n' });
+      return;
+    }
+    live.add(child);
+    child.stdout.setEncoding('utf8');
+    child.stderr.setEncoding('utf8');
+    child.stdout.on('data', (d) => { out += d; });
+    child.stderr.on('data', (d) => { out += d; });
+    child.on('error', (e) => { out += 'project-test: ' + e.message + '\n'; });
+    child.on('close', (code) => {
+      live.delete(child);
+      resolve({ code: typeof code === 'number' ? code : 1, out });
+    });
+  });
+}
+
+// One shard's output split at its own first summary line. A shard with no
+// summary line keeps all its output in the body, and its tail repeats its last
+// lines under a note, so a crash is printed even when the run is filtered.
+function shardParts(r, cfg, total) {
+  const lines = splitLines(r.out);
+  const sumIdx = cfg.summary ? lines.findIndex((l) => cfg.summary.test(l)) : -1;
+  const label = 'project-test: shard ' + r.n + ' of ' + total + ': exit ' + r.code + ', ' + r.files.length + ' files, '
+    + r.seconds + ' s' + (r.setupFailed ? ', setup failed' : '') + (r.started ? '' : ', tests not started');
+  if (sumIdx >= 0) {
+    return { lines, sumIdx, body: lines.slice(0, sumIdx), tail: lines.slice(sumIdx).concat(label), summary: lines[sumIdx].trim() };
+  }
+  const note = 'project-test: shard ' + r.n + ' of ' + total + ' printed no summary line (crashed, timed out, cut off,'
+    + ' or no test_summary set); its last ' + Math.min(cfg.maxLines, lines.length) + ' lines:';
+  return { lines, sumIdx, body: lines, tail: [note].concat(lines.slice(-cfg.maxLines), label), summary: null };
+}
+
+// The log is every shard's body under a header, then every shard's tail. The
+// summary lines all come after every failure block, so the merged text still
+// reads with test_failure_start and test_summary. What is printed for a long
+// run is each shard's own failure blocks (cut per shard, so one shard's last
+// block never runs on into the next shard's progress lines), then the tails.
+function mergeShards(results, cfg, extra) {
+  const total = results.length;
+  const parts = results.map((r) => shardParts(r, cfg, total));
+  const failed = results.filter((r) => r.code !== 0).map((r) => r.n);
+  const verdict = 'project-test: ' + (failed.length
+    ? failed.length + ' of ' + total + ' shards failed (' + failed.map((n) => 'shard ' + n).join(', ') + ')'
+    : total + ' shards, all passed');
+  const tails = [].concat(...parts.map((p) => p.tail), extra || [], verdict);
+  const log = [];
+  parts.forEach((p, i) => {
+    log.push('project-test: shard ' + results[i].n + ' of ' + total + ', ' + results[i].files.length + ' files');
+    log.push(...p.body);
+  });
+  log.push(...tails);
+  const display = [];
+  for (const p of parts) if (p.sumIdx >= 0) display.push(...failureBlocks(p.lines, p.sumIdx, cfg));
+  display.push(...tails);
+  const summaries = parts.map((p) => p.summary).filter(Boolean);
+  return { log, display, summary: summaries.length ? summaries.join(' | ') : null, anySummary: summaries.length > 0 };
+}
+
+async function doShardedRun(projectDir, cfg, cb) {
+  const logPath = path.resolve(projectDir, cfg.log);
+  const startedAt = new Date().toISOString();
+  const tree = treeFingerprint(projectDir, cfg);
+  const command = cfg.command;
+  writeRecord(projectDir, { status: 'running', exit_code: null, started_at: startedAt, command, args: [], tree, shards: [] });
+  const live = new Set();
+  let timedOut = false;
+  const timer = setTimeout(() => {
+    timedOut = true;
+    for (const c of live) killTree(c);
+  }, cfg.timeoutS * 1000);
+  const trial = trialDir() ? ['project-test: trial config from ' + trialDir()] : [];
+  const timeoutLine = () => 'project-test: timed out after ' + cfg.timeoutS + ' s, killed every shard';
+
+  const finish = (exitCode, logLines, displayLines, shards, summary, anySummary) => {
+    clearTimeout(timer);
+    const text = logLines.join('\n') + '\n';
+    fs.mkdirSync(path.dirname(logPath), { recursive: true });
+    fs.writeFileSync(logPath, text);
+    const finishedAt = new Date().toISOString();
+    const rec = {
+      status: timedOut ? 'timed_out' : 'finished',
+      exit_code: timedOut ? 124 : exitCode,
+      started_at: startedAt,
+      finished_at: finishedAt,
+      at: finishedAt,
+      command,
+      args: [],
+      tree,
+      lines: logLines.length,
+      summary,
+      filtered: logLines.length > cfg.maxLines && anySummary,
+      log: logPath,
+      shards,
+    };
+    writeRecord(projectDir, rec);
+    fs.appendFileSync(path.join(workDir(projectDir), 'test-runs.jsonl'), JSON.stringify(rec) + '\n');
+    const shown = logLines.length <= cfg.maxLines ? logLines.join('\n') : displayLines.join('\n') + '\nFull output: ' + logPath;
+    cb(rec.exit_code, shown + '\n');
+  };
+  // A run that never reached its shards: the reason and the tail of whatever
+  // printed it.
+  const early = (code, why, out) => {
+    const lines = trial.concat(splitLines(out || '').slice(-cfg.maxLines), timedOut ? [timeoutLine()] : [], why);
+    finish(code, lines, lines, [], null, false);
+  };
+
+  const list = await runShell(cfg.shardList, projectDir, process.env, live);
+  if (timedOut) return early(124, 'project-test: the test_shard_list command did not finish', list.out);
+  if (list.code !== 0) {
+    return early(list.code, 'project-test: test_shard_list (' + cfg.shardList + ') exited ' + list.code + ', no shard started', list.out);
+  }
+  const files = parseFileList(list.out, projectDir);
+  if (!files.length) return early(1, 'project-test: test_shard_list (' + cfg.shardList + ') listed no test files, no shard started', list.out);
+  const weight = (f) => { try { return fs.statSync(path.resolve(projectDir, f)).size || 1; } catch (e) { return 1; } };
+  const shards = assignShards(files, cfg.shards, cfg.shardTogether, weight);
+  const problems = checkAssignment(files, shards);
+  if (problems.length) return early(1, 'project-test: the shard split is wrong, no shard started:\n' + problems.join('\n'));
+  const cmds = shards.map((s) => shardCommand(cfg, s));
+  const badCmd = cmds.find((c) => c.error);
+  if (badCmd) return early(2, 'project-test: ' + badCmd.error + ', no shard started');
+
+  // Setups run one after another, and each shard's tests start as soon as its
+  // own setup is done. Sembr, 2026-10-22: four migrate:fresh at once failed two
+  // shards with "tuple concurrently updated" on ALTER ROLE, because a role is
+  // cluster-wide even when each shard has its own database.
+  let setupChain = Promise.resolve();
+  const results = await Promise.all(shards.map(async (shardFiles, i) => {
+    const n = i + 1;
+    const env = shardEnv(cfg, n);
+    const t0 = Date.now();
+    // Not started counts as failed: only a test command that ran and exited 0
+    // makes a shard green.
+    const r = { n, files: shardFiles, code: 1, out: '', setupFailed: false, started: false, seconds: 0 };
+    if (cfg.shardSetup) {
+      const mine = setupChain.then(() => (timedOut ? null : runShell(cfg.shardSetup, projectDir, env, live)));
+      setupChain = mine.then(() => {});
+      const s = await mine;
+      if (s) {
+        r.out += s.out;
+        if (s.code !== 0) { r.code = s.code; r.setupFailed = true; }
+      }
+    }
+    if (!r.setupFailed && !timedOut) {
+      r.started = true;
+      const t = await runShell(cmds[i].command, projectDir, env, live);
+      r.out += t.out;
+      r.code = t.code;
+    }
+    if (timedOut && r.code === 0) r.code = 124;
+    r.seconds = Math.round((Date.now() - t0) / 1000);
+    return r;
+  }));
+  const m = mergeShards(results, cfg, trial.concat(timedOut ? [timeoutLine()] : []));
+  const firstBad = results.find((r) => r.code !== 0);
+  const shardRecs = results.map((r) => ({
+    n: r.n, files: r.files.length, exit_code: r.code, seconds: r.seconds, setup_failed: r.setupFailed, started: r.started,
+    summary: shardParts(r, cfg, results.length).summary,
+  }));
+  finish(firstBad ? firstBad.code : 0, m.log, m.display, shardRecs, m.summary, m.anySummary);
+}
+
 // One test run at a time per project. Two suites on one test database
 // migrate and truncate it under each other and fail tests neither broke
 // (Sembr and SparrowBook both, more than once), and most projects have no
@@ -610,12 +942,21 @@ function run(cwd, args, cb) {
     cb(2, 'project-test: refused arg ' + JSON.stringify(badArg) + ', it contains one of & | < > ^ % "\n');
     return;
   }
+  if (cfg.shards && !cfg.shardList) {
+    cb(2, 'project-test: test_shards is set but test_shard_list is not, so there is no list of test files to split\n');
+    return;
+  }
   const release = acquireLock(projectDir, cfg);
   if (!release) {
     cb(75, BUSY + '\n');
     return;
   }
   const done = (code, text) => { release(); cb(code, text); };
+  // Only a full run is sharded; the lock taken above covers every shard.
+  if (cfg.shards && !args.length) {
+    doShardedRun(projectDir, cfg, done).catch((e) => done(1, 'project-test: sharded run failed: ' + e.stack + '\n'));
+    return;
+  }
   const also = cfg.filteredAlso && '--filter=' + cfg.filteredAlso;
   const filtered = args.some((a) => /^--filter(=|$)/.test(a));
   if (!also || !filtered || (args.length === 1 && args[0] === also)) {
@@ -633,6 +974,7 @@ function run(cwd, args, cb) {
 module.exports = {
   stripAnsi, parseFrontmatter, loadConfig, findProject, splitLines, filterLines, render, run,
   treeFingerprint, dirtyPaths, readRecord, acquireLock, lockPath, BUSY,
+  parseFileList, assignShards, checkAssignment, shardCommand, mergeShards,
 };
 
 if (require.main === module) {

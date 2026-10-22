@@ -52,17 +52,34 @@ The project's `CLAUDE.md` and `.claude/project.md`, then only the files
 this task needs: the ADR sections, the code it changes, one example of
 the style to match. Paths, not pasted contents.
 
+## Start here
+Filled from what you already read, so the worker starts editing instead of
+exploring (it spends a quarter of its time and over a third of its turns
+before the first edit). Keep it to about 30 lines:
+- Files to open, with line ranges: `/abs/path.php:120-180`.
+- The few snippets the edit hangs on: a signature, the line to change.
+  Never whole files.
+- The seam or existing function to reuse, by name and path.
+- The exact filtered command for the done-test, ready to paste.
+
+Have not read the code? Say so in one line. Do not guess a range.
+
 ## Files you may touch
 An explicit list, one backticked path per bullet. New files named. The
 coordinator checks this list with `--check-scope`, so a path not here is
-a failed card.
+a failed card. Grep the tests for the files, routes, strings and section
+names the card changes, and list every test and fixture that will have
+to follow: a test the worker cannot update sends the card back for a
+second worker.
 
 ## Done-test
-Word for word from where the project keeps it. Then: the full suite
-passes through the runner (`node D:\Dev\htdocs\_kc-dashboard\.claude\bin\project-test.cjs`),
-and the mutation check, run through the runner too so it is on record:
-break the new code on purpose, run, name the tests that failed, restore,
-run again green.
+Word for word from where the project keeps it. Then the mutation check,
+through the runner (`node D:\Dev\htdocs\_kc-dashboard\.claude\bin\project-test.cjs`) so
+it is on record: break the new code on purpose, run, name the tests that
+failed, restore, run again green. Every run is filtered to the done-test
+and the tests this card adds or changes. Never ask for the full suite:
+the gate runs it once, and workers re-running it cost Henike's cards up
+to twenty minutes each (2026-10-20).
 
 ## Boundaries
 No commit, no push, no install, nothing outward. Plus this task's own
@@ -82,7 +99,8 @@ made in conversation, a trap already hit. Keep it to what changes the work.
 
 - A stranger could do the task from the brief alone, without this
   conversation.
-- The done-test is something a command can confirm, not "works well".
+- The done-test is something a command can confirm, not "works well", and
+  Start here holds that command.
 - The files list is short enough that touching anything else is plainly
   wrong.
 - Nothing in it is a secret or a value read from one.
