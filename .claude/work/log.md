@@ -84,3 +84,31 @@ Rob: the remaining cards collapse into 60-69 (feature-sized, about an hour of lo
 - Card 80: 387 passing, three mutations caught, no DOM sink in voice.js. Not tested in a real browser (speech synthesis). Speak/Stop/picker reuse .cmd styling; hud.css was outside the list.
 - Card 68: 395 passing, three mutations caught. Incident: the worker's -WhatIf-flip mutation reached the real Register-ScheduledTask (7 calls) because the ScheduledTasks module shadowed the test stand-ins. Coordinator checked read-only: schtasks lists 289 tasks, none KC, and System32\Tasks\KC Dashboard does not exist, so nothing was registered. Fixed: wrapper imports the module first and asserts every stand-in resolves (exit 3 otherwise); Register-ScheduledTask has -ErrorAction Stop. Owed: rerun of that mutation (refused, Unauthorized Persistence), Opus audit (deferred). Calls: collect-kc daily 05:30 (card gave no time).
 - Card 76c (2026-10-20): Rob said 76b was not visually close. Coordinator screenshot listed four broken items (top bar collision, voice panel overflowing the rail, light lines over panels, clipped footer) and the look gaps; Opus worker ran five screenshot rounds via headless Chrome (the real window would not resize). 399 passing, three mutations caught. Found: none of the six scheduled jobs are registered (card 52), so the feed falls back to commits. Assets have no cache-busting; open tabs need a hard refresh.
+
+## 2026-10-23 AFK (session 11): Agent OS and loop speed
+- Flags: none. Merges and pushes park; outward actions park.
+- Done before AFK: research.md, speedup.md and data-spike.md under .claude/work/agentos/; build-stamp fix committed in henike (008b27f, feature/blog) and besciworks (e19dee9, main), not pushed; coordinator-only hook now lets the window commit bookkeeping (Rob approved); global CLAUDE.md rule 9 (agent model and effort by size, Rob approved).
+- Decision: research.md open questions 1, 3-8 decided by rubric (same repo with cockpit/ Node service, PM home D:\Dev\hq, drafts to Gmail Drafts, phone read-only, no global per-call hook, persona files as path-only nodes, agent teams off, API credit unclaimed). Rubric basis: security and correct-long-term. Rob saw the list before going AFK.
+- In flight: card 01 loop speed (global loop), docs/AGENTOS.md spec.
+- Next: carry card 01 into every project's loop copy except Sembr (live lock), including kc-finance (F9); add gate_narrow lines to besciworks, kc-cms-app, sparrowbook.
+- Parked (needs Rob): pushing the two build-stamp commits; Stripe key rotation; sparrowbook .claude/settings.json uncommitted change (not ours).
+
+## 2026-10-23 AFK: cockpit spec written, phase 1 being planned
+- Decision: docs/AGENTOS.md written (882 lines). Its two open questions taken on its recommendations: service stays on loopback (phone later via a read-only Tailscale mirror card); the new tab stays the dashboard. Rubric basis: security, then correct-long-term.
+- Decision: plan phase 1 into cards now and build it on a feature branch through the loop once the loop copy is updated (card 04), without waiting for Rob's approval of the spec. Rubric basis: toss-up, picked the reversible option: nothing merges, a branch is cheap to drop or rework, and Rob asked to keep going.
+- Parked (needs Rob): approval of docs/AGENTOS.md; merging anything the phase 1 run produces.
+
+## 2026-10-23 evening AFK: cockpit design rethink
+- Rob on prototype v2: close but too condensed; head is gross; wants tabs at the top, a talk/type bar, fewer things per screen, a human UX approach from a specialist, and real high-end references. Offered a dense galaxy of every file, pinging what is being worked on, in place of the head.
+- Decision: two stages. A: a UX specialist agent (Opus, design skills loaded) does user moments, information architecture, tabs, the talk/type bar, per-screen wireframes and a new high-end reference hunt; I review it against Rob's notes. B: prototype v3 in a new folder (v2 kept for comparison), file galaxy as the centrepiece, head dropped. Rubric basis: correct-long-term (design the use before the look).
+- In flight: card 05 (collectTree PID reuse fix, global plus project copies).
+- Parked (needs Rob): approval of the v3 direction; docs/AGENTOS.md sections 4-6 get rewritten from the UX pass once he likes v3.
+
+## 2026-10-24: loop copies, public repos, detached start
+- Done: card 05 (reused-PID fix) in global plus 10 copies; card 06 SparrowBook copy updated in place (no commit: its loop files are excluded from its public AGPL repo by Rob's rule); loop files untracked and pushed out of the two public repos, kc-dashboard 8b933c9 and kc-cms-app 8229a16/a6050bb (older history still public, Rob: not a big deal); card 09 loop-start.cjs (detached start, 6 tests) and the coordinate/afk skills point at it.
+- Open: loop-start not yet proven against VS Code closing (VS Code runs in a job object). SparrowBook's live run was started through explorer.exe instead; its next run uses loop-start.
+- In flight: prototype v3 (UX direction reviewed: tabs, conversation bar, file galaxy; my correction: spectacle in the data, restraint in layout).
+- Card 10 done: replayed hooks now get $CLAUDE_PROJECT_DIR substituted (cmd.exe never expanded it), crashed hooks logged as crashes, still fail closed. Global 140/140 and 11 copies; commits ai-ta d020705, bandpilot f42241a, besciworks 8828809, henike f304347, kc-care 6ea99cb, kingsburycreative 381c0d8, sembr d071b4be, kc-finance 56f30ae; on disk only for _kc-dashboard, kc-cms-app, sparrowbook-hosted. Pending: sparrowbook after its run.
+- v3 prototype ready for Rob at http://127.0.0.1:8791/?boot=1.
+- Confirmed live on SparrowBook card 101s1 (01:05Z): the loop committed and pushed in code with the hook replayed, no session resume; loop-start.cjs started it detached.
+- New gap from SparrowBook: the WSL distro idles out after 24 h (vmIdleTimeout) with no wsl.exe attached, killing the self-hosted CI runner mid-job; Docker Desktop was also down ("docker: command not found"). SparrowBook added C:\Users\roban\wsl-keepalive.cmd (manual, via Explorer; not at logon). runner-watchdog covers neither. Proposed: watchdog checks for the distro and Docker, and a CI-host health line in the cockpit's System drawer. Parked for Rob.

@@ -825,3 +825,507 @@ reaches `done`.
 - ProcessRunner follow-ups (issue 3): grandchildren survive `taskkill /T`;
   whether a failed taskkill still blocks on `proc_close` is unchecked.
 - Finance approval file (one-click reminder approval), if Rob wants it.
+
+## Plan 6: KC Cockpit phase 1
+
+Planned 2026-10-23 while Rob was AFK. Rob has not yet approved
+`docs/AGENTOS.md`. These cards build on a feature branch and nothing merges
+until card 87. Source: AGENTOS.md sections 7 and 10 (phase 1, 1.1 to 1.10).
+Its two open questions are decided: the service stays on 127.0.0.1, and the
+new tab stays the dashboard. The run goes through `claude-loop.cjs` once
+agentos card 04 lands this repo's loop copy; revision 5's "not through
+claude-loop" does not carry over (correction 13). Order: 87 (waits on Rob,
+in parallel), then 88 to 104 as numbered, then 105 and 106.
+
+Where this departs from the spec, and why:
+
+- 7.2 puts `node --test cockpit/test` in `extra_checks`. `project-test.cjs`
+  records mutation evidence only from runs of `test_command`, so every cockpit
+  card would gate "mutation evidence: no" and bounce. Card 88 runs each node
+  test file inside the PHP suite instead (`tests/CockpitNodeTest.php`).
+- 7.2 makes all of `cockpit/` risky, which puts every card on Opus with an
+  audit. Risky here: `cockpit/server.mjs`, `cockpit/lib/` except
+  `cockpit/lib/views/`, and `cockpit/mcp.mjs`. That holds because the server
+  guards every request by path before the route table is read, and a sweep
+  test runs every route through the guard.
+- Phase 1 starts `claude agents --json`, but `runner.mjs` waits for 2.1.
+  Card 91 builds it now with a one-entry allowlist.
+- `~/.claude/sessions/` also holds `.key` files (dashboard card 74). 7.4 does
+  not say so; card 91 opens only `^\d+\.json$`.
+- 1.1's `curl` test needs the live service on 8788. Tests start the server
+  on an ephemeral loopback port.
+- Vendoring cosmos.gl is an install, which parks per `project.md`; card 103
+  waits on 87. Whether cosmos.gl runs under the spec's CSP (no `worker-src`)
+  is unchecked; if not, it parks rather than loosening the CSP.
+- 4.5's vault `[[links]]` need note contents, which 7.3 rules out. Left out.
+- The duplicate-folder skip rests on one hashed pair. Card 89 hashes every
+  overlap.
+- 1.10's done-test registers a real task. After card 68's mutation reached
+  `Register-ScheduledTask`, that run is Rob's (105).
+- 1.8 is a whole screen with five parts: Normal, not Small.
+
+### 87. Rob approves docs/AGENTOS.md (waiting on Rob)
+- Role: Rob. Risky path: no. Depends: none. Blocks: merging any card below, 103, 105.
+- `docs/AGENTOS.md`
+
+Rob reads the spec, including the libraries in 5.5 and the departures listed
+above. Building continues on the branch meanwhile.
+
+Done-test: `Select-String -Path .claude/work/log.md -Pattern 'AGENTOS.md approved'`
+finds the line the coordinator writes when Rob says so.
+
+### 88. Cockpit service skeleton, guard and gate (Risky)
+- Role: implementer. Risky path: yes (`cockpit/server.mjs`, `cockpit/lib/`, the rules in `.claude/project.md`). Depends: none.
+- `cockpit/server.mjs`
+- `cockpit/lib/guard.mjs`
+- `cockpit/lib/config.mjs`
+- `cockpit/lib/views/routes.mjs`
+- `cockpit/config.json`
+- `cockpit/public/index.html`
+- `cockpit/test/guard.test.mjs`
+- `cockpit/test/helpers/start-server.mjs`
+- `tests/CockpitNodeTest.php`
+- `config/executables.php`
+- `.claude/project.md`
+
+Plain Node 24, no npm dependencies. `server.mjs` binds `127.0.0.1` only, port
+from `config.json` (8788) or `--port`, and the allowed Host list follows the
+bound port. `guard.mjs` ports `src/Http/RequestGuard.php` rule for rule
+(`checkRead`, `checkApiRead`, `checkFetchSite`, `checkWrite`; `hash_equals`
+becomes `timingSafeEqual`). Before the route table is read, the server applies
+`checkRead` to every request, `checkApiRead` to every `/api/` path and
+`checkWrite` to every non-GET; `lib/views/routes.mjs` only maps paths to
+handlers. The token comes from `data/token`; with no token file the service
+stops and never creates one. Every response carries AGENTOS 7.7's CSP exactly.
+`POST /api/ticket` returns a 30-second, one-use ticket. The service refuses a
+Node major other than 24 and silences only the `node:sqlite` experimental
+warning. `tests/CockpitNodeTest.php` registers one PHP test per
+`cockpit/test/*.test.mjs`, named after the file, running `node --test <file>`
+through ProcessRunner with `node.exe` absolute in `config/executables.php`; a
+failure prints the tail of node's output. `project.md`: add the cockpit risky
+paths from the note above, and to Never: binding the cockpit to anything but
+127.0.0.1. `test_command` is unchanged and there is no `extra_checks`.
+
+Done-test: `php tests/run.php --filter guard.test` passes and the full suite
+stays green. guard.test.mjs, server on an ephemeral port: Host
+`evil.test:<port>` gets 403; `Sec-Fetch-Site: cross-site` with mode `cors`
+gets 403, with `navigate` on `/` gets 200; `/api/ticket` without
+`X-KC-Token` gets 403; a POST with no Origin, or Origin `http://evil.test`,
+gets 403; every response has the exact CSP string with
+`frame-ancestors 'none'`; `server.address().address` is `127.0.0.1`; a
+ticket works once and fails at 31 s on an injected clock; with no token file
+in a temp root the server exits non-zero and creates no file; every route in
+`routes.mjs` refuses a foreign Host and, under `/api/`, a missing token.
+`Select-String .claude/project.md -Pattern 'cockpit/lib/'` matches.
+
+### 89. The permanent index: transcripts (Risky)
+- Role: implementer. Risky path: yes (`cockpit/lib/`). Depends: 88.
+- `cockpit/lib/index/schema.sql`
+- `cockpit/lib/index/db.mjs`
+- `cockpit/lib/index/indexer.mjs`
+- `cockpit/lib/index/transcripts.mjs`
+- `cockpit/lib/scrub.mjs`
+- `cockpit/lib/never-show.mjs`
+- `cockpit/bin/index.mjs`
+- `cockpit/test/index.test.mjs`
+- `cockpit/test/fixtures/claude-projects/`
+
+Port the spike (`.claude/work/agentos/data-spike.md` has the schema and
+logic) to `node:sqlite`, writing `data/agentos.sqlite` in WAL mode. Sources:
+`~/.claude/projects/**/*.jsonl` plus each session's `subagents/*.jsonl` and
+`*.meta.json`, root from config so tests use fixtures. A byte offset per file,
+complete lines only, rows keyed on source ids. A session file under both
+`c--xampp-htdocs-*` and `d--Dev-htdocs-*` counts once only when the shorter
+file's hash matches the longer's prefix; otherwise both are read. Tables: the
+spike's `projects`, `files`, `sessions`, `tool_calls` (plus `ended` and `ms`
+from the tool result), `agent_messages`, `file_access`, and `index_health`.
+Never stored: command text, tool output, file contents. Briefs and reports
+pass `scrub.mjs` (it loads `C:\Users\roban\.claude\hooks\secret-patterns.cjs`
+from a path in config and stores the field empty if that fails), then are cut
+to 500 characters. `never-show.mjs` is the one list (`.credentials`, `.env*`,
+`*.key`, `*.pem`, and what credential-read-blocker refuses) and drops matching
+paths. Unknown records count in `unknown_records`, with `parser_version` per
+pass. Fake keys in tests are built at run time, so no key-shaped literal is
+written to a file.
+
+Done-test: `php tests/run.php --filter index.test` passes. On fixtures: a
+session with two subagents and one nested agent resolves all three parent
+links; a half-written last line is not indexed until it ends; a second pass
+over unchanged fixtures reads 0 bytes; a true-prefix duplicate pair is
+indexed once and a same-named non-prefix pair twice; after a checkpoint, a
+fake key planted in a brief, a Bash command and a tool result is absent from
+the database file's bytes; a Read of `.credentials\x` gives no `file_access`
+row; one unknown record type raises `unknown_records` by 1; a tool result
+sets `ms`. Then, once, `node cockpit/bin/index.mjs --stats` on the real
+history prints agent-to-parent links at 99% or more, and a second run
+finishes under 5 s.
+
+### 90. The index: loop runs, costs and usage readings (Risky)
+- Role: implementer. Risky path: yes (`cockpit/lib/`). Depends: 89.
+- `cockpit/lib/projects.mjs`
+- `cockpit/lib/index/loops.mjs`
+- `cockpit/lib/index/schema.sql`
+- `cockpit/lib/index/indexer.mjs`
+- `cockpit/test/loops-index.test.mjs`
+- `cockpit/test/fixtures/htdocs/`
+
+`projects.mjs` lists in-scope projects fresh each call:
+`D:\Dev\htdocs\*\.claude\project.md` plus `C:\Users\roban\kc-finance` from
+config, keys `^[A-Za-z0-9._-]+$`, realpath checked under the allowed root.
+`loops.mjs` reads each project's `.claude/work/loop/*.jsonl` and
+`status.json` into `loop_passes`, `loop_runs` (launcher from `launched_by` in
+`status.json` as `status`, else the ten-minute heuristic as `heuristic`) and
+`usage_readings` from `rate_limit_event` records. Result text is never
+stored. A session's cost is its largest `total_cost_usd`, never the sum.
+
+Done-test: `php tests/run.php --filter loops-index` passes. Fixtures: run,
+card and pass come from file names (`-gate1`, `-push`, `-audit1`,
+`-handoff`); resumed passes at 0.48, 0.54 and 0.58 cost the session 0.58; a
+`claude-loop` Bash call 4 minutes before a run links it as `heuristic` and
+one 11 minutes before does not; `launched_by` in `status.json` gives
+`status`; a `rate_limit_event` gives one `usage_readings` row with both
+windows and resets; a marker in a `result` record is absent from the
+database bytes; a junction pointing outside the root is not listed.
+
+### 91. Live registry and the one process door (Risky)
+- Role: implementer. Risky path: yes (`cockpit/lib/`). Depends: 90.
+- `cockpit/lib/runner.mjs`
+- `cockpit/lib/live.mjs`
+- `cockpit/config.json`
+- `cockpit/test/live.test.mjs`
+- `cockpit/test/fixtures/live/`
+
+`runner.mjs` is the only module that starts a child process: an absolute
+executable from an allowlist, an argument array, `shell: false`, `.bat` and
+`.cmd` refused. Phase 1's allowlist is one entry: `claude.exe` (absolute path
+in `config.json`, the same as `config/executables.php`) with exactly
+`agents --json`. `live.mjs` polls it every 15 s, parses both shapes (`status`
+idle or busy; `state` and `waitingFor`) and keeps the previous list on bad
+output. It watches `~/.claude/sessions/` only to trigger a poll, and opens
+only names matching `^\d+\.json$`. Loops per project: `lock` with a PID alive
+by `process.kill(pid, 0)`, `STOP`, `status.json`, giving running, stopped,
+stale or none. An agent is running or done by whether its report has arrived
+and its file's last write.
+
+Done-test: `php tests/run.php --filter live.test` passes. With a stub
+`claude` (a node script named in the test config): both output shapes give
+the same session list; garbage output keeps the previous list and does not
+throw; the runner refuses an executable off the allowlist, other arguments
+and a `.cmd`, and records `shell: false`; a `.key` file in the fixture
+sessions folder is never opened (a read spy); a lock holding the test's own
+PID is running, a dead PID stale, lock plus `STOP` stopped.
+
+### 92. The event stream (Risky)
+- Role: implementer. Risky path: yes (`cockpit/server.mjs`, `cockpit/lib/`). Depends: 91.
+- `cockpit/lib/events.mjs`
+- `cockpit/lib/index/watch.mjs`
+- `cockpit/lib/index/schema.sql`
+- `cockpit/server.mjs`
+- `cockpit/test/events.test.mjs`
+
+An `events` table keeping 24 hours. `fs.watch` (recursive, debounced 1 s per
+file) on the projects folder and each loop folder, plus a 30-second sweep,
+runs the indexer and emits `session`, `tool`, `agent`, `message`, `loop`,
+`usage` and `index` events with rising ids. `GET /events` is server-sent
+events, opened with a ticket from card 88; `Last-Event-ID` replays from the
+table.
+
+Done-test: `php tests/run.php --filter events.test` passes: a line appended
+to a fixture transcript reaches a connected client as a `tool` event within
+2 s; reconnecting with `Last-Event-ID: 5` gets 6 onward once each; no ticket
+or a spent ticket gets 403; events older than 24 h are pruned on an injected
+clock; 200 lines appended at once arrive as 200 events in order.
+
+### 93. Shared colour tokens in the dashboard (Small)
+- Role: implementer. Risky path: no. Depends: none.
+- `public/assets/tokens.css`
+- `public/assets/hud.css`
+- `public/assets/app.css`
+- `public/assets/wall.css`
+- `src/View.php`
+- `public/wall.php`
+- `tests/HudTest.php`
+
+The dashboard's custom properties move into `tokens.css`, with the names in
+AGENTOS 5.3, so the cockpit loads the same file. No visible change.
+
+Done-test: `php tests/run.php --filter Hud` passes, and the full suite and
+`php ops/http-check.php` stay green. HudTest adds: `tokens.css` defines
+every property named in AGENTOS 5.3; no other `public/assets/*.css` defines
+one of them; the page and wall output link `tokens.css` before `hud.css`.
+
+### 94. Page checks: slop, motion and DOM sinks (Normal)
+- Role: implementer. Risky path: no. Depends: 88.
+- `cockpit/bin/check-slop.mjs`
+- `cockpit/bin/check-motion.mjs`
+- `cockpit/test/checks.test.mjs`
+- `cockpit/test/fixtures/pages/`
+- `tests/CockpitDomSinksTest.php`
+
+Both scripts scan `cockpit/public/` (skipping `vendor/`) and
+`cockpit/lib/views/`, and exit 1 naming file and line. check-slop enforces
+what AGENTOS 5.6 says a script can: no uppercase text with `letter-spacing`
+of 0.1em or more outside a panel-title selector; no beige or cream (hue 20 to
+60, lightness above 85%); no comma in an `h1` to `h3` or `<title>`; no spot
+holding two buttons side by side. check-motion: every `@keyframes` is off
+under `prefers-reduced-motion`, and every module calling
+`requestAnimationFrame` also handles `visibilitychange` and reduced motion.
+`tests/Support/DomSinks.php` runs over `cockpit/public/`. checks.test runs
+both scripts on the real folders, so every later page card is gated by them.
+
+Done-test: `php tests/run.php --filter checks.test` and
+`--filter CockpitDomSinks` pass. Fixtures: an eyebrow rule, `#f3efe7`, an
+`<h2>` reading "Fast, done" and two adjacent buttons each make check-slop
+exit 1 naming the file; a keyframe with no reduced-motion override makes
+check-motion exit 1; a fixture `.mjs` using `innerHTML` fails DomSinks; the
+real `cockpit/public/` passes all three.
+
+### 95. Cockpit shell (Normal)
+- Role: implementer. Risky path: no. Depends: 92, 93, 94.
+- `cockpit/lib/views/shell.mjs`
+- `cockpit/lib/views/routes.mjs`
+- `cockpit/public/index.html`
+- `cockpit/public/cockpit.css`
+- `cockpit/public/app.mjs`
+- `cockpit/public/router.mjs`
+- `cockpit/public/palette.mjs`
+- `cockpit/test/shell.test.mjs`
+
+The server renders the shell and each screen's current values as HTML on
+first load; JS then takes over. Rail, top bar with clock and usage pill,
+breadcrumb, hash routes (`#/overview`, `#/project/<key>`, `#/session/<id>`),
+Esc up a level, `G` then a letter, a Ctrl+K palette over `/api/search`
+(projects, sessions, cards). Skeletons in `--glass` with a 1.4 s shimmer,
+still under reduced motion. Mobile first with `min-width` only: the phone
+stack at base, rail and grid at 1024px, the wall at 1600px. Loads
+`/tokens.css`, served from `public/assets/tokens.css`. The token goes into
+one `<meta>` tag. Drill-downs use View Transitions where present.
+
+Done-test: `php tests/run.php --filter shell.test` passes and checks.test
+stays green. shell.test: `GET /` holds the rail, top bar, breadcrumb and each
+screen's placeholder by id; the token occurs exactly once, in the `meta`
+tag; `cockpit.css` has no `max-width` media query; `/api/search` is in the
+guard sweep. Then, with `node cockpit/server.mjs` running,
+`node C:\Users\roban\.claude\skills\mobile-first-responsive\scripts\responsive-sweep.cjs http://127.0.0.1:8788/`
+exits 0.
+
+### 96. Overview panels (Normal)
+- Role: implementer. Risky path: no. Depends: 95.
+- `cockpit/lib/views/overview.mjs`
+- `cockpit/lib/views/routes.mjs`
+- `cockpit/public/overview.mjs`
+- `cockpit/public/feed.mjs`
+- `cockpit/public/cockpit.css`
+- `cockpit/test/overview.test.mjs`
+
+AGENTOS 4.1 without the core: Needs you, Live feed (pauses when scrolled up,
+shows "N new", keeps 700 rows), workforce strip with tool-call sparklines,
+timeline, usage (reading age shown, muted over 30 minutes), memory insights
+(top five files today), index health (red when unknown records rise). A
+panel with no source says "not connected".
+
+Done-test: `php tests/run.php --filter overview.test` passes: first-paint
+HTML holds all seven panels by id, each with its fixture value, or "not
+connected" when its source is empty; a usage reading 47 minutes old renders
+"47 min ago" with the muted class; a parked loop card and a session waiting
+for input both appear in Needs you; the feed buffer keeps the newest 700 of
+750; a feed title holding `<img src=x onerror=alert(1)>` arrives as text.
+
+### 97. The core: hierarchy globe (Normal)
+- Role: implementer. Risky path: no. Depends: 96.
+- `cockpit/public/hierarchy.mjs`
+- `cockpit/public/core.mjs`
+- `cockpit/public/cockpit.css`
+- `cockpit/test/core.test.mjs`
+
+Grown from the dashboard's `public/assets/orb.js`, whose copy stays as is.
+`hierarchy.mjs` is pure: workforce data in, nodes out (a "PM not running"
+slot at the core, managers on the inner ring in their kind's colour, agents
+around their manager, nested agents around their parent, idle projects on
+the outer ring). `core.mjs` draws it on canvas 2D to the AGENTOS 5.4 motion
+table: events batched once per animation frame, at most one pulse per link
+per 400 ms, no frames on a hidden tab, one still frame under reduced motion,
+pixel ratio capped at 2, a static CSS ring without JS.
+
+Done-test: `php tests/run.php --filter core.test` passes and check-motion
+exits 0: from a fixture agents list every live session lands on the inner
+ring in its kind's colour token, a project idle over 24 hours on the outer
+ring, a depth-2 agent under its parent agent; the pulse limiter drops a
+second pulse on one link inside 400 ms on an injected clock; with
+`devicePixelRatio` 3 the canvas scale is 2.
+
+### 98. Workforce screen (Normal)
+- Role: implementer. Risky path: no. Depends: 97.
+- `cockpit/lib/views/workforce.mjs`
+- `cockpit/lib/views/routes.mjs`
+- `cockpit/public/workforce.mjs`
+- `cockpit/public/cockpit.css`
+- `cockpit/test/workforce.test.mjs`
+
+AGENTOS 4.4: the orbit view (the core at full size with labels); the tree
+grouped Needs you, Working, Ready for review, Done, with arrow keys and
+Enter; the Messages tab over `agent_messages` (the indexed 500 characters, a
+row linking to the session screen for full text), filtered by project and
+agent type; windows now, today and 7 days. The tree is the no-JS and phone
+rendering.
+
+Done-test: `php tests/run.php --filter workforce.test` passes: a fixture
+loop run nests as run, card, session, agents, with gate and push passes on
+the card session's timeline rather than as managers; the no-JS tree's node
+ids equal `hierarchy.mjs`'s for the same fixture; filtering Messages by
+project returns only that project's rows, newest first; a brief holding
+`<img src=x onerror=alert(1)>` is escaped in the HTML.
+
+### 99. Session screen: live transcript (Risky)
+- Role: implementer. Risky path: yes (`cockpit/lib/`). Depends: 95.
+- `cockpit/lib/transcript.mjs`
+- `cockpit/lib/views/session.mjs`
+- `cockpit/lib/views/routes.mjs`
+- `cockpit/public/session.mjs`
+- `cockpit/public/cockpit.css`
+- `cockpit/test/session.test.mjs`
+
+`transcript.mjs` reads a session's `.jsonl` from disk for full text. The
+session is found by id in the index (the client never sends a path), its
+file's realpath must sit under the projects root, and every string passes
+`scrub.mjs` and `never-show.mjs` before it leaves. Prompts and replies as
+blocks; tool calls as one-line rows expanding to the scrubbed input; an
+`Agent` row expanding into the child's transcript, brief on top and report
+below. New lines arrive over `/events`. The page writes with `textContent`
+only.
+
+Done-test: `php tests/run.php --filter session.test` passes: an id not in
+the index, and an id holding `..` or a slash, get 404; a fake key built at
+run time in a prompt, a tool input and an agent report appears in no
+response body; a Read of `.credentials\x` shows the row with the path
+withheld; an `Agent` row carries the child transcript; a line appended to
+the open session reaches its client within 2 s.
+
+### 100. Session screen: trace and files touched (Normal)
+- Role: implementer. Risky path: no. Depends: 99.
+- `cockpit/lib/views/trace.mjs`
+- `cockpit/lib/views/routes.mjs`
+- `cockpit/public/trace.mjs`
+- `cockpit/public/session.mjs`
+- `cockpit/test/trace.test.mjs`
+
+From the index: a waterfall per card (pass, sessions, subagents, tool calls,
+timed from `ms`) and the files touched with op and time. Shell calls show as
+"shell, paths unknown".
+
+Done-test: `php tests/run.php --filter trace.test` passes: a fixture card
+gives the four nested levels in that order with the durations from its tool
+results; a Bash call shows "shell, paths unknown" and no path; files touched
+lists each path once per op, newest first.
+
+### 101. Project screen (Normal)
+- Role: implementer. Risky path: no. Depends: 95.
+- `cockpit/lib/views/project.mjs`
+- `cockpit/lib/views/routes.mjs`
+- `cockpit/public/project.mjs`
+- `cockpit/public/cockpit.css`
+- `cockpit/test/project.test.mjs`
+
+AGENTOS 4.2 without the rules row (phase 2). The project comes from
+`projects.mjs` by key. Header from the dashboard database's `projects` table
+(card 73), read-only, never a git call. Managers and agents as a tree; the
+loop's current card and last ten cards as a waterfall, cost per card from
+the max per session; the board as the project's `checklist.json` entries not
+yet passing; memory files with access counts.
+
+Done-test: `php tests/run.php --filter project.test` passes: an unknown key
+or one holding `..` gets 404; three resumed passes cost the max, not the
+sum; the board lists only `passes: false` entries; the memory list holds no
+never-show path; the fixture project folder's file hashes are unchanged
+after a render.
+
+### 102. Memory galaxy: data and the list (Normal)
+- Role: implementer. Risky path: no. Depends: 95.
+- `cockpit/lib/views/graph.mjs`
+- `cockpit/lib/views/routes.mjs`
+- `cockpit/public/memory.mjs`
+- `cockpit/public/cockpit.css`
+- `cockpit/test/graph.test.mjs`
+
+Nodes and edges from `file_access` per AGENTOS 4.5: files by kind, projects,
+and optionally sessions and agents; edges weighted by count and op; windows
+of 24 hours, 7 days, 30 days and all. Persona files are path, kind and
+counts only. `never-show.mjs` filters again here. A file opens to who
+touched it, when and how. No vault `[[links]]`. This card draws only the
+fallback: the 50 hottest files as a list, which is also the no-JS view.
+
+Done-test: `php tests/run.php --filter graph.test` passes: never-show paths
+planted in fixture `file_access` (`.env`, `a.key`, `.credentials\b`) yield
+no node; each persona node's keys are exactly path, kind and counts; the
+four windows count correctly on an injected clock; the no-JS HTML lists the
+50 hottest files by count.
+
+### 103. Memory galaxy: drawing (Normal, waits on 87)
+- Role: implementer. Risky path: no. Depends: 87, 102.
+- `cockpit/public/vendor/cosmos-graph-3.5.1.min.js`
+- `cockpit/public/vendor/VENDOR.txt`
+- `cockpit/bin/check-vendor.mjs`
+- `cockpit/public/galaxy.mjs`
+- `cockpit/test/vendor.test.mjs`
+
+Vendor `@cosmos.gl/graph` 3.5.1 (`dist/index.min.js`, MIT) with version,
+licence, source URL and sha256 in `VENDOR.txt`. The galaxy per 4.5 and
+`7-memory-galaxy.png`: centre and arms layout, brightness by log access
+count, comets fading over 30 s, the time scrubber with 60x replay, a still
+star field as skeleton, layout frozen after 3 s, one laid-out frame under
+reduced motion. On at 1024px with WebGL2; the list stays otherwise. If it
+needs `worker-src`, `blob:` or `unsafe-eval`, park; never loosen the CSP.
+
+Done-test: `php tests/run.php --filter vendor.test` passes and check-motion
+exits 0: check-vendor exits 0 on the vendored file and 1 after a one-byte
+change to a temp copy; `VENDOR.txt` names 3.5.1, MIT and the source URL; no
+file under `cockpit/public/` imports from an `http` URL.
+
+### 104. Single instance and the logon task script (Risky)
+- Role: implementer. Risky path: yes (`cockpit/server.mjs`, `cockpit/lib/`). Depends: 88.
+- `cockpit/lib/instance.mjs`
+- `cockpit/server.mjs`
+- `bin/register-tasks.ps1`
+- `tests/TasksScriptTest.php`
+- `cockpit/test/instance.test.mjs`
+
+A PID file in `data/` keeps one service running; a PID file whose process is
+dead is taken over. `bin/register-tasks.ps1` gains `\KC Dashboard\Cockpit`:
+at logon, as Rob, restart on failure (three times, a minute apart),
+`-MultipleInstances IgnoreNew`, absolute `node.exe` and `cockpit/server.mjs`,
+plus a Start menu shortcut running `chrome.exe --app=http://127.0.0.1:8788/`,
+both honouring `-WhatIf`. This card registers nothing.
+
+Done-test: `php tests/run.php --filter instance.test` and
+`--filter TasksScript` pass: a second start against a live PID file exits
+non-zero printing "already running"; a dead PID file is taken over; the
+`-WhatIf` run lists the Cockpit task with its logon trigger, restart
+settings, IgnoreNew and absolute paths, registers nothing and creates no
+shortcut, with card 68's stand-in checks still holding.
+
+### 105. Rob registers the cockpit task (waiting on Rob)
+- Role: Rob. Depends: 87, 104.
+
+Rob reviews the `-WhatIf` output and runs it for real.
+
+Done-test: `powershell -c "(Get-ScheduledTask -TaskPath '\KC Dashboard\' -TaskName Cockpit).State"`
+prints `Ready` or `Running`, and after signing out and in,
+`http://127.0.0.1:8788/` answers.
+
+### 106. Cockpit phase 1 security audit
+- Role: security-auditor. Risky path: yes. Depends: 88 to 104.
+- `cockpit/server.mjs`
+- `cockpit/lib/`
+- `cockpit/public/`
+- `cockpit/bin/`
+- `tests/CockpitNodeTest.php`
+- `bin/register-tasks.ps1`
+- `.claude/project.md`
+
+Over the feature branch's whole diff, before it merges. Per-card audits still
+run at the gate.
+
+Done-test: the full suite through `R` passes, and
+`.claude/work/106-audit/report.md` names a test for each AGENTOS 7.7 bullet
+phase 1 builds (bind, every request, API reads, writes, token, ticket, CSP,
+ids, untrusted text, secrets), or files a card for any without one.
