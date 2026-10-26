@@ -52,7 +52,7 @@ function run(hook, content, filePath = 'pages/contact.php') {
         tool_input: { file_path: filePath, content },
     });
     try {
-        execFileSync('node', [hook], { input: event, encoding: 'utf8', stdio: 'pipe' });
+        execFileSync('node', [hook], { windowsHide: true, input: event, encoding: 'utf8', stdio: 'pipe' });
         return { allowed: true, reason: '' };
     } catch (err) {
         return { allowed: false, reason: (err.stderr || '').toString() };

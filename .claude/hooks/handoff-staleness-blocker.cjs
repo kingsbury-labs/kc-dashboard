@@ -83,7 +83,7 @@ function block(problems) {
 }
 
 function git(args, cwd) {
-    return execFileSync('git', args, { cwd, encoding: 'utf8', timeout: 15000 }).trim();
+    return execFileSync('git', args, { windowsHide: true, cwd, encoding: 'utf8', timeout: 15000 }).trim();
 }
 
 /**
@@ -260,6 +260,7 @@ function main() {
                 // rather than left on for every platform.
                 const needsShell = process.platform === 'win32' && /\.(cmd|bat)$/i.test(GH_BIN);
                 state = execFileSync(GH_BIN, ['issue', 'view', num, '--json', 'state', '--jq', '.state'], {
+                    windowsHide: true,
                     cwd, encoding: 'utf8', timeout: 20000, stdio: ['ignore', 'pipe', 'ignore'],
                     shell: needsShell,
                 }).trim().toUpperCase();

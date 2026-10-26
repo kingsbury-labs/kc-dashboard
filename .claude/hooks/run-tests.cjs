@@ -38,7 +38,7 @@ if (files.length === 0) {
     process.exit(1);
 }
 
-const result = spawnSync(process.execPath, ['--test', ...files], { stdio: 'inherit' });
+const result = spawnSync(process.execPath, ['--test', ...files], { windowsHide: true, stdio: 'inherit' });
 
 if (result.error) {
     console.error(`run-tests: could not start node (${result.error.message})`);

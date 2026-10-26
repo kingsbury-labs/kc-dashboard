@@ -28,7 +28,7 @@ const HOOK = path.join(__dirname, 'handoff-staleness-blocker.cjs');
 let failures = 0;
 
 function sh(args, cwd) {
-    return execFileSync(args[0], args.slice(1), { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+    return execFileSync(args[0], args.slice(1), { windowsHide: true, cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
 }
 
 /** A throwaway repo with one commit and an origin/main ref pointing at it. */
@@ -106,7 +106,7 @@ function run({ contextBody, wroteContext, stopActive = false, ghState = null }) 
     });
     const env = { ...process.env };
     if (ghState) env.HANDOFF_GH_BIN = ghStub(dir, ghState);
-    const res = spawnSync(process.execPath, [HOOK], { input: payload, encoding: 'utf8', env });
+    const res = spawnSync(process.execPath, [HOOK], { windowsHide: true, input: payload, encoding: 'utf8', env });
     let decision = 'allow';
     let reason = '';
     if (res.stdout && res.stdout.trim()) {

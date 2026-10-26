@@ -337,6 +337,7 @@ async function main() {
     let currentBranch;
     try {
         currentBranch = execSync('git branch --show-current', {
+            windowsHide: true,
             encoding: 'utf8',
             timeout: 5000
         }).trim();

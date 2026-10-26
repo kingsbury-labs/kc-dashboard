@@ -157,6 +157,7 @@ const HOOK = path.join(__dirname, 'closing-keyword-blocker.cjs');
 function run(command) {
     try {
         execFileSync(process.execPath, [HOOK], {
+            windowsHide: true,
             input: JSON.stringify({ tool_input: { command }, cwd: CWD }),
             stdio: ['pipe', 'pipe', 'pipe'],
         });

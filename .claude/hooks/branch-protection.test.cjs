@@ -69,7 +69,7 @@ function stageHook(name, config) {
 function makeRepo(name, branch) {
     const dir = path.join(tmp, name);
     fs.mkdirSync(dir, { recursive: true });
-    const git = (args) => execSync(`git ${args}`, { cwd: dir, stdio: 'pipe' });
+    const git = (args) => execSync(`git ${args}`, { windowsHide: true, cwd: dir, stdio: 'pipe' });
     git('init -q');
     git('config user.email t@t.t');
     git('config user.name t');
@@ -88,10 +88,10 @@ function makeRepo(name, branch) {
 function makeRepoWithRemote(name) {
     const root = path.join(tmp, name);
     fs.mkdirSync(root, { recursive: true });
-    execSync('git init -q --bare origin.git', { cwd: root, stdio: 'pipe' });
+    execSync('git init -q --bare origin.git', { windowsHide: true, cwd: root, stdio: 'pipe' });
     const dir = path.join(root, 'work');
     fs.mkdirSync(dir, { recursive: true });
-    const git = (args) => execSync(`git ${args}`, { cwd: dir, stdio: 'pipe' });
+    const git = (args) => execSync(`git ${args}`, { windowsHide: true, cwd: dir, stdio: 'pipe' });
     git('init -q');
     git('config user.email t@t.t');
     git('config user.name t');
@@ -115,7 +115,7 @@ function run(command, cwd, hook = HOOK) {
         tool_input: { command },
     });
     try {
-        execFileSync('node', [hook], { input: event, encoding: 'utf8', cwd, stdio: 'pipe' });
+        execFileSync('node', [hook], { windowsHide: true, input: event, encoding: 'utf8', cwd, stdio: 'pipe' });
         return { allowed: true, reason: '' };
     } catch (err) {
         return { allowed: false, reason: (err.stderr || '').toString() };

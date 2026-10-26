@@ -26,7 +26,7 @@ function run(toolInput, toolName = 'Write') {
         tool_name: toolName,
         tool_input: toolInput,
     });
-    const res = spawnSync(process.execPath, [HOOK], { input: payload, encoding: 'utf8' });
+    const res = spawnSync(process.execPath, [HOOK], { windowsHide: true, input: payload, encoding: 'utf8' });
     if (!res.stdout || !res.stdout.trim()) return { decision: 'allow', reason: '' };
     try {
         const parsed = JSON.parse(res.stdout);
