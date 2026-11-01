@@ -1398,6 +1398,47 @@ LOGOUT; no source file under `src/Mail/` contains STORE, COPY, MOVE, EXPUNGE,
 APPEND or SELECT; the app password never appears in the log or the API output;
 a follow-up write without the token is refused.
 
+### 114. Cockpit email: only mail about Rob's projects (Risky)
+- Role: implementer, Opus. Risky path: mail, `public/api/`. Depends: 109.
+
+Tag each email with a project from known clients, domains, projects and
+vendors (no model call), else the local model with that entity list; untagged
+mail is hidden; Rob's "Not mine" and "Project..." corrections stick per sender.
+
+Done-test: `c:\xampp\php\php.exe tests/run.php --filter CockpitMail` passes:
+against fixture mail and a stubbed model, a sender on a client domain is tagged
+without a model call; a promo the model calls null is hidden; a correction
+marking a sender "not mine" hides that sender's later mail and a correction to a
+project tags it; a correction POST without the token is refused; no mail body
+text is written to disk.
+
+### 115. Cockpit Care tab: care-plan clients at a glance, alerts when down (Risky)
+- Role: implementer, Opus. Risky path: `src/Process/` use, `public/api/`,
+  client data. Depends: 111. Needs the UptimeRobot key file from Infisical KC Care.
+
+A Care tab reads kc-care (clients.json), UptimeRobot (status, uptime) and
+kc-care's open GitHub issues; glance rows per client, depth per client and for
+all checks; a red banner and one Chrome notification per incident.
+
+Done-test: `c:\xampp\php\php.exe tests/run.php --filter CockpitCare` passes:
+against fixture clients.json, a stubbed UptimeRobot response and a stubbed gh
+runner (no network, no real process), the snapshot's care block lists each
+client with status, uptime, response time, alert count and SSL days; a down
+monitor makes that client red and raises one incident; the UptimeRobot key never
+appears in the log or the API output; the only command the care collector can
+run is `gh issue list` against `rob-kingsbury/kc-care`.
+
+### 116. Cockpit AI news: real stories only (Normal)
+- Role: implementer, Sonnet. Depends: 108.
+
+Switch Simon Willison's feed to entries only, rank ai stories with the
+existing Scorer, drop quote posts, repo slugs and version strings, show 6.
+
+Done-test: `c:\xampp\php\php.exe tests/run.php --filter CockpitNews` passes:
+against fixture stories, the panel returns at most 6 ai stories in Scorer
+order; a title that is a repo slug, a version string or starts with "Quoting "
+is dropped; config/feeds.php no longer contains `atom/everything`.
+
 ### 113. Cockpit: Codex limits beside Claude's, stale sessions dropped (Normal)
 - Role: implementer, Sonnet. Depends: 112.
 

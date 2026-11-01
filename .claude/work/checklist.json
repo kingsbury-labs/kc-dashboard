@@ -585,5 +585,26 @@
     "brief": ".claude/work/113-cockpit-codex-limits/brief.md",
     "start_sha": "",
     "passes": false
+  },
+  {
+    "id": "116",
+    "title": "Cockpit AI news: real stories only",
+    "brief": ".claude/work/116-cockpit-ai-news/brief.md",
+    "start_sha": "",
+    "passes": false
+  },
+  {
+    "id": "114",
+    "title": "Cockpit email: only mail about Rob's projects",
+    "brief": ".claude/work/114-cockpit-mail-relevance/brief.md",
+    "start_sha": "",
+    "passes": false
+  },
+  {
+    "id": "115",
+    "title": "Cockpit Care tab: care-plan clients at a glance, alerts when down",
+    "brief": ".claude/work/115-cockpit-care/brief.md",
+    "start_sha": "",
+    "passes": false
   }
 ]
