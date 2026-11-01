@@ -122,3 +122,7 @@ Rob: the remaining cards collapse into 60-69 (feature-sized, about an hour of lo
 
 ## 2026-11-01 card 114 (loop)
 - 114 mail relevance built and sent to the gate. start_sha moved to 705eb19: the recorded b336359 predated cards 113 and 116 landing. Inbox count of visible rows not yet known: the 10 cached rows predate tagging and are refetched on the next collect.
+
+## 2026-11-01 card 115 (loop)
+- 115 Care tab built and sent to the gate. start_sha moved to 8809193 (the checklist-only commit after 5f57c1c). Issues count against a client when the title names its key or domain; issues naming no client show nowhere. Needs Rob: D:\Dev\htdocs\.credentials\kc-care-uptimerobot-key must hold the UptimeRobot read key, or monitors show dashes. JS not syntax-checked by the worker (node --check blocked by the credential hook) and no screenshot taken.
+- 115 round two: portrait test listed the overview cards; Care card added to it (count 8 to 9). Brief list gained tests/CockpitPortraitTest.php, which round one should have named.

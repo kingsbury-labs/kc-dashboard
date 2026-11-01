@@ -4,7 +4,7 @@ import { el, add, btn, icon, go, $, D } from './dom.js';
 import { begin, subscribe, findItems, state } from './data.js';
 import { search } from './fuzzy.js';
 import { available } from './voice.js';
-import { renderOverview, renderProject, renderSession, renderAgents } from './views.js';
+import { renderOverview, renderProject, renderSession, renderAgents, renderCare } from './views.js';
 
 let page = null;
 let find = null;
@@ -116,7 +116,7 @@ function shell() {
   const rail = el('nav', 'rail');
   rail.setAttribute('aria-label', 'Primary');
   rail.append(el('div', 'brand', 'KC'));
-  const navs = [['overview', 'Overview', 'overview'], ['project', 'Project', 'project'], ['session', 'Session', 'session'], ['agents', 'Agents', 'agents']];
+  const navs = [['overview', 'Overview', 'overview'], ['project', 'Project', 'project'], ['session', 'Session', 'session'], ['agents', 'Agents', 'agents'], ['care', 'Care', 'care']];
   const buttons = navs.map(([path, label, ic]) => {
     const b = btn('', 'nav-btn');
     b.dataset.route = path;
@@ -167,6 +167,7 @@ function render(scroll) {
   if (r.name === 'project') renderProject(fresh, r.id);
   else if (r.name === 'session') renderSession(fresh, r.id);
   else if (r.name === 'agents') renderAgents(fresh);
+  else if (r.name === 'care') renderCare(fresh, r.id);
   else renderOverview(fresh);
   page.replaceWith(fresh);
   page = fresh;

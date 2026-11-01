@@ -57,10 +57,10 @@ test('the portrait layout places every overview card in one of two columns', fun
             $placed[$x] = $col;
         }
     }
-    foreach (['needsCard()', 'calendarCard()', 'email', 'follow', 'agentTalkCard()', 'agentsCard()', 'finance', 'news'] as $card) {
+    foreach (['needsCard()', 'careCard()', 'calendarCard()', 'email', 'follow', 'agentTalkCard()', 'agentsCard()', 'finance', 'news'] as $card) {
         assert_true(isset($placed[$card]), "$card is not in a portrait column");
     }
-    assert_same(8, count($placed), 'each card once');
+    assert_same(9, count($placed), 'each card once');
     $css = (string) file_get_contents(dirname(__DIR__) . '/public/cockpit/cockpit.css');
     assert_true(str_contains($css, '@media(min-width:1000px) and (max-aspect-ratio:4/5){.daily-cols{grid-template-columns:repeat(2,minmax(0,1fr))}'), 'two columns in portrait');
     assert_true(str_contains($css, '.daily-top .plan-card{grid-column:2;grid-row:3'), 'plan limits under the weather');

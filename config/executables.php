@@ -5,6 +5,7 @@ return [
     'wt' => 'C:\\Users\\roban\\AppData\\Local\\Microsoft\\WindowsApps\\wt.exe',
     'python' => 'C:\\Users\\roban\\AppData\\Local\\Programs\\Python\\Python311\\python.exe',
     'php' => 'C:\\xampp\\php\\php.exe',
+    'gh' => 'C:\\Program Files\\GitHub CLI\\gh.exe',
     'git' => 'C:\\Program Files\\Git\\cmd\\git.exe',
     'taskkill' => 'C:\\Windows\\System32\\taskkill.exe',
     'tasklist' => 'C:\\Windows\\System32\\tasklist.exe',

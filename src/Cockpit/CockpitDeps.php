@@ -37,6 +37,7 @@ class CockpitDeps
                 'usage' => fn(): array => array_merge(array_map(fn(string $d): string => $d . '\\.claude\\work\\loop', array_values($projects())),
                     [(string) $config['transcripts_dir']]),
             ],
+            'care' => $data . '/' . $collectors['care']['cache'],
             'day' => [
                 'calendar' => $data . '/' . $collectors['calendar']['cache'],
                 'mail' => $data . '/' . $collectors['mail']['cache'],

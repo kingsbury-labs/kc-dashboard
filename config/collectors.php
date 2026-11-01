@@ -33,4 +33,8 @@ return [
             'Google Workspace' => ['workspace-noreply.google.com'],
         ]],
     'followups' => 'followups.json',
+    // kc-care, read only: its client list, UptimeRobot's read key by path (value read at run time, added to Log
+    // redaction) and the open issues in rob-kingsbury/kc-care through gh. Cache is a file name under data/.
+    'care' => ['clients' => 'D:\\Dev\\htdocs\\kc-care\\clients.json',
+        'uptimerobot_key_file' => 'D:\\Dev\\htdocs\\.credentials\\kc-care-uptimerobot-key', 'cache' => 'care-cache.json'],
 ];

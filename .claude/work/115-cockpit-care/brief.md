@@ -47,6 +47,7 @@ Chrome raises a notification, once per incident.
 - `src/Cockpit/` (new CockpitCare.php and wiring), `src/Collectors/` (new Care collector)
 - `config/collectors.php`, `config/executables.php`
 - `public/api/cockpit.php`, `public/cockpit/js/`, `public/cockpit/cockpit.css`
+- `tests/CockpitPortraitTest.php` (added at round two: the new overview card must be in its column list)
 - `bin/collect-facts.php`
 - `tests/CockpitCareTest.php` (new), `tests/fixtures/cockpit-care/` (new)
 - `.claude/work/115-cockpit-care/progress.md`, `result.md`

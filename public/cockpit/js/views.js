@@ -371,6 +371,8 @@ export function renderOverview(page) {
   add(greet, el('h1', '', `Good ${part} Rob`), el('p', '', now.toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric' })
     + (state.snap ? ` · ${n === 0 ? 'Nothing needs you' : n === 1 ? 'One thing needs you' : `${n} things need you`}` : '')));
   add(top, form, greet, weatherCard(), planCard());
+  const banner = careBanner();
+  if (banner) page.append(banner);
   page.append(top);
   const wide = matchMedia('(min-width:1100px)').matches;
   const portrait = matchMedia('(min-width:1000px) and (max-aspect-ratio:4/5)').matches;
@@ -384,12 +386,12 @@ export function renderOverview(page) {
     const b = el('div', 'daily-col');
     if (portrait) {
       // Card 112: Agent talk is capped at 10, so finance moves right to keep the columns ending near each other.
-      add(a, needsCard(), calendarCard(), email, follow);
+      add(a, needsCard(), careCard(), calendarCard(), email, follow);
       add(b, agentTalkCard(), agentsCard(), finance, news);
       add(cols, a, b);
     } else {
       const c = el('div', 'daily-col');
-      add(a, needsCard(), email, follow);
+      add(a, needsCard(), careCard(), email, follow);
       add(b, calendarCard(), finance, news);
       add(c, agentTalkCard(), agentsCard());
       add(cols, a, b, c);
@@ -397,7 +399,7 @@ export function renderOverview(page) {
     page.append(cols);
   } else {
     const grid = el('div', 'daily-grid');
-    add(grid, needsCard(), calendarCard(), agentTalkCard(), email, finance, follow, news, agentsCard());
+    add(grid, needsCard(), careCard(), calendarCard(), agentTalkCard(), email, finance, follow, news, agentsCard());
     page.append(grid);
   }
   const cmd = $('.command');
@@ -584,4 +586,120 @@ export function renderAgents(page) {
   wrap.append(table);
   if (!list.length) wrap.append(el('p', 'agenda-empty', state.snap ? 'No agents in the last 7 days.' : waiting()));
   page.append(wrap);
+}
+
+// Card 115: kc-care clients. The glance list (one row each, worst first), one client's depth, and the red banner on
+// the overview with one Chrome notification per incident. Permission is asked from a button, never on load.
+const CARE_PILL = { red: 'failed', amber: 'waiting', green: 'done' };
+const pct = (v) => (typeof v === 'number' ? `${v === 100 ? 100 : v.toFixed(2)}%` : '–');
+const care = () => state.snap?.care ?? null;
+const minutes = (ts) => (ts ? `${Math.max(0, Math.round((Date.now() / 1000 - ts) / 60))} min` : '');
+const careResponse = (c) => (c.monitor === 'down' ? `down ${minutes(c.down_since)}` : c.response_ms != null ? `${c.response_ms} ms` : 'no monitor');
+const careFacts = (c) => [careResponse(c), `${pct(c.uptime_30)} 30d`,
+  c.alert_count == null ? 'alerts –' : `${c.alert_count} alert${c.alert_count === 1 ? '' : 's'}`,
+  c.ssl_days == null ? 'SSL –' : `SSL ${c.ssl_days}d`].join(' · ');
+
+function careRow(c) {
+  const r = btn('', 'care-row clickable', () => go(`care/${encodeURIComponent(c.key)}`));
+  add(r, el('i', `care-dot ${c.status}`), el('b', '', c.domain), el('small', '', careFacts(c)));
+  r.setAttribute('aria-label', `${c.domain}, ${c.status}`);
+  return r;
+}
+
+export function careCard() {
+  const s = care();
+  const c = card('Care clients', 'care-card');
+  const red = (s?.clients ?? []).some((x) => x.status === 'red');
+  c.querySelector('.card-head').append(pill(!s ? 'idle' : red ? 'failed' : 'done'));
+  const list = el('div', 'care-list');
+  skeleton(list, !state.snap);
+  if (!state.snap) [1, 2, 3].forEach(() => list.append(el('div', 'care-row')));
+  else if (!s) list.append(el('p', 'agenda-empty', 'No care data yet. The collector writes it on its next run.'));
+  (s?.clients ?? []).forEach((x) => list.append(careRow(x)));
+  add(c, list, btn('All checks', 'text-btn', () => go('care')));
+  return c;
+}
+
+const SEEN = 'kc-care-notified';
+function seen() {
+  try { return JSON.parse(localStorage.getItem(SEEN) || '[]'); } catch { return []; }
+}
+function remember(ids) {
+  try { localStorage.setItem(SEEN, JSON.stringify(ids.slice(-50))); } catch { /* storage off: may notify again next load */ }
+}
+
+function notifyCare() {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  const done = seen();
+  const fresh = (care()?.incidents ?? []).filter((x) => !done.includes(x.id));
+  fresh.forEach((x) => {
+    try { new Notification('Care alert', { body: x.text, tag: x.id }); } catch { /* refused by the browser */ }
+  });
+  if (fresh.length) remember(done.concat(fresh.map((x) => x.id)));
+}
+
+export function careBanner() {
+  const inc = care()?.incidents ?? [];
+  if (!inc.length) return null;
+  const b = el('div', 'care-banner');
+  b.setAttribute('role', 'alert');
+  inc.forEach((x) => b.append(btn(x.text + (x.since ? `, ${minutes(x.since)}` : ''), 'care-banner-line', () => go(`care/${encodeURIComponent(x.client)}`))));
+  if ('Notification' in window && Notification.permission === 'default') {
+    b.append(btn('Turn on notices', 'text-btn', () => Notification.requestPermission().then(notifyCare)));
+  }
+  notifyCare();
+  return b;
+}
+
+export function renderCare(page, key) {
+  const s = care();
+  const one = key ? (s?.clients ?? []).find((c) => c.key === key) : null;
+  page.append(crumbs([{ label: 'Overview', path: 'overview' }, { label: 'Care', path: one ? 'care' : '' }, ...(one ? [{ label: one.domain }] : [])]));
+  if (!one) {
+    page.append(head('Care clients', s?.at ? `Checked ${ago(s.at)} ago · UptimeRobot every 5 minutes, kc-care daily` : 'Waiting for the care collector'));
+    const b = careBanner();
+    if (b) page.append(b);
+    const wrap = el('div', 'table-wrap');
+    const table = el('table', 'care-table');
+    const hr = el('tr');
+    ['Client', 'Status', 'Response', '7 days', '30 days', 'Alerts', 'SSL'].forEach((x) => hr.append(el('th', '', x)));
+    const thead = el('thead');
+    thead.append(hr);
+    const body = el('tbody');
+    (s?.clients ?? []).forEach((c) => {
+      const r = el('tr');
+      r.addEventListener('click', () => go(`care/${encodeURIComponent(c.key)}`));
+      const name = el('td');
+      add(name, el('i', `care-dot ${c.status}`), el('span', '', c.domain));
+      const st = el('td');
+      st.append(pill(CARE_PILL[c.status]));
+      r.append(name, st, el('td', '', careResponse(c)), el('td', '', pct(c.uptime_7)), el('td', '', pct(c.uptime_30)),
+        el('td', '', String(c.alert_count ?? '–')), el('td', '', c.ssl_days != null ? `${c.ssl_days} d` : '–'));
+      body.append(r);
+    });
+    add(table, thead, body);
+    wrap.append(table);
+    skeleton(wrap, !state.snap);
+    if (state.snap && !s?.clients?.length) wrap.append(el('p', 'agenda-empty', 'No care data yet.'));
+    page.append(wrap);
+    return;
+  }
+  page.append(head(one.domain, `${one.key} · ${one.status}`));
+  const grid = el('div', 'project-grid');
+  const facts = card('Health');
+  [['Monitor', one.monitor ?? 'not in UptimeRobot'], ['Response', careResponse(one)], ['Uptime 7 days', pct(one.uptime_7)],
+    ['Uptime 30 days', pct(one.uptime_30)], ['SSL', one.ssl_days != null ? `${one.ssl_days} days left` : '–']].forEach(([k, v]) => {
+    const r = el('div', 'finance-row');
+    add(r, el('span', '', k), el('b', '', String(v)));
+    facts.append(r);
+  });
+  facts.append(link('Open site', 'text-btn', `https://${one.domain}`));
+  const alerts = card('Open alerts');
+  if (!one.alerts.length) alerts.append(el('p', 'agenda-empty', one.alert_count == null ? 'GitHub issues could not be read.' : 'No open alerts.'));
+  one.alerts.forEach((a) => {
+    const t = `#${a.number} ${a.title}${a.critical ? ' (critical)' : ''}`;
+    alerts.append(a.url ? link(t, 'news-link', a.url) : el('p', 'news-link', t));
+  });
+  add(grid, facts, alerts);
+  page.append(grid);
 }

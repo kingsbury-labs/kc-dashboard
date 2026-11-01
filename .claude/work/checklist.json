@@ -634,8 +634,18 @@
     "id": "115",
     "title": "Cockpit Care tab: care-plan clients at a glance, alerts when down",
     "brief": ".claude/work/115-cockpit-care/brief.md",
-    "start_sha": "5f57c1cbb1c0e183b46b6c1f96186ba152dddb48",
-    "passes": false
+    "start_sha": "8809193137f8d03e2de4640cad2d53d2cd329787",
+    "passes": true,
+    "scope_ok": {
+      "at": "2026-11-01T20:37:42.541Z",
+      "start_sha": "8809193137f8d03e2de4640cad2d53d2cd329787",
+      "mutation_evidence": true,
+      "tree": "614df64ae3bc6eaa4993fd313328d0f10c241c6512685b880531ab8254a3f61b",
+      "size": "Risky"
+    },
+    "verified_at": "2026-11-01T20:38:35.524Z",
+    "tree": "614df64ae3bc6eaa4993fd313328d0f10c241c6512685b880531ab8254a3f61b",
+    "gate": "full"
   },
   {
     "id": "110",
