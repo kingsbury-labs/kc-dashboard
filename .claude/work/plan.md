@@ -1398,6 +1398,23 @@ LOGOUT; no source file under `src/Mail/` contains STORE, COPY, MOVE, EXPUNGE,
 APPEND or SELECT; the app password never appears in the log or the API output;
 a follow-up write without the token is refused.
 
+### 121. Cockpit hero rebuilt to the approved concept, loose layout fixed (Normal)
+- Role: implementer, Sonnet. Depends: 119. Runs before 120.
+
+Rob on 119: "The hero is balls." He approved concept.html in the card folder on
+2026-11-01: clock leads, weather right, plan limits as one band of four tiles,
+Cas bar and Google search on one row, Find in the rail, no voice chip on the
+search edge, kc-finance hides empty figures, Agenda takes one column.
+
+Done-test: `c:\xampp\php\php.exe tests/run.php --filter Cockpit` passes, including new
+CockpitHero tests proving: the hero has the clock, weather, a limits band of
+exactly four tiles, and a row holding the Cas bar and Google search; the
+greeting has no "need you" text; an unknown limit renders "No reading yet" and
+no bar fill; the page has no `.voice-line` chip outside the Cas bar; the Find
+input is no longer in the top bar and a rail button opens the finder; the
+finance strip renders no row whose value is missing; the Agenda card is not
+full width in the 1080x1920 query.
+
 ### 119. Cockpit fitted to monitor 2: a hero on top, no dead space (Normal)
 - Role: implementer, Sonnet. Depends: 110, 115.
 

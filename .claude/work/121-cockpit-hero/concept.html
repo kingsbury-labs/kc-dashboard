@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cockpit hero concept</title>
+<link rel="stylesheet" href="http://127.0.0.1:8787/cockpit/cockpit.css">
+<style>
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans)}
+.rail{position:fixed;inset:0 auto 0 0;width:72px;display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 8px;border-right:1px solid var(--line);background:rgba(18,20,24,.96)}
+.rail .brand{display:grid}
+.rail .nav-btn{width:54px;height:52px}
+.find-btn{color:var(--muted)}
+.find-btn kbd{display:block;margin-top:2px;font:500 10px var(--sans);color:var(--dim)}
+main{margin-left:72px;padding:32px 36px 0}
+
+/* One grid: clock leads, weather answers it, then the limits band, then the two inputs. */
+.hero{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);grid-template-rows:auto auto auto;column-gap:40px;row-gap:26px}
+.clock{display:flex;align-items:flex-start;gap:10px;font:300 148px/.86 var(--head);letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+.clock small{font:400 34px/1 var(--head);letter-spacing:0;color:var(--muted);margin-top:14px}
+.day{margin:18px 0 0;font:400 30px/1.25 var(--head);color:#dfe3e8}
+.day span{display:block;color:var(--muted)}
+
+.wx{display:grid;align-content:start;gap:6px;padding-top:6px}
+.wx-now{display:flex;align-items:flex-start;gap:18px}
+.wx-temp{font:300 100px/.86 var(--head);letter-spacing:-.04em}
+.wx-copy{padding-top:8px}
+.wx-copy b{display:block;font:500 28px/1.1 var(--head)}
+.wx-copy span{display:block;margin-top:6px;font-size:20px;color:var(--muted)}
+.wx-range{margin-top:14px;font-size:21px;color:#c9ced5}
+.wx-hours{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}
+.wx-hours div{font:500 24px/1.2 var(--head);font-variant-numeric:tabular-nums}
+.wx-hours small{display:block;font:400 16px var(--sans);color:var(--muted)}
+
+.limits{grid-column:1/-1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;padding:18px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.limit{padding:0 24px;border-left:1px solid var(--line)}
+.limit:first-child{padding-left:0;border-left:0}
+.limit-label{font-size:18px;color:#c3c9d1}
+.limit-label b{font-weight:600;color:var(--text)}
+.limit-val{margin-top:6px;font:500 36px/1 var(--head);font-variant-numeric:tabular-nums}
+.limit-val.none{font:400 20px/36px var(--sans);color:var(--muted)}
+.bar{height:6px;margin-top:12px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden}
+.bar i{display:block;height:100%;border-radius:99px;background:var(--teal)}
+.limit-label small{margin-left:6px;font-size:15px;color:var(--dim)}
+.limit-val.none+.bar{background:none;border-top:1px dashed rgba(255,255,255,.12);height:0;margin-top:14px}
+
+.asks{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:16px}
+.box{display:flex;align-items:center;gap:14px;height:68px;padding:0 14px 0 18px;border:1px solid rgba(255,255,255,.1);border-radius:16px;background:var(--s1);font-size:22px;color:var(--muted)}
+.box svg{width:26px;height:26px;flex:none;stroke:currentColor;fill:none;stroke-width:1.7}
+.box .grow{flex:1}
+.cas-orb{width:40px;height:40px;flex:none;border-radius:50%;background:radial-gradient(circle at 35% 30%,#7ff5e6,#14917f 60%,#0b4d45)}
+.voice-toggle{height:40px;padding:0 14px;border:1px solid var(--line);border-radius:12px;background:var(--s2);color:var(--muted);font:500 16px var(--sans)}
+.mic{width:48px;height:48px;display:grid;place-items:center;border-radius:12px;background:var(--teal);color:#062b26}
+.mic svg{width:22px;height:22px}
+
+.below{margin-top:36px;display:grid;grid-template-columns:1fr 1fr;gap:16px;opacity:.35}
+.below div{height:260px;border:1px solid var(--line);border-radius:16px;background:var(--s1);padding:20px;font:500 20px var(--head)}
+.note{margin:28px 0 40px;font-size:15px;color:var(--dim)}
+</style>
+</head>
+<body>
+<nav class="rail" aria-label="Cockpit">
+  <div class="brand">KC</div>
+  <button class="nav-btn find-btn" aria-label="Find a project session or file (Ctrl K)"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg></button>
+  <button class="nav-btn active" aria-label="Overview"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg></button>
+</nav>
+<main>
+  <section class="hero">
+    <div>
+      <div class="clock">4:12<small>PM</small></div>
+      <p class="day">Sunday, November 1<span>Good afternoon Rob</span></p>
+    </div>
+    <div class="wx">
+      <div class="wx-now">
+        <div class="wx-temp">16°</div>
+        <div class="wx-copy"><b>Clear</b><span>Arnprior</span></div>
+      </div>
+      <div class="wx-range">High 17° · overnight low −5°</div>
+      <div class="wx-hours">
+        <div><small>5 PM</small>13°</div>
+        <div><small>6 PM</small>13°</div>
+        <div><small>7 PM</small>12°</div>
+        <div><small>8 PM</small>10°</div>
+        <div><small>9 PM</small>9°</div>
+      </div>
+    </div>
+    <div class="limits">
+      <div class="limit"><div class="limit-label"><b>Claude</b> 5-hour</div><div class="limit-val none">No reading yet</div><div class="bar"></div></div>
+      <div class="limit"><div class="limit-label"><b>Claude</b> week</div><div class="limit-val">9%</div><div class="bar"><i style="width:9%"></i></div></div>
+      <div class="limit"><div class="limit-label"><b>Codex</b> 5-hour<small>2h ago</small></div><div class="limit-val">23%</div><div class="bar"><i style="width:23%"></i></div></div>
+      <div class="limit"><div class="limit-label"><b>Codex</b> week<small>2h ago</small></div><div class="limit-val">4%</div><div class="bar"><i style="width:4%"></i></div></div>
+    </div>
+    <div class="asks">
+      <div class="box"><span class="cas-orb"></span><span class="grow">Ask Cas to check anything</span><button class="voice-toggle">Voice off</button><span class="mic"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></span></div>
+      <div class="box"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg><span class="grow">Search Google</span></div>
+    </div>
+  </section>
+  <div class="below"><div>Needs you</div><div>Agent talk</div></div>
+  <p class="note">Concept for card 121. The cards below the hero are placeholders; their fixes are in the brief.</p>
+</main>
+</body>
+</html>
