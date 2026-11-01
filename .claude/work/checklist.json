@@ -566,7 +566,7 @@
     "id": "112",
     "title": "Cockpit tuned for portrait, finance alerts readable",
     "brief": ".claude/work/112-cockpit-portrait/brief.md",
-    "start_sha": "",
+    "start_sha": "32c9b315c71191527f57a693d398d8f3510843f5",
     "passes": false
   }
 ]
