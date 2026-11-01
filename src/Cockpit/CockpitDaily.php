@@ -11,6 +11,7 @@ require_once __DIR__ . '/../Collectors/Finance.php';
 class CockpitDaily
 {
     public const NEWS = 6;
+    public const FINANCE_LINES = 8;
     public const USAGE_FILES = 40;
     public const USAGE_TAIL = 1048576;
     public const USAGE_STALE = 1800;
@@ -41,11 +42,31 @@ class CockpitDaily
         return $out;
     }
 
-    // What Finance collects, read only. A figure the file does not carry is null, shown as a dash.
-    public static function finance(string $path, int $now): array
+    /**
+     * kc-finance's alerts.json, read only and tolerantly: Finance::collect refuses the whole file for one bad fact,
+     * which the collector run needs and the panel does not. A fact without id, kind or subject is skipped, a bad
+     * date or amount is null. A figure the file does not carry is null, shown as a dash.
+     */
+    public static function finance(string $path, int $now): ?array
     {
-        $f = new Finance($path);
-        $facts = $f->collect($now);
+        if (!is_file($path) || filesize($path) > Finance::MAX_BYTES) {
+            return null;
+        }
+        $data = json_decode((string) file_get_contents($path), true, 16);
+        if (!is_array($data) || !is_array($data['facts'] ?? null)) {
+            return null;
+        }
+        $facts = [];
+        foreach ($data['facts'] as $x) {
+            $ok = fn($k) => is_array($x) && is_string($x[$k] ?? null) && $x[$k] !== '';
+            if (!$ok('id') || !$ok('kind') || !$ok('subject')) {
+                continue;
+            }
+            $due = is_string($x['due_date'] ?? null) && preg_match('/^\d{4}-\d{2}-\d{2}\z/', $x['due_date']) ? $x['due_date'] : null;
+            $facts[] = ['kind' => $x['kind'], 'subject' => NeverShow::text($x['subject'], null, 120), 'due_date' => $due,
+                'amount_cents' => is_int($x['amount_cents'] ?? null) ? $x['amount_cents'] : null];
+        }
+        $generated = is_string($data['generated_at'] ?? null) ? strtotime($data['generated_at']) : false;
         $amount = function (string $kind) use ($facts): ?int {
             foreach ($facts as $x) {
                 if (preg_match($kind, $x['kind']) && is_int($x['amount_cents'])) {
@@ -65,17 +86,20 @@ class CockpitDaily
             return $best === null ? null : ['subject' => $best['subject'], 'due' => $best['due_date'], 'amount_cents' => $best['amount_cents']];
         };
         return [
-            'at' => $f->lastOkAt($now),
+            'at' => $generated === false ? $now : $generated,
             'receivables_cents' => $amount('/receivable/i'),
             'reserve_cents' => $amount('/reserve/i'),
             'next_due' => $pick(fn($x) => $x['due_date'] >= $today && !preg_match('/overdue/i', $x['kind'])),
             'oldest_overdue' => $pick(fn($x) => (bool) preg_match('/overdue/i', $x['kind'])),
             'alerts' => count($facts),
+            'lines' => array_map(fn($x) => ['kind' => str_replace(['-', '_'], ' ', $x['kind']), 'subject' => $x['subject'], 'date' => $x['due_date']],
+                array_slice(array_values(array_filter($facts, fn($x) => !preg_match('/receivable|reserve/i', $x['kind']))), 0, self::FINANCE_LINES)),
         ];
     }
 
     /**
-     * The newest rate_limit_event across stream files (*.jsonl in each folder and one level down), newest file first;
+     * The newest rate_limit_event across stream files (*.jsonl in each folder, one level down, and in the subagents
+     * folders of a transcripts tree: <dir>/<project>/<session>/subagents/*.jsonl), newest file first;
      * within a file its last event. A reading's time is its file's modified time. Null when none carries one.
      */
     public static function usage(array $dirs, int $now): ?array
@@ -83,7 +107,7 @@ class CockpitDaily
         $files = [];
         foreach ($dirs as $d) {
             if (is_string($d) && is_dir($d)) {
-                foreach (array_merge(glob($d . '/*.jsonl') ?: [], glob($d . '/*/*.jsonl') ?: []) as $f) {
+                foreach (array_merge(glob($d . '/*.jsonl') ?: [], glob($d . '/*/*.jsonl') ?: [], glob($d . '/*/*/subagents/*.jsonl') ?: []) as $f) {
                     $files[$f] = (int) @filemtime($f);
                 }
             }

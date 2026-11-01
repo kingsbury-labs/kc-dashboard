@@ -9,7 +9,18 @@ const RETRY_MS = 3000;
 
 const token = document.querySelector('meta[name="kc-token"]')?.content ?? '';
 const listeners = new Set();
-export const state = { snap: null, now: null, error: null, at: 0 };
+const SKELETON_MS = 4000;
+export const state = { snap: null, now: null, error: null, at: 0, late: false };
+
+// Skeletons hold only for the first 4 seconds; after that, or on an error, the panels say so in words.
+export function waiting() {
+  if (state.snap) return '';
+  return state.error ? 'Could not load, retrying' : state.late ? 'Still loading' : 'Loading.';
+}
+
+export function skeletonOn() {
+  return !state.snap && !state.late && !state.error;
+}
 
 export function subscribe(fn) {
   listeners.add(fn);
@@ -102,6 +113,10 @@ function stop() {
 }
 
 export function begin() {
+  setTimeout(() => {
+    state.late = true;
+    if (!state.snap) emit();
+  }, SKELETON_MS);
   document.addEventListener('visibilitychange', () => (document.visibilityState === 'visible' ? start() : stop()));
   if (document.visibilityState === 'visible') start();
 }

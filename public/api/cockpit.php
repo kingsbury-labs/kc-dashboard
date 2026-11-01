@@ -1,37 +1,34 @@
 <?php
 require_once __DIR__ . '/../../src/bootstrap.php';
 require_once __DIR__ . '/../../src/Http/Token.php';
-require_once __DIR__ . '/../../src/View.php';
-require_once __DIR__ . '/../../src/Cockpit/CockpitApi.php';
+require_once __DIR__ . '/../../src/Cockpit/CockpitDeps.php';
 
-// The cockpit's snapshot. CockpitApi::handle runs the guard and the token before any of these closures, so a refused
-// request opens no database and lists no folder. Nothing here starts a process or touches the network: the weather
-// is the cache bin/collect-facts.php writes.
+// The cockpit's snapshot, answered from data/cockpit-cache.json. CockpitApi::handle runs the guard and the token
+// before any of these closures, so a refused request opens no database and lists no folder. Nothing here starts a
+// process or touches the network: the weather is the cache bin/collect-facts.php writes. A cache past its ttl is
+// rebuilt after the response has gone, so the page never waits on the index.
 $data = __DIR__ . '/../../data';
 $log = new Log($data . '/app.log');
-$config = require __DIR__ . '/../../config/running.php';
-$collectors = require __DIR__ . '/../../config/collectors.php';
-$projects = function () use ($log): array {
-    $list = ProjectList::fromConfig($log);
-    $out = [];
-    foreach ($list->names() as $name) {
-        $out[$name] = rtrim($list->resolve($name)['parent'], '\\') . '\\' . $name;
-    }
-    return $out;
-};
-Response::emit(CockpitApi::handle($_SERVER, fn(): string => Token::load($data . '/token', $log), [
-    'index' => fn(): TranscriptIndex => new TranscriptIndex($data . '/cockpit.sqlite', (string) $config['transcripts_dir'], $log),
-    'projects' => $projects,
-    'now' => fn(): array => View::readSnapshot($data . '/now-cache.json'),
-    'daily' => [
-        'weather' => $data . '/' . $collectors['weather']['cache'],
-        'news' => function () use ($data): PDO {
-            $pdo = Db::open($data . '/dashboard.sqlite');
-            Db::migrate($pdo);
-            return $pdo;
-        },
-        'finance' => (string) $collectors['finance_path'],
-        'usage' => fn(): array => array_merge(array_map(fn(string $d): string => $d . '\\.claude\\work\\loop', array_values($projects())),
-            [(string) $config['transcripts_dir']]),
-    ],
-], $log));
+$deps = CockpitDeps::fromConfig($data, $log);
+$answer = CockpitApi::handle($_SERVER, fn(): string => Token::load($data . '/token', $log), $deps, $log);
+if ($answer[0] !== 200 || !CockpitApi::stale($deps)) {
+    Response::emit($answer);
+    return;
+}
+ignore_user_abort(true);
+set_time_limit(60);
+$answer[1]['Content-Length'] = (string) strlen($answer[2]);
+$answer[1]['Connection'] = 'close';
+Response::emit($answer);
+while (ob_get_level() > 0) {
+    ob_end_flush();
+}
+flush();
+if (function_exists('fastcgi_finish_request')) {
+    fastcgi_finish_request();
+}
+try {
+    CockpitApi::refresh($deps, $log);
+} catch (Throwable $e) {
+    $log->exception($e, ['where' => 'cockpit refresh']);
+}

@@ -15,6 +15,8 @@ require_once __DIR__ . '/../src/Collectors/SslExpiry.php';
 require_once __DIR__ . '/../src/Collectors/EndOfLife.php';
 require_once __DIR__ . '/../src/Collectors/ClientDates.php';
 require_once __DIR__ . '/../src/Collectors/Finance.php';
+require_once __DIR__ . '/../src/Collectors/Weather.php';
+require_once __DIR__ . '/../src/Cockpit/CockpitDeps.php';
 
 $root = dirname(__DIR__);
 $opts = ['db' => $root . '/data/dashboard.sqlite', 'log' => $root . '/data/collect-facts.log'];
@@ -35,7 +37,14 @@ try {
         new EndOfLife(new CurlHttpClient(), $cfg['eol_products']),
         new ClientDates($clients['dir']),
         new Finance($cfg['finance_path'], $cfg['finance_aliases']),
+        new Weather(new CurlHttpClient(), $root . '/data/' . $cfg['weather']['cache'], $cfg['weather']['latitude'], $cfg['weather']['longitude']),
     ], new FactStore($pdo), $log, time());
+    // The cockpit's snapshot cache, so the page has a fresh one even when no tab has asked for a while.
+    try {
+        CockpitApi::refresh(CockpitDeps::fromConfig($root . '/data', new Log($root . '/data/app.log')));
+    } catch (Throwable $e) {
+        $log->exception($e, ['where' => 'cockpit cache']);
+    }
 } catch (Throwable $e) {
     $log->exception($e, ['where' => 'collect-facts']);
     fwrite(STDERR, "collect-facts: failed\n");

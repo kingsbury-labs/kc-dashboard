@@ -2,7 +2,7 @@
 // Agent panels, weather, plan limits, finance and news are live; calendar, email and follow-ups keep their final
 // shape and say "Not connected yet" until card 109 gives them a source.
 import { el, add, btn, card, pill, link, go, ago, clock, icon, notConnected, $ } from './dom.js';
-import { state, liveState } from './data.js';
+import { state, liveState, waiting, skeletonOn } from './data.js';
 
 const STEPS = ['Work', 'Gate', 'Audit', 'Done'];
 const PILL = { working: 'working', waiting: 'waiting', done: 'done', failed: 'failed', idle: 'idle' };
@@ -46,19 +46,28 @@ function sessionPath(a) {
   return `session/${encodeURIComponent(a.session)}`;
 }
 
+const NEEDS_SHOWN = 6;
+let needsOpen = false;
 export function needsCard() {
   const s = snap();
   const c = card('Needs you', 'needs-card');
   const list = el('div', 'need-list');
   c.querySelector('.card-head').append(pill(s.needs.length ? 'waiting' : 'done'));
-  if (!s.needs.length) list.append(el('p', 'agenda-empty', state.snap ? 'Nothing needs you.' : 'Loading.'));
-  s.needs.forEach((x) => {
+  if (!s.needs.length) list.append(el('p', 'agenda-empty', state.snap ? 'Nothing needs you.' : waiting()));
+  // The API sends them newest first; the first NEEDS_SHOWN until Rob asks for the rest.
+  s.needs.slice(0, needsOpen ? s.needs.length : NEEDS_SHOWN).forEach((x) => {
     const r = btn('', 'need clickable', () => go(x.session ? `session/${encodeURIComponent(x.session)}` : `project/${encodeURIComponent(x.project ?? '')}`));
     add(r, el('b', '', x.title), el('time', '', ago(x.ts)), el('p', '', x.detail));
     list.append(r);
   });
   c.append(list);
-  skeleton(c, !state.snap);
+  if (s.needs.length > NEEDS_SHOWN) {
+    c.append(btn(needsOpen ? 'Show fewer' : `${s.needs.length} waiting, show all`, 'text-btn', () => {
+      needsOpen = !needsOpen;
+      c.replaceWith(needsCard());
+    }));
+  }
+  skeleton(c, skeletonOn());
   return c;
 }
 
@@ -67,7 +76,7 @@ export function agentsCard() {
   const c = card('Working now', 'agents-card');
   c.querySelector('.card-head').append(el('span', 'subtle', `${working.length} active`));
   const list = el('div', 'agent-list');
-  if (!working.length) list.append(el('p', 'agenda-empty', state.snap ? 'No agent is working.' : 'Loading.'));
+  if (!working.length) list.append(el('p', 'agenda-empty', state.snap ? 'No agent is working.' : waiting()));
   working.slice(0, 12).forEach((a) => {
     const r = el('div', 'agent-row clickable');
     const main = btn('', 'agent-main', () => go(sessionPath(a)));
@@ -80,7 +89,7 @@ export function agentsCard() {
     list.append(r);
   });
   c.append(list);
-  skeleton(c, !state.snap);
+  skeleton(c, skeletonOn());
   return c;
 }
 
@@ -94,7 +103,7 @@ export function agentTalkCard() {
     feed.replaceChildren();
     const items = snap().talk.filter((x) => talkFilter === 'All' || (talkFilter === 'Hand-offs' && x.kind === 'agent')
       || (talkFilter === 'Questions' && x.kind === 'question') || (talkFilter === 'Needs Rob' && x.cas === 'Needs Rob'));
-    if (!items.length) feed.append(el('p', 'agenda-empty', state.snap ? 'No agent talk in the last 7 days.' : 'Loading.'));
+    if (!items.length) feed.append(el('p', 'agenda-empty', state.snap ? 'No agent talk in the last 7 days.' : waiting()));
     items.slice(0, 24).forEach((x) => {
       const r = el('article', 'talk-item');
       const route = el('div', 'talk-route');
@@ -118,7 +127,7 @@ export function agentTalkCard() {
   })));
   add(c, filters, feed);
   draw();
-  skeleton(c, !state.snap);
+  skeleton(c, skeletonOn());
   return c;
 }
 
@@ -140,13 +149,15 @@ function planCard() {
     const r = el('div', 'limit-row');
     const bar = el('div', 'thin-bar');
     const fill = el('i');
-    if (w) fill.style.width = `${Math.min(100, w.percent)}%`;
+    // Unknown is an empty bar, never a full one.
+    fill.style.width = w ? `${Math.min(100, Math.max(0, w.percent))}%` : '0%';
     bar.append(fill);
     add(r, el('span', '', x), bar, el('b', '', w ? `${w.percent}%` : '--'), w?.resets ? el('small', 'subtle', `resets ${clock(w.resets)}`) : null);
     c.append(r);
   });
-  skeleton(c, !state.snap);
-  return u || !state.snap ? c : notConnected(c, 'No reading yet');
+  skeleton(c, skeletonOn());
+  if (!state.snap) return skeletonOn() ? c : notConnected(c, waiting());
+  return u ? c : notConnected(c, 'No reading yet');
 }
 
 function weatherCard() {
@@ -158,7 +169,7 @@ function weatherCard() {
   const t = el('div', 'weather-top');
   const copy = el('div', 'weather-copy');
   add(copy, el('b', '', w?.condition || 'Weather'),
-    el('small', '', w ? `High ${deg(w.high)} · Low ${deg(w.low)} · ${ago(w.at)} ago` : state.snap ? 'No reading yet' : 'Loading.'));
+    el('small', '', w ? `High ${deg(w.high)} · Low ${deg(w.low)} · ${ago(w.at)} ago` : state.snap ? 'No reading yet' : waiting()));
   add(t, el('div', 'weather-temp', deg(w?.temp)), copy);
   a.append(t);
   if (w?.hours?.length) {
@@ -167,7 +178,7 @@ function weatherCard() {
     a.append(hours);
   }
   c.append(a);
-  skeleton(c, !state.snap);
+  skeleton(c, skeletonOn());
   return c;
 }
 
@@ -181,9 +192,9 @@ function newsCard() {
     add(r, el('b', '', x.title), el('small', '', `${x.source} · ${ago(x.ts)}`));
     list.append(r);
   });
-  if (!list.childElementCount) list.append(el('p', 'agenda-empty', state.snap ? 'No AI news stored yet.' : 'Loading.'));
+  if (!list.childElementCount) list.append(el('p', 'agenda-empty', state.snap ? 'No AI news stored yet.' : waiting()));
   c.append(list);
-  skeleton(c, !state.snap);
+  skeleton(c, skeletonOn());
   return c;
 }
 
@@ -196,8 +207,14 @@ function financeCard() {
   [['Receivables', money(f?.receivables_cents)], ['Next due', due(f?.next_due)], ['Reserve', money(f?.reserve_cents)],
     ['Oldest overdue', due(f?.oldest_overdue)]].forEach(([k, v]) => add(rows, add(el('div', 'finance-row'), el('span', '', k), el('b', '', v))));
   c.append(rows);
-  skeleton(c, !state.snap);
-  return f || !state.snap ? c : notConnected(c, 'Finance file not readable');
+  if (f?.lines?.length) {
+    const lines = el('div', 'finance-lines');
+    f.lines.forEach((x) => add(lines, add(el('div', 'finance-line'), el('span', '', x.kind), el('b', '', x.subject), el('small', '', x.date ?? '–'))));
+    c.append(lines);
+  }
+  skeleton(c, skeletonOn());
+  if (!state.snap) return skeletonOn() ? c : notConnected(c, waiting());
+  return f ? c : notConnected(c, 'Finance file not readable');
 }
 
 function calendarCard() {
@@ -451,6 +468,6 @@ export function renderAgents(page) {
   apply();
   add(table, thead, body);
   wrap.append(table);
-  if (!list.length) wrap.append(el('p', 'agenda-empty', state.snap ? 'No agents in the last 7 days.' : 'Loading.'));
+  if (!list.length) wrap.append(el('p', 'agenda-empty', state.snap ? 'No agents in the last 7 days.' : waiting()));
   page.append(wrap);
 }

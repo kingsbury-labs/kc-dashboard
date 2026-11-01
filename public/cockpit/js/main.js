@@ -1,4 +1,4 @@
-// The cockpit shell: rail, top bar with Find and the clock, the Cas bar, and the hash router. Each new snapshot
+// The cockpit shell: rail, top bar with Find and the date and time as text, the Cas bar, and the hash router. Each new snapshot
 // redraws the current screen; the shell, Find and the Cas bar stay put so typing is never interrupted.
 import { el, add, btn, icon, go, $, D } from './dom.js';
 import { begin, subscribe, findItems, state } from './data.js';
@@ -134,17 +134,20 @@ function shell() {
   rail.append(el('div', 'nav-spacer'));
   const main = el('div', 'shell');
   const top = el('header', 'topbar');
-  const time = btn('', 'range-btn clock');
-  time.disabled = true;
-  add(top, el('div', 'mobile-mark', 'KC Cockpit'), findBox(), time, el('div', 'avatar', 'RB'));
+  // Plain muted text, "Sunday, November 1 · 1:58 PM" (Rob, 2026-11-01: no pills).
+  const time = el('time', 'topbar-time');
+  add(top, el('div', 'mobile-mark', 'KC Cockpit'), findBox(), time);
   page = el('main', 'page');
   page.id = 'page';
   add(main, top, page);
   app.replaceChildren(rail, main);
   D.body.append(commandBar());
-  const tick = () => { time.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }); };
+  const tick = () => {
+    const d = new Date();
+    time.textContent = `${d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} · ${d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`;
+  };
   tick();
-  setInterval(tick, 1000);
+  setInterval(tick, 15000);
   return buttons;
 }
 

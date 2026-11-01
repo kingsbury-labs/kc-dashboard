@@ -532,8 +532,18 @@
     "id": "111",
     "title": "Cockpit fixes from the first live look",
     "brief": ".claude/work/111-cockpit-fixes/brief.md",
-    "start_sha": "cd0534261deeedec91b8fac2a51558d6f3653109",
-    "passes": false
+    "start_sha": "8d27b7e6c8b36c7d6ba33f680df4e9aef0164548",
+    "passes": true,
+    "scope_ok": {
+      "at": "2026-11-01T19:17:42.981Z",
+      "start_sha": "8d27b7e6c8b36c7d6ba33f680df4e9aef0164548",
+      "mutation_evidence": true,
+      "tree": "89356da569f7be938b01df489422ac7fa47422e51d35b6fc26722c120e0c35ef",
+      "size": "Risky"
+    },
+    "verified_at": "2026-11-01T19:19:29.487Z",
+    "tree": "89356da569f7be938b01df489422ac7fa47422e51d35b6fc26722c120e0c35ef",
+    "gate": "full"
   },
   {
     "id": "109",

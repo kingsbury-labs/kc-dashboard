@@ -16,11 +16,12 @@ class CockpitApi
 {
     public const LIVE_SECONDS = 180;
     public const STEPS = ['work' => 1, 'gate' => 2, 'audit' => 3, 'push' => 4, 'done' => 4];
+    public const TTL = 20;
 
     /**
      * $deps: 'index' => fn(): TranscriptIndex, 'projects' => fn(): array (name => folder), 'now' => fn(): array
      * (a saved now.php snapshot), 'clock' => fn(): int, 'budget' => float seconds of indexing per request,
-     * 'daily' => CockpitDaily's deps.
+     * 'daily' => CockpitDaily's deps, 'cache' => snapshot cache file (answer from it, see cached()), 'ttl' => seconds.
      */
     public static function handle(array $server, Closure $token, array $deps, ?Log $log = null): array
     {
@@ -29,11 +30,60 @@ class CockpitApi
                 || !(new RequestGuard($token()))->checkApiRead($server)) {
                 return Response::json(403, ['error' => 'forbidden']);
             }
-            return Response::json(200, self::snapshot($deps, $log));
+            return Response::json(200, isset($deps['cache']) ? self::cached($deps, $log) : self::snapshot($deps, $log));
         } catch (Throwable $e) {
             $log?->exception($e, ['where' => 'cockpit']);
             return Response::error($e);
         }
+    }
+
+    /**
+     * The snapshot from the cache file, never indexing on the way: listing the transcripts alone took 2.7 s
+     * (measured 2026-11-01), a whole build 10 s. Only a missing or unreadable cache is built inline. One older than
+     * its ttl is still served, whatever its age; stale() then says so and refresh() rebuilds it after the response,
+     * so the next poll, 10 s later, has it fresh.
+     */
+    public static function cached(array $deps, ?Log $log = null): array
+    {
+        $snap = self::readCache((string) $deps['cache']);
+        if ($snap === null) {
+            $snap = self::refresh($deps, $log) ?? self::snapshot($deps, $log);
+        }
+        return $snap;
+    }
+
+    public static function stale(array $deps): bool
+    {
+        $now = isset($deps['clock']) ? ($deps['clock'])() : time();
+        $snap = self::readCache((string) $deps['cache']);
+        return $snap === null || $now - (int) $snap['at'] > (int) ($deps['ttl'] ?? self::TTL);
+    }
+
+    // Builds the snapshot and writes the cache whole (temp file, then rename). Null when another build holds the lock.
+    public static function refresh(array $deps, ?Log $log = null): ?array
+    {
+        $path = (string) $deps['cache'];
+        $lock = @fopen($path . '.lock', 'c');
+        if ($lock === false || !flock($lock, LOCK_EX | LOCK_NB)) {
+            return null;
+        }
+        try {
+            $snap = self::snapshot($deps, $log);
+            $tmp = $path . '.' . getmypid() . '.tmp';
+            if (@file_put_contents($tmp, json_encode($snap, JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE)) !== false) {
+                @rename($tmp, $path) || @unlink($tmp);
+            }
+            return $snap;
+        } finally {
+            flock($lock, LOCK_UN);
+            fclose($lock);
+        }
+    }
+
+    private static function readCache(string $path): ?array
+    {
+        $snap = json_decode((string) @file_get_contents($path), true);
+        return is_array($snap) && is_int($snap['at'] ?? null) ? $snap : null;
     }
 
     public static function snapshot(array $deps, ?Log $log = null): array
@@ -170,11 +220,19 @@ class CockpitApi
                 'to' => $m['kind'] === 'question' ? 'Rob' : self::label($to, (string) ($m['to_key'] ?? $m['agent_type'] ?? 'agent')),
                 'toKey' => (string) ($m['to_key'] ?? ''),
                 'project' => (string) ($from['project'] ?? $to['project'] ?? ''),
-                'text' => NeverShow::text((string) $m['text']),
+                'text' => self::briefLabel(NeverShow::text((string) $m['text'])),
                 'cas' => $cas,
             ];
         }
         return $out;
+    }
+
+    // A leading ...\.claude\work\14o-client-message-mail\brief.md becomes "card 14o, client message mail".
+    public static function briefLabel(string $text): string
+    {
+        $out = (string) preg_replace_callback('~^\s*(?:[A-Za-z]:)?[^\s]*?[\\\\/]\.claude[\\\\/]work[\\\\/]([\w.]+?)(?:-([\w.-]+))?[\\\\/]brief\.md\s*~',
+            fn($m) => 'card ' . $m[1] . (($m[2] ?? '') !== '' ? ', ' . str_replace('-', ' ', $m[2]) : '') . ' · ', $text, 1);
+        return str_ends_with($out, ' · ') ? substr($out, 0, -strlen(' · ')) : $out;
     }
 
     private static function label(?array $s, string $fallback): string
@@ -234,6 +292,7 @@ class CockpitApi
                 $out[] = ['kind' => 'question', 'title' => $t['text'], 'detail' => $t['from'], 'session' => explode(':', $t['fromKey'])[0], 'ts' => $t['ts']];
             }
         }
+        usort($out, fn($a, $b) => $b['ts'] <=> $a['ts']);
         return $out;
     }
 
