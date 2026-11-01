@@ -1,0 +1,3 @@
+- Read brief and sources. Next: write src/Mail/ImapReader.php, Summarizer.php, Collectors Calendar/Mail, Cockpit/CockpitDay, test.
+- Written: src/Mail/{ImapReader,Summarizer}.php, src/Collectors/{Calendar,Mail}.php, src/Cockpit/CockpitDay.php, CockpitApi/CockpitDeps edits, config/collectors.php, bin/collect-facts.php, public/api/cockpit.php POST, tests/CockpitDayTest.php + fixtures. --filter Cockpit 29/29 green.
+- JS (views.js, data.js postFollow) and css done. Next: mutation check (allowlist, redaction), result.md.

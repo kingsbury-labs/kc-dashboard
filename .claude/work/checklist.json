@@ -549,7 +549,17 @@
     "id": "109",
     "title": "Cockpit calendar, email summaries and follow-ups",
     "brief": ".claude/work/109-cockpit-day/brief.md",
-    "start_sha": "cd0534261deeedec91b8fac2a51558d6f3653109",
-    "passes": false
+    "start_sha": "1561135f46fc20b1d1b90e8ba20f25d69db7322c",
+    "passes": true,
+    "scope_ok": {
+      "at": "2026-11-01T19:30:23.323Z",
+      "start_sha": "1561135f46fc20b1d1b90e8ba20f25d69db7322c",
+      "mutation_evidence": true,
+      "tree": "211e62f5ac92c4b77c27f918916a988952f845b56476b7d95b6bc6163ba32102",
+      "size": "Risky"
+    },
+    "verified_at": "2026-11-01T19:32:07.880Z",
+    "tree": "211e62f5ac92c4b77c27f918916a988952f845b56476b7d95b6bc6163ba32102",
+    "gate": "full"
   }
 ]

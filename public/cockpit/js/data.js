@@ -46,13 +46,22 @@ async function poll() {
   emit();
 }
 
+// Adds to or ticks off the local follow-up list ({ add: text } or { done: id }); the answer's list goes straight
+// into the snapshot so the panel does not wait for the next cache rebuild.
+export async function postFollow(body) {
+  const res = await post(SNAPSHOT, JSON.stringify(body));
+  if (!res.ok) throw new Error(`follow-up ${res.status}`);
+  const items = (await res.json()).items;
+  if (state.snap?.day?.follow) state.snap.day.follow.items = items;
+  emit();
+}
+
+function post(url, body) {
+  return fetch(url, { method: 'POST', cache: 'no-store', headers: { 'Content-Type': 'application/json', 'X-KC-Token': token }, body });
+}
+
 async function ticket() {
-  const res = await fetch(STREAM, {
-    method: 'POST',
-    cache: 'no-store',
-    headers: { 'Content-Type': 'application/json', 'X-KC-Token': token },
-    body: '{}',
-  });
+  const res = await post(STREAM, '{}');
   if (!res.ok) throw new Error(`ticket ${res.status}`);
   return (await res.json()).ticket;
 }

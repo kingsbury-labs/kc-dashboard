@@ -16,6 +16,8 @@ require_once __DIR__ . '/../src/Collectors/EndOfLife.php';
 require_once __DIR__ . '/../src/Collectors/ClientDates.php';
 require_once __DIR__ . '/../src/Collectors/Finance.php';
 require_once __DIR__ . '/../src/Collectors/Weather.php';
+require_once __DIR__ . '/../src/Collectors/Calendar.php';
+require_once __DIR__ . '/../src/Collectors/Mail.php';
 require_once __DIR__ . '/../src/Cockpit/CockpitDeps.php';
 
 $root = dirname(__DIR__);
@@ -38,6 +40,9 @@ try {
         new ClientDates($clients['dir']),
         new Finance($cfg['finance_path'], $cfg['finance_aliases']),
         new Weather(new CurlHttpClient(), $root . '/data/' . $cfg['weather']['cache'], $cfg['weather']['latitude'], $cfg['weather']['longitude']),
+        new Calendar(new CurlHttpClient(), $cfg['calendar']['url_file'], $root . '/data/' . $cfg['calendar']['cache'], $cfg['calendar']['tz'], $log),
+        new Mail(fn(): ImapWire => new TlsWire(), (string) $cfg['mail']['gmail_user'], $cfg['mail']['password_file'],
+            Summarizer::ollama($cfg['mail']['ollama'], $cfg['mail']['model']), $root . '/data/' . $cfg['mail']['cache'], $log),
     ], new FactStore($pdo), $log, time());
     // The cockpit's snapshot cache, so the page has a fresh one even when no tab has asked for a while.
     try {

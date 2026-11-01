@@ -10,6 +10,12 @@ require_once __DIR__ . '/../../src/Cockpit/CockpitDeps.php';
 $data = __DIR__ . '/../../data';
 $log = new Log($data . '/app.log');
 $deps = CockpitDeps::fromConfig($data, $log);
+// POST adds to or ticks off the local follow-up list (CockpitDay::write, behind checkWrite).
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
+    Response::emit(CockpitDay::write($_SERVER, fn(): string => Token::load($data . '/token', $log),
+        fn(): string => (string) file_get_contents('php://input', false, null, 0, 4096), $deps['day']['follow'], time(), $log));
+    return;
+}
 $answer = CockpitApi::handle($_SERVER, fn(): string => Token::load($data . '/token', $log), $deps, $log);
 if ($answer[0] !== 200 || !CockpitApi::stale($deps)) {
     Response::emit($answer);

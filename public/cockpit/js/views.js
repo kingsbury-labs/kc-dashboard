@@ -1,8 +1,7 @@
 // The cockpit's screens, ported from the v4 concept with its demo data replaced by the snapshot from data.js.
-// Agent panels, weather, plan limits, finance and news are live; calendar, email and follow-ups keep their final
-// shape and say "Not connected yet" until card 109 gives them a source.
+// Every panel is live: agents, weather, plan limits, finance and news, and (card 109) agenda, email and follow-ups.
 import { el, add, btn, card, pill, link, go, ago, clock, icon, notConnected, $ } from './dom.js';
-import { state, liveState, waiting, skeletonOn } from './data.js';
+import { state, liveState, waiting, skeletonOn, postFollow } from './data.js';
 
 const STEPS = ['Work', 'Gate', 'Audit', 'Done'];
 const PILL = { working: 'working', waiting: 'waiting', done: 'done', failed: 'failed', idle: 'idle' };
@@ -217,24 +216,89 @@ function financeCard() {
   return f ? c : notConnected(c, 'Finance file not readable');
 }
 
+// The day panels from the snapshot's day block (card 109): calendar and mail caches, and the follow-up list.
+function day() {
+  return state.snap?.day ?? {};
+}
+
 function calendarCard() {
+  const k = day().calendar;
   const c = card('Agenda', 'agenda-card');
   const now = new Date();
   c.querySelector('.card-head').append(el('span', 'subtle', now.toLocaleDateString('en-CA', { month: 'long', year: 'numeric' })));
+  const busy = new Set((k?.events ?? []).map((e) => new Date(e.start * 1000).getDate()));
   const cal = el('div', 'calendar-grid');
   ['S', 'M', 'T', 'W', 'T', 'F', 'S'].forEach((x) => cal.append(el('span', 'cal-label', x)));
   const first = new Date(now.getFullYear(), now.getMonth(), 1).getDay();
   const days = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
   for (let i = 0; i < first; i++) cal.append(el('span', 'cal-day muted', ''));
-  for (let d = 1; d <= days; d++) cal.append(el('span', 'cal-day' + (d === now.getDate() ? ' today' : ''), String(d)));
+  for (let d = 1; d <= days; d++) cal.append(el('span', 'cal-day' + (d === now.getDate() ? ' today' : '') + (busy.has(d) ? ' busy' : ''), String(d)));
   c.append(cal);
   const list = el('div', 'agenda-list');
+  (k?.today ?? []).forEach((e) => {
+    const r = el('div', 'agenda-item');
+    add(r, el('time', '', e.all_day ? 'All day' : clock(e.start)), add(el('div'), el('b', '', e.title), e.location ? el('small', '', e.location) : null));
+    list.append(r);
+  });
+  if (k && !k.today.length) list.append(el('p', 'agenda-empty', 'Nothing on today.'));
   c.append(list);
-  return notConnected(c);
+  skeleton(c, skeletonOn());
+  if (!state.snap) return skeletonOn() ? c : notConnected(c, waiting());
+  return k ? c : notConnected(c, 'No calendar reading yet');
 }
 
-function simpleCard(title, cls) {
-  return notConnected(card(title, cls));
+function emailCard() {
+  const m = day().mail;
+  const c = card('Email summaries', 'email-card');
+  if (m) c.querySelector('.card-head').append(el('span', 'subtle', `${ago(m.at)} ago`));
+  if (m?.error) c.append(el('p', 'agenda-empty', m.error));
+  const list = el('div', 'email-list');
+  (m?.rows ?? []).forEach((x) => {
+    const r = x.link ? link('', 'email-item', x.link) : el('div', 'email-item');
+    add(r, el('b', '', x.from), el('span', '', x.subject), x.summary ? el('p', '', x.summary) : null, el('small', '', ago(x.date)));
+    list.append(r);
+  });
+  if (m && !m.rows.length && !m.error) list.append(el('p', 'agenda-empty', 'No new mail in the last two weeks.'));
+  c.append(list);
+  skeleton(c, skeletonOn());
+  if (!state.snap) return skeletonOn() ? c : notConnected(c, waiting());
+  return m ? c : notConnected(c, 'No mail reading yet');
+}
+
+function followCard() {
+  const f = day().follow ?? { threads: [], items: [] };
+  const c = card('Follow-ups', 'follow-card');
+  const list = el('div', 'follow-list');
+  f.threads.forEach((x) => {
+    const r = x.link ? link('', 'follow-item', x.link) : el('div', 'follow-item');
+    add(r, el('b', '', `Reply to ${x.from}`), el('small', '', x.subject));
+    list.append(r);
+  });
+  f.items.forEach((x) => {
+    const r = el('label', 'follow-item' + (x.done ? ' done' : ''));
+    const box = el('input');
+    box.type = 'checkbox';
+    box.checked = !!x.done;
+    box.disabled = !!x.done;
+    box.addEventListener('change', () => postFollow({ done: x.id }).catch(() => { box.checked = false; }));
+    add(r, box, el('span', '', x.text));
+    list.append(r);
+  });
+  if (!list.childElementCount) list.append(el('p', 'agenda-empty', state.snap ? 'Nothing to follow up.' : waiting()));
+  const form = el('form', 'follow-add');
+  const input = el('input');
+  input.maxLength = 200;
+  input.placeholder = 'Add a follow-up';
+  input.setAttribute('aria-label', 'Add a follow-up');
+  form.append(input);
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const text = input.value.trim();
+    if (text) postFollow({ add: text }).then(() => { input.value = ''; }).catch(() => {});
+  });
+  add(c, list, form);
+  skeleton(c, skeletonOn());
+  return c;
 }
 
 export function renderOverview(page) {
@@ -261,8 +325,8 @@ export function renderOverview(page) {
   page.append(top);
   const wide = matchMedia('(min-width:1100px)').matches;
   const portrait = matchMedia('(min-width:1000px) and (max-aspect-ratio:4/5)').matches;
-  const email = simpleCard('Email summaries', 'email-card');
-  const follow = simpleCard('Follow-ups', 'follow-card');
+  const email = emailCard();
+  const follow = followCard();
   const finance = financeCard();
   const news = newsCard();
   if (wide || portrait) {

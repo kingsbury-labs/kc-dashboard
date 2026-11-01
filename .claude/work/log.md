@@ -116,3 +116,6 @@ Rob: the remaining cards collapse into 60-69 (feature-sized, about an hour of lo
 ## 2026-11-01 card 108 (loop)
 - 108 cockpit daily panels built and sent to the gate. Follow-up needed: `bin/collect-facts.php` (outside the brief) must add the Weather collector, or the weather cache is never written and the panel says "No reading yet". Worker's line: `new Weather(new CurlHttpClient(), $root . '/data/' . $cfg['weather']['cache'], $cfg['weather']['latitude'], $cfg['weather']['longitude'])`.
 - Real kc-finance alerts file has no receivables, reserve or due-date facts, so those show dashes. No rate_limit_event found in loop files yet.
+
+## 2026-11-01 card 109 (loop)
+- 109 built and sent to the gate. Needs Rob: create D:\Dev\htdocs\.credentials\kc-dashboard-gmail-user holding the Gmail address (PII hook kept it out of config), or mail panels stay empty.
