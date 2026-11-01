@@ -1398,6 +1398,20 @@ LOGOUT; no source file under `src/Mail/` contains STORE, COPY, MOVE, EXPUNGE,
 APPEND or SELECT; the app password never appears in the log or the API output;
 a follow-up write without the token is refused.
 
+### 113. Cockpit: Codex limits beside Claude's, stale sessions dropped (Normal)
+- Role: implementer, Sonnet. Depends: 112.
+
+Plan limits gains a Codex group (5-hour and weekly, reset, reading age) read
+from the newest `rate_limits` reading in `C:\Users\roban\.codex\sessions\`;
+Working now drops sessions and loops whose process is gone.
+
+Done-test: `c:\xampp\php\php.exe tests/run.php --filter Cockpit` passes,
+including new CockpitCodex tests proving: against two fixture Codex session
+files, the snapshot's usage block has a codex entry with the newest file's
+primary and secondary percent and reset times; no other field from those files
+reaches the API output; a loop whose lock pid is dead and a session whose
+process is gone are not in Working now.
+
 ### 112. Cockpit tuned for portrait, finance alerts readable (Risky)
 - Role: implementer, Opus. Risky path: no new endpoint, but it changes the
   Finance collector that feeds the attention engine. Depends: 109, 111.

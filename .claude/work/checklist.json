@@ -578,5 +578,12 @@
     "verified_at": "2026-11-01T19:47:01.932Z",
     "tree": "e2716648aa72bcba354526bc0866c59cbbc2fb4e8c5eb41362950ed2f6e69fb8",
     "gate": "full"
+  },
+  {
+    "id": "113",
+    "title": "Cockpit: Codex limits beside Claude's, stale sessions dropped",
+    "brief": ".claude/work/113-cockpit-codex-limits/brief.md",
+    "start_sha": "",
+    "passes": false
   }
 ]
