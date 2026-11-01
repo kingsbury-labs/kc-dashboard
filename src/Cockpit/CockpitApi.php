@@ -119,6 +119,21 @@ class CockpitApi
                 $liveBy[$s['project']] = ($liveBy[$s['project']] ?? null) === 'waiting' ? 'waiting' : $s['status'];
             }
         }
+        // Only when the live snapshot carries the list: an absent one says nothing, so nothing is demoted.
+        $sessionsKnown = is_array($live['sessions'] ?? null);
+        $loopsKnown = is_array($live['loops'] ?? null);
+        $registered = [];
+        foreach ((array) ($live['sessions'] ?? []) as $s) {
+            if (is_array($s) && is_string($s['project'] ?? null)) {
+                $registered[$s['project']] = true;
+            }
+        }
+        $loopAlive = [];
+        foreach ((array) ($live['loops'] ?? []) as $l) {
+            if (is_array($l) && is_string($l['project'] ?? null) && in_array($l['state'] ?? null, ['running', 'stopped'], true)) {
+                $loopAlive[$l['project']] = true;
+            }
+        }
         $newest = [];
         $sessions = [];
         $agents = [];
@@ -131,6 +146,14 @@ class CockpitApi
                 $newest[$project] = true;
             }
             $state = self::state($r, $now, $first ? ($liveBy[$project] ?? null) : null);
+            // Working needs a live process: a loop whose lock pid is dead, or a project with no registered session.
+            if ($state === 'working') {
+                if ($pass !== null && $loopsKnown && !isset($loopAlive[$project])) {
+                    $state = 'done';
+                } elseif ($pass === null && $sessionsKnown && !isset($registered[$project])) {
+                    $state = $r['agent_id'] === null ? 'idle' : 'done';
+                }
+            }
             $base = [
                 'key' => $key,
                 'session' => $r['session_id'],

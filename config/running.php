@@ -7,6 +7,8 @@ return [
     'sessions_dir' => 'C:\\Users\\roban\\.claude\\sessions',
     // Claude Code's transcripts, read only by the cockpit's index (src/Cockpit/TranscriptIndex.php).
     'transcripts_dir' => 'C:\\Users\\roban\\.claude\\projects',
+    // Codex CLI's session logs, read only for the last rate_limits reading (CockpitDaily::codex).
+    'codex_sessions_dir' => 'C:\\Users\\roban\\.codex\\sessions',
     'task_folder' => '\\KC Dashboard\\',
     'aliases' => ['C:\\xampp\\htdocs' => 'D:\\Dev\\htdocs'],
     'cache_seconds' => 3,

@@ -1,0 +1,2 @@
+{"timestamp":"2026-10-31T09:00:00Z","type":"session_meta","payload":{"id":"aaaa","instructions":"CODEX-OLD-PROMPT-MARKER"}}
+{"timestamp":"2026-10-31T09:01:00Z","type":"event_msg","payload":{"type":"token_count","info":{"total":"CODEX-OLD-TOKENS-MARKER"},"rate_limits":{"limit_id":"codex","primary":{"used_percent":11.0,"window_minutes":300,"resets_at":1793000001},"secondary":{"used_percent":2.0,"window_minutes":10080,"resets_at":1793000002},"credits":{"balance":"CODEX-OLD-CREDITS-MARKER"}}}}

@@ -22,8 +22,57 @@ class CockpitDaily
             'weather' => self::part(fn() => isset($deps['weather']) ? Weather::cached((string) $deps['weather'], $now) : null, $log),
             'news' => self::part(fn() => isset($deps['news']) ? self::news(($deps['news'])()) : null, $log),
             'finance' => self::part(fn() => isset($deps['finance']) ? self::finance((string) $deps['finance'], $now) : null, $log),
-            'usage' => self::part(fn() => isset($deps['usage']) ? self::usage(($deps['usage'])(), $now) : null, $log),
+            'usage' => self::part(fn() => self::limits($deps, $now), $log),
         ];
+    }
+
+    // Claude's reading at the top (as before) and Codex's beside it under 'codex'; each is null when it has no reading.
+    private static function limits(array $deps, int $now): ?array
+    {
+        $claude = isset($deps['usage']) ? self::usage(($deps['usage'])(), $now) : null;
+        $codex = isset($deps['codex']) ? self::codex((string) $deps['codex'], $now) : null;
+        if ($codex === null) {
+            return $claude;
+        }
+        return ($claude ?? ['at' => null, 'age' => null, 'stale' => true, 'five_hour' => null, 'seven_day' => null]) + ['codex' => $codex];
+    }
+
+    /**
+     * Codex CLI's limits: the last rate_limits reading in the newest rollout file under <dir>/YYYY/MM/DD/ (newest
+     * path first, stop at the first file that has one). Only the two windows' used_percent and resets_at are
+     * taken; nothing else in those files is kept. A reading's time is its file's modified time.
+     */
+    public static function codex(string $dir, int $now): ?array
+    {
+        $files = glob(rtrim($dir, '\\/') . '/*/*/*/rollout-*.jsonl') ?: [];
+        rsort($files);
+        foreach (array_slice($files, 0, self::USAGE_FILES) as $f) {
+            $size = (int) @filesize($f);
+            $tail = (string) @file_get_contents($f, false, null, max(0, $size - self::USAGE_TAIL));
+            if (!str_contains($tail, '"rate_limits"')) {
+                continue;
+            }
+            $found = null;
+            foreach (explode("\n", $tail) as $line) {
+                if (str_contains($line, '"rate_limits"')) {
+                    $ev = json_decode($line, true);
+                    $r = is_array($ev) ? ($ev['payload']['rate_limits'] ?? $ev['rate_limits'] ?? null) : null;
+                    if (is_array($r) && (is_array($r['primary'] ?? null) || is_array($r['secondary'] ?? null))) {
+                        $found = $r;
+                    }
+                }
+            }
+            if ($found !== null) {
+                $win = fn($x) => is_array($x) && is_numeric($x['used_percent'] ?? null)
+                    ? ['percent' => (int) round((float) $x['used_percent']), 'resets' => is_numeric($x['resets_at'] ?? null) ? (int) $x['resets_at'] : null]
+                    : null;
+                $mtime = (int) @filemtime($f);
+                $age = max(0, $now - $mtime);
+                return ['at' => $mtime, 'age' => $age, 'stale' => $age > self::USAGE_STALE,
+                    'five_hour' => $win($found['primary'] ?? null), 'seven_day' => $win($found['secondary'] ?? null)];
+            }
+        }
+        return null;
     }
 
     // The newest AI items with an http(s) link.

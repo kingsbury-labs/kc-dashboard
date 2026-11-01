@@ -32,6 +32,7 @@ class CockpitDeps
                     return $pdo;
                 },
                 'finance' => (string) $collectors['finance_path'],
+                'codex' => (string) $config['codex_sessions_dir'],
                 // Loop pass files and every transcript, main and subagent, newest first (CockpitDaily::usage).
                 'usage' => fn(): array => array_merge(array_map(fn(string $d): string => $d . '\\.claude\\work\\loop', array_values($projects())),
                     [(string) $config['transcripts_dir']]),

@@ -148,19 +148,25 @@ const money = (c) => (typeof c === 'number' ? (c / 100).toLocaleString('en-CA', 
 
 function planCard() {
   const u = daily().usage;
-  const c = el('section', 'card plan-card' + (u?.stale ? ' stale' : ''));
+  const c = el('section', 'card plan-card');
   const title = el('div', 'plan-title');
-  add(title, el('strong', '', 'Plan limits'), el('small', '', u ? `Read ${ago(u.at)} ago` : 'Max subscription'));
+  add(title, el('strong', '', 'Plan limits'));
   c.append(title);
-  [['5-hour use', u?.five_hour], ['Weekly', u?.seven_day]].forEach(([x, w]) => {
-    const r = el('div', 'limit-row');
-    const bar = el('div', 'thin-bar');
-    const fill = el('i');
-    // Unknown is an empty bar, never a full one.
-    fill.style.width = w ? `${Math.min(100, Math.max(0, w.percent))}%` : '0%';
-    bar.append(fill);
-    add(r, el('span', '', x), bar, el('b', '', w ? `${w.percent}%` : '--'), w?.resets ? el('small', 'subtle', `resets ${clock(w.resets)}`) : null);
-    c.append(r);
+  // One group per tool: its own reading age, muted past 30 minutes (the API's stale flag).
+  [['Claude', u?.at ? u : null], ['Codex', u?.codex]].forEach(([name, g]) => {
+    const group = el('div', 'limit-group' + (g?.stale ? ' stale' : ''));
+    add(group, add(el('div', 'limit-head'), el('b', '', name), el('small', 'subtle', g ? `Read ${ago(g.at)} ago` : 'No reading yet')));
+    [['5-hour use', g?.five_hour], ['Weekly', g?.seven_day]].forEach(([x, w]) => {
+      const r = el('div', 'limit-row');
+      const bar = el('div', 'thin-bar');
+      const fill = el('i');
+      // Unknown is an empty bar, never a full one.
+      fill.style.width = w ? `${Math.min(100, Math.max(0, w.percent))}%` : '0%';
+      bar.append(fill);
+      add(r, el('span', '', x), bar, el('b', '', w ? `${w.percent}%` : '--'), w?.resets ? el('small', 'subtle', `resets ${clock(w.resets)}`) : null);
+      group.append(r);
+    });
+    c.append(group);
   });
   skeleton(c, skeletonOn());
   if (!state.snap) return skeletonOn() ? c : notConnected(c, waiting());
