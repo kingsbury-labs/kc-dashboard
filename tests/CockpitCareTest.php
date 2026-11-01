@@ -49,7 +49,7 @@ test('the care block lists each client with status uptime response alerts and SS
     $a = $by['alder-dental'];
     assert_same(['amber', 540, 100, 1, 10, 12], [$a['status'], $a['response_ms'], $a['uptime_30'], $a['alert_count'], $a['ssl_days'], $a['alerts'][0]['number']]);
     assert_same('https://api.uptimerobot.com/v2/getMonitors', $posts[0][0]);
-    assert_same('7-30', $posts[0][1]['custom_uptime_ranges']);
+    assert_same('7-30', $posts[0][1]['custom_uptime_ratios']);
     assert_true(!str_contains($body, cc_key()), 'API output carries the UptimeRobot key');
     assert_true(!str_contains((string) file_get_contents($cache), cc_key()), 'cache carries the key');
 });

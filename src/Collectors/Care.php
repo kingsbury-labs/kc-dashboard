@@ -70,7 +70,7 @@ class Care extends Collector
             }
             $m = $monitors === null ? null : self::monitorFor($monitors, $domain);
             $down = $m !== null && in_array((int) ($m['status'] ?? 0), [8, 9], true);
-            $ranges = $m === null ? [] : explode('-', (string) ($m['custom_uptime_ranges'] ?? ''));
+            $ranges = $m === null ? [] : explode('-', (string) ($m['custom_uptime_ratio'] ?? ''));
             $validTo = $this->part(fn() => ($this->ssl)($domain));
             $alerts = $issues === null ? null : array_values(array_filter($issues, fn($i) => self::mentions($i, $key, $domain)));
             $clients[] = [
@@ -130,7 +130,7 @@ class Care extends Collector
             throw new RuntimeException('no UptimeRobot key');
         }
         $this->log->addSecret($key);
-        $body = ($this->post)(self::UPTIME_URL, ['api_key' => $key, 'format' => 'json', 'custom_uptime_ranges' => '7-30',
+        $body = ($this->post)(self::UPTIME_URL, ['api_key' => $key, 'format' => 'json', 'custom_uptime_ratios' => '7-30',
             'response_times' => '1', 'response_times_limit' => '1']);
         $data = json_decode((string) $body, true);
         if (!is_array($data) || ($data['stat'] ?? null) !== 'ok' || !is_array($data['monitors'] ?? null)) {

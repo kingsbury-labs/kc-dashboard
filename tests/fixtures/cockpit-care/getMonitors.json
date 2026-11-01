@@ -1,5 +1,5 @@
 {"stat":"ok","monitors":[
- {"id":1,"url":"https://kingsburycreative.com","status":2,"average_response_time":"312.4","custom_uptime_ranges":"100.000-99.950"},
- {"id":2,"url":"https://brucemechanical.com/","status":9,"average_response_time":"0","custom_uptime_ranges":"97.500-99.100"},
- {"id":3,"url":"https://www.alderdental.ca","status":2,"average_response_time":"540","custom_uptime_ranges":"100.000-100.000"}
+ {"id":1,"url":"https://kingsburycreative.com","status":2,"average_response_time":"312.4","custom_uptime_ratio":"100.000-99.950"},
+ {"id":2,"url":"https://brucemechanical.com/","status":9,"average_response_time":"0","custom_uptime_ratio":"97.500-99.100"},
+ {"id":3,"url":"https://www.alderdental.ca","status":2,"average_response_time":"540","custom_uptime_ratio":"100.000-100.000"}
 ]}
