@@ -527,5 +527,19 @@
     "verified_at": "2026-11-01T18:52:32.454Z",
     "tree": "4ea4f82c451ec94eccfa6937384e804f0248ad556044dee2ab8701b14e141785",
     "gate": "full"
+  },
+  {
+    "id": "111",
+    "title": "Cockpit fixes from the first live look",
+    "brief": ".claude/work/111-cockpit-fixes/brief.md",
+    "start_sha": "",
+    "passes": false
+  },
+  {
+    "id": "109",
+    "title": "Cockpit calendar, email summaries and follow-ups",
+    "brief": ".claude/work/109-cockpit-day/brief.md",
+    "start_sha": "",
+    "passes": false
   }
 ]

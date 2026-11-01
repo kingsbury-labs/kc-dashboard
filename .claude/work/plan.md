@@ -1389,4 +1389,32 @@ change), the newest threads summarised in one line each by the local model in
 `llm/`, no mail text leaving the PC; follow-ups from threads marked reply-needed
 plus a small local list Rob can tick off.
 
-Done-test: written when Rob supplies access.
+Done-test: `c:\xampp\php\php.exe tests/run.php --filter CockpitDay` passes:
+against a fixture .ics and a scripted fake IMAP server (no real network), the
+snapshot returns the month's events with recurring ones expanded, today's
+agenda, and email rows with summaries from a stubbed model; the IMAP client
+sends only LOGIN, EXAMINE, UID SEARCH, UID FETCH (BODY.PEEK, ENVELOPE) and
+LOGOUT; no source file under `src/Mail/` contains STORE, COPY, MOVE, EXPUNGE,
+APPEND or SELECT; the app password never appears in the log or the API output;
+a follow-up write without the token is refused.
+
+### 111. Cockpit fixes from the first live look (Risky)
+- Role: implementer, Opus. Risky path: yes (`public/api/`). Depends: 107, 108.
+  Runs before 109.
+
+Fixes measured on the live page after 107 and 108: the snapshot API takes
+5.4 to 5.9 s (answer from a cache filled on the collector run instead); panels
+fall back from skeletons to text after 4 s; the finance read stops throwing on
+kc-finance's real alert kinds; an unknown 5-hour reading is an empty bar and
+usage readings are found in all transcripts; the Weather collector is
+registered; agent talk shows card labels in place of brief paths; the top bar
+is plain date and time text (Rob: "no need for pills or anything"); Needs you
+shows 6 with a show-all.
+
+Done-test: `c:\xampp\php\php.exe tests/run.php --filter Cockpit` passes,
+including new CockpitFixes tests proving: the snapshot API answers from cache
+without re-indexing (a second call does no transcript read); a finance file
+with facts missing fields returns the good facts and no exception; an unknown
+5-hour reading renders as an empty bar; a message starting with a brief path is
+shown with the card label in its place; the top bar markup has no clock pill
+or avatar; Needs you shows at most 6 items until expanded.
