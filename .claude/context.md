@@ -1,14 +1,17 @@
 ---
-session: 13
+session: 14
 last_updated: 2026-11-01
-continue_with: Commit the docs/AGENTOS.md loop-path fix (via a background agent; it is the only dirty file besides this one), then run the plan 6 re-plan as one loop card from .claude/work/agentos/replan/PROPOSAL.md (decisions section at its end is binding) and the R1-R5 briefs, adding R7 leases and the galaxy rule. Rob approves the result, then card 87 and phase 1a build through the loop.
-blockers: None for the re-plan. Rob's review of the re-plan output; the skin card (1.4) waits on him picking a look from design-refs/agentos-jarvis/refs.md.
+continue_with: Read .claude/work/agentos/HANDOFF-2026-11-01-s13.md. Screenshot the live cockpit at Rob's real Chrome window on monitor 2; loose layout (Voice-is-off chip on the search edge, hero weather wrap, Find box, kc-finance dash rows, any overlap) becomes card 121; then card 120 (brief held in .claude/work/agentos/held/120-autostart-vu/): VU meter, newest-first order everywhere, autostart after reboot.
+blockers: Rob runs the Apache-as-service admin script once 120 lands; Rob's real "Hey Cas" mic test.
 ---
 
 # KC Dashboard context
 
 ## To Resume
-Session 13. main on origin (kingsbury-labs/kc-dashboard, public) at the session 12 handoff merge. Loop files and `.claude/work/` are untracked on purpose (8b933c9; `.git/info/exclude`). Issue 3 open (Later).
+Session 14. Session 13 built the cockpit live at http://127.0.0.1:8787/cockpit.php through the loop: cards 107-119 on main (last 0c3b239), all gated and audited. Full state, keys, standing orders and the ordered next steps are in `.claude/work/agentos/HANDOFF-2026-11-01-s13.md`; read it first. The plan 6 re-plan below is superseded by that work.
+
+## Session 13 (superseded notes kept below)
+main on origin (kingsbury-labs/kc-dashboard, public) at the session 12 handoff merge. Loop files and `.claude/work/` are untracked on purpose (8b933c9; `.git/info/exclude`). Issue 3 open (Later).
 FIRST, if before noon on 2026-11-02: read `D:\_logs\docker-move\status.json` (the 04:00 Docker disk move, below). If `ok`, check Bigcapital answers, then ask Rob before deleting `C:\Users\roban\AppData\Local\Docker\wsl\disk\docker_data.vhdx.premove` (54 GB).
 THIS WINDOW:
 1. A Small background agent commits `docs/AGENTOS.md` (one line: loops start from the global `claude-loop.cjs` in the project) so the tree is clean.
