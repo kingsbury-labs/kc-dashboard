@@ -1,6 +1,6 @@
 // The cockpit's screens, ported from the v4 concept with its demo data replaced by the snapshot from data.js.
-// Agent panels are live; the daily panels (weather, plan limits, calendar, email, follow-ups, finance, news) keep
-// their final shape and say "Not connected yet" until cards 108 and 109 give them a source.
+// Agent panels, weather, plan limits, finance and news are live; calendar, email and follow-ups keep their final
+// shape and say "Not connected yet" until card 109 gives them a source.
 import { el, add, btn, card, pill, link, go, ago, clock, icon, notConnected, $ } from './dom.js';
 import { state, liveState } from './data.js';
 
@@ -122,34 +122,82 @@ export function agentTalkCard() {
   return c;
 }
 
-// The daily panels, in their final shape, with no source yet.
+// The daily panels from the snapshot's daily block (card 108). A missing part keeps its shape with dashes.
+function daily() {
+  return state.snap?.daily ?? {};
+}
+
+const deg = (v) => (typeof v === 'number' ? `${Math.round(v)}°` : '--');
+const money = (c) => (typeof c === 'number' ? (c / 100).toLocaleString('en-CA', { style: 'currency', currency: 'CAD' }) : '–');
+
 function planCard() {
-  const c = el('section', 'card plan-card');
+  const u = daily().usage;
+  const c = el('section', 'card plan-card' + (u?.stale ? ' stale' : ''));
   const title = el('div', 'plan-title');
-  add(title, el('strong', '', 'Plan limits'), el('small', '', 'Max subscription'));
+  add(title, el('strong', '', 'Plan limits'), el('small', '', u ? `Read ${ago(u.at)} ago` : 'Max subscription'));
   c.append(title);
-  ['5-hour use', 'Weekly'].forEach((x) => {
+  [['5-hour use', u?.five_hour], ['Weekly', u?.seven_day]].forEach(([x, w]) => {
     const r = el('div', 'limit-row');
     const bar = el('div', 'thin-bar');
-    bar.append(el('i'));
-    add(r, el('span', '', x), bar, el('b', '', '--'));
+    const fill = el('i');
+    if (w) fill.style.width = `${Math.min(100, w.percent)}%`;
+    bar.append(fill);
+    add(r, el('span', '', x), bar, el('b', '', w ? `${w.percent}%` : '--'), w?.resets ? el('small', 'subtle', `resets ${clock(w.resets)}`) : null);
     c.append(r);
   });
-  return notConnected(c);
+  skeleton(c, !state.snap);
+  return u || !state.snap ? c : notConnected(c, 'No reading yet');
 }
 
 function weatherCard() {
+  const w = daily().weather;
   const c = card('Arnprior Ontario', 'weather-card');
   const a = link('', 'weather-link', 'https://weather.gc.ca/city/pages/on-118_metric_e.html');
   a.setAttribute('aria-label', 'Open Environment Canada weather for Arnprior');
   a.append(c.querySelector('.card-head'));
   const t = el('div', 'weather-top');
   const copy = el('div', 'weather-copy');
-  add(copy, el('b', '', 'Weather'), el('small', '', 'Not connected yet'));
-  add(t, el('div', 'weather-temp', '--'), copy);
+  add(copy, el('b', '', w?.condition || 'Weather'),
+    el('small', '', w ? `High ${deg(w.high)} · Low ${deg(w.low)} · ${ago(w.at)} ago` : state.snap ? 'No reading yet' : 'Loading.'));
+  add(t, el('div', 'weather-temp', deg(w?.temp)), copy);
   a.append(t);
+  if (w?.hours?.length) {
+    const hours = el('div', 'weather-hours');
+    w.hours.forEach((h) => add(hours, add(el('span', 'weather-hour'), el('small', '', h.time), el('b', '', deg(h.temp)))));
+    a.append(hours);
+  }
   c.append(a);
+  skeleton(c, !state.snap);
   return c;
+}
+
+function newsCard() {
+  const items = daily().news ?? [];
+  const c = card('AI news', 'news-card');
+  const list = el('div', 'news-list');
+  items.forEach((x) => {
+    if (!/^https?:\/\//i.test(x.url)) return;
+    const r = link('', 'news-item', x.url);
+    add(r, el('b', '', x.title), el('small', '', `${x.source} · ${ago(x.ts)}`));
+    list.append(r);
+  });
+  if (!list.childElementCount) list.append(el('p', 'agenda-empty', state.snap ? 'No AI news stored yet.' : 'Loading.'));
+  c.append(list);
+  skeleton(c, !state.snap);
+  return c;
+}
+
+function financeCard() {
+  const f = daily().finance;
+  const c = card('kc-finance', 'finance-card');
+  if (f) c.querySelector('.card-head').append(el('span', 'subtle', `${ago(f.at)} ago`));
+  const due = (x) => (x ? `${x.subject} · ${x.due} · ${money(x.amount_cents)}` : '–');
+  const rows = el('div', 'finance-strip');
+  [['Receivables', money(f?.receivables_cents)], ['Next due', due(f?.next_due)], ['Reserve', money(f?.reserve_cents)],
+    ['Oldest overdue', due(f?.oldest_overdue)]].forEach(([k, v]) => add(rows, add(el('div', 'finance-row'), el('span', '', k), el('b', '', v))));
+  c.append(rows);
+  skeleton(c, !state.snap);
+  return f || !state.snap ? c : notConnected(c, 'Finance file not readable');
 }
 
 function calendarCard() {
@@ -198,8 +246,8 @@ export function renderOverview(page) {
   const portrait = matchMedia('(min-width:1000px) and (max-aspect-ratio:4/5)').matches;
   const email = simpleCard('Email summaries', 'email-card');
   const follow = simpleCard('Follow-ups', 'follow-card');
-  const finance = simpleCard('kc-finance', 'finance-card');
-  const news = simpleCard('AI news', 'news-card');
+  const finance = financeCard();
+  const news = newsCard();
   if (wide || portrait) {
     const cols = el('div', 'daily-cols');
     const a = el('div', 'daily-col');

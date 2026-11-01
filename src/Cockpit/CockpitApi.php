@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/TranscriptIndex.php';
 require_once __DIR__ . '/NeverShow.php';
+require_once __DIR__ . '/CockpitDaily.php';
 require_once __DIR__ . '/../Http/RequestGuard.php';
 require_once __DIR__ . '/../Http/Response.php';
 require_once __DIR__ . '/../Projects/LoopState.php';
@@ -9,7 +10,7 @@ require_once __DIR__ . '/../Projects/LoopState.php';
  * GET /api/cockpit.php: one snapshot of the agent half of the cockpit. The guard runs before the token is read, and
  * the token before the index opens, so a refused request touches nothing. Nothing here starts a process: live
  * session state comes from the saved api/now.php snapshot (and on the page, from the wall stream).
- * Shape: projects, sessions, agents (each with its parent), talk, needs, files, at, pending.
+ * Shape: projects, sessions, agents (each with its parent), talk, needs, files, at, pending, and daily (CockpitDaily).
  */
 class CockpitApi
 {
@@ -18,7 +19,8 @@ class CockpitApi
 
     /**
      * $deps: 'index' => fn(): TranscriptIndex, 'projects' => fn(): array (name => folder), 'now' => fn(): array
-     * (a saved now.php snapshot), 'clock' => fn(): int, 'budget' => float seconds of indexing per request.
+     * (a saved now.php snapshot), 'clock' => fn(): int, 'budget' => float seconds of indexing per request,
+     * 'daily' => CockpitDaily's deps.
      */
     public static function handle(array $server, Closure $token, array $deps, ?Log $log = null): array
     {
@@ -117,6 +119,7 @@ class CockpitApi
             'talk' => $talk,
             'needs' => self::needs($loops, $sessions, $talk, $live),
             'files' => $touched,
+            'daily' => CockpitDaily::build((array) ($deps['daily'] ?? []), $now, $log),
         ];
     }
 

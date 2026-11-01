@@ -9,4 +9,6 @@ return [
     ],
     'finance_path' => 'C:\\Users\\roban\\kc-finance\\alerts\\alerts.json',
     'finance_aliases' => [],
+    // Open-Meteo for Arnprior ON; cache is a file name under data/, which the cockpit reads.
+    'weather' => ['latitude' => 45.43, 'longitude' => -76.35, 'cache' => 'weather-cache.json'],
 ];

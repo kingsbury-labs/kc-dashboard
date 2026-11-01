@@ -112,3 +112,7 @@ Rob: the remaining cards collapse into 60-69 (feature-sized, about an hour of lo
 - v3 prototype ready for Rob at http://127.0.0.1:8791/?boot=1.
 - Confirmed live on SparrowBook card 101s1 (01:05Z): the loop committed and pushed in code with the hook replayed, no session resume; loop-start.cjs started it detached.
 - New gap from SparrowBook: the WSL distro idles out after 24 h (vmIdleTimeout) with no wsl.exe attached, killing the self-hosted CI runner mid-job; Docker Desktop was also down ("docker: command not found"). SparrowBook added C:\Users\roban\wsl-keepalive.cmd (manual, via Explorer; not at logon). runner-watchdog covers neither. Proposed: watchdog checks for the distro and Docker, and a CI-host health line in the cockpit's System drawer. Parked for Rob.
+
+## 2026-11-01 card 108 (loop)
+- 108 cockpit daily panels built and sent to the gate. Follow-up needed: `bin/collect-facts.php` (outside the brief) must add the Weather collector, or the weather cache is never written and the panel says "No reading yet". Worker's line: `new Weather(new CurlHttpClient(), $root . '/data/' . $cfg['weather']['cache'], $cfg['weather']['latitude'], $cfg['weather']['longitude'])`.
+- Real kc-finance alerts file has no receivables, reserve or due-date facts, so those show dashes. No rate_limit_event found in loop files yet.
