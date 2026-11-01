@@ -736,7 +736,17 @@
     "id": "122",
     "title": "Cockpit at desktop sizes",
     "brief": ".claude/work/122-cockpit-desktop-sizes/brief.md",
-    "start_sha": "25241dac951748c98898fc24f96ae697a27fb711",
-    "passes": false
+    "start_sha": "65a8f21a8ee8318529dbfe4ac28f4fbe13525f5d",
+    "passes": true,
+    "scope_ok": {
+      "at": "2026-11-01T21:32:31.639Z",
+      "start_sha": "65a8f21a8ee8318529dbfe4ac28f4fbe13525f5d",
+      "mutation_evidence": true,
+      "tree": "5a03dd5231af496a106a3546cbbf93e8d280c60cee52e8f4ebae4508f2d23df9",
+      "size": "Small"
+    },
+    "verified_at": "2026-11-01T21:33:27.150Z",
+    "tree": "5a03dd5231af496a106a3546cbbf93e8d280c60cee52e8f4ebae4508f2d23df9",
+    "gate": "full"
   }
 ]

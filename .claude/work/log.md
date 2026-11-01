@@ -130,3 +130,5 @@ Rob: the remaining cards collapse into 60-69 (feature-sized, about an hour of lo
 - 2026-11-01 card 119: start_sha moved to 2a94a66 (that commit only set start_sha). Follow-up for Rob: the "Voice is off" chip overlaps the search bar corner at 1080x1920. Shot: C:\Users\roban\AppData\Local\Temp\claude\D--Dev-htdocs--kc-dashboard\536222a9-2dd0-483b-ba9b-a06c6429f691\scratchpad\fit9.png
 
 - 2026-11-01 card 121: built and sent to the gate. start_sha moved to ec02768 (the brief-only commit). Leftovers for Rob: Agenda still has some empty space under "Nothing on today", the Follow-ups add field is slightly clipped, hero bottom at y=505 vs 495 in the concept. Shots in .claude/work/121-cockpit-hero/.
+
+- 2026-11-01 card 122: built and sent to the gate. start_sha moved to 65a8f21 (the brief-only commit). Leftovers for Rob: Agenda still has about 55px empty under "Nothing on today", the last finance line is clipped (Finance capped at 232px, scrolls). Shot: .claude/work/122-cockpit-desktop-sizes/shot-1080x1920-b.png

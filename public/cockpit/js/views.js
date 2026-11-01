@@ -228,7 +228,7 @@ function financeCard() {
   }
   if (f?.lines?.length) {
     const lines = el('div', 'finance-lines');
-    f.lines.forEach((x) => add(lines, add(el('div', 'finance-line'), el('span', '', x.kind), el('b', '', x.subject), el('small', '', x.date ?? '–'))));
+    f.lines.forEach((x) => add(lines, add(el('div', 'finance-line'), el('b', '', x.subject), ...(x.date ? [el('small', '', x.date)] : []))));
     c.append(lines);
   }
   if (f && !figures.length && !f.lines?.length) c.append(el('p', 'agenda-empty', 'Nothing to report.'));

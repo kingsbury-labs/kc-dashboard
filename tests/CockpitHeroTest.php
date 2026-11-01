@@ -80,12 +80,30 @@ test('the finance strip renders no row whose value is missing', function () {
     assert_true(str_contains($fin, "const due = (x) => (x ? `\${x.subject} · \${x.due} · \${money(x.amount_cents)}` : '');"), 'a missing due is empty, not a dash');
     assert_true(str_contains($fin, "typeof v === 'number' ? money(v) : ''"), 'a missing amount is empty, not a dash');
     assert_true(str_contains($fin, 'if (figures.length) {'), 'no strip when no figure');
-    assert_true(str_contains($fin, "el('small', '', x.date ?? '–')"), 'alert rows keep their dates');
+    assert_true(str_contains($fin, "...(x.date ? [el('small', '', x.date)] : [])"), 'alert rows keep their dates, no cell when null');
+});
+
+test('a finance line has no kind cell and no dash when its date is null', function () {
+    $fin = ch_fn(ch_file('js/views.js'), 'function financeCard() {');
+    assert_true(!str_contains($fin, 'x.kind'), 'no kind cell');
+    assert_true(!str_contains($fin, "'–'"), 'no dash');
+    assert_true(str_contains(ch_file('cockpit.css'), '.finance-line{display:grid;grid-template-columns:1fr auto;'), 'two columns');
+});
+
+test('desktop sizes: nothing in the 1080 x 1920 block is above 72px, the clock is 72px, card text 14px, bars 44px', function () {
+    $css = ch_portrait();
+    preg_match_all('/font(?:-size)?:\s*(?:\d+\s+)?(\d+)px/', $css, $m);
+    assert_true(count($m[1]) > 10, 'sizes found');
+    assert_true(max(array_map('intval', $m[1])) <= 72, 'no font-size above 72px');
+    assert_true(str_contains($css, '.hero-clock{display:flex;align-items:flex-start;gap:10px;font:300 72px/'), 'clock 72px');
+    assert_true(str_contains($css, '.fit-grid .card *{font-size:14px}'), 'grid card text 14px');
+    assert_true(str_contains($css, '.fit-hero .google-form{height:44px;'), 'Google search 44px');
+    assert_true(str_contains($css, 'gap:10px;height:44px;padding:0 8px 0 14px'), 'Cas bar 44px');
 });
 
 test('the Agenda card takes one column at 1080 x 1920 and every grid slot is filled', function () {
     $css = ch_portrait();
-    assert_true(str_contains($css, '"agenda news" "agenda follow"'), 'Agenda sits in one column, over two rows');
+    assert_true(str_contains($css, '"agenda news" "follow finance" "care care"'), 'Agenda sits in one column, beside News');
     assert_true(!str_contains($css, '"agenda agenda"'), 'not full width');
     assert_true(!str_contains($css, 'grid-template-columns:minmax(0,340px)'), 'no side-by-side month and list');
     assert_true(preg_match('/grid-template-areas:([^}]*?)\}/s', $css, $m) === 1, 'areas found');
@@ -99,5 +117,5 @@ test('the Agenda card takes one column at 1080 x 1920 and every grid slot is fil
     $names = array_unique($cells);
     sort($names);
     assert_same(['agenda', 'care', 'email', 'finance', 'follow', 'needs', 'news', 'talk', 'working'], $names, 'nine cards, no empty slot');
-    assert_same(10, count($cells), 'ten cells: only Agenda repeats');
+    assert_same(10, count($cells), 'ten cells: only Care repeats');
 });
