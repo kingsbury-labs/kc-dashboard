@@ -702,7 +702,17 @@
     "id": "118",
     "title": "AI news sources from Rob's curated list",
     "brief": ".claude/work/118-ai-news-sources/brief.md",
-    "start_sha": "2a94a6680fb16a4cecd779b7d1e809adde589874",
-    "passes": false
+    "start_sha": "77b08434faa146b5a59901019bb00e80aec7fc17",
+    "passes": true,
+    "scope_ok": {
+      "at": "2026-11-01T21:08:31.441Z",
+      "start_sha": "77b08434faa146b5a59901019bb00e80aec7fc17",
+      "mutation_evidence": true,
+      "tree": "e9c5296d45a489dc161137813ea73d54d3f98ec6e935ef1fe2e7ca679c156e61",
+      "size": "Small"
+    },
+    "verified_at": "2026-11-01T21:09:29.391Z",
+    "tree": "e9c5296d45a489dc161137813ea73d54d3f98ec6e935ef1fe2e7ca679c156e61",
+    "gate": "full"
   }
 ]
