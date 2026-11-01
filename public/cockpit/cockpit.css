@@ -67,44 +67,62 @@ a{color:inherit;text-decoration:none}.clickable,.cal-day,.agenda-item,.check-btn
 .command[data-voice="listening"] .mic{color:var(--teal)}
 .command[data-voice="speaking"] .cas-dot{animation:casPulse 1.8s ease-in-out infinite}
 @media (prefers-reduced-motion:reduce){.voice-thread{transition:none}.command[data-voice="speaking"] .cas-dot{animation:none}}
+/* Card 121: Find is a panel the rail button and Ctrl K open, not a box in the top bar. */
+.rail .find-btn{color:var(--muted)}
+.finder{position:fixed;z-index:40;top:12px;left:12px;display:flex;align-items:center;gap:9px;width:min(420px,calc(100vw - 24px));height:44px;padding:0 12px;border:1px solid var(--line);border-radius:12px;background:#20242a;box-shadow:0 16px 42px rgba(0,0,0,.45);color:var(--muted)}
+.finder[hidden]{display:none}
+.finder svg{width:16px;height:16px;flex:none}
+.finder input{flex:1;min-width:0;border:0;outline:0;background:none;color:var(--text);font-size:15px}
+.finder .find-results{top:52px}
+@media(min-width:700px){.finder{left:calc(var(--rail) + 12px);width:min(420px,calc(100vw - var(--rail) - 24px))}}
 /* Card 119: monitor 2, 1080 x 1920 portrait. A hero across the top, then one fixed grid; nothing scrolls but the list cards. */
 @media(min-width:1000px) and (max-aspect-ratio:4/5){
 body{overflow:hidden}
 .shell{padding:0 20px;margin-left:var(--rail)}
 .page{max-width:none}
 .topbar{position:fixed;z-index:25;top:8px;right:20px;height:auto;border:0;gap:12px}
-.topbar .search{width:300px}.topbar-time{display:none}
-.overview-page.fit{display:flex;flex-direction:column;gap:16px;height:100vh;overflow:hidden;padding:0 0 16px;margin:0}
-.fit-hero{flex:none;height:420px;display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:32px;padding-top:44px}
-.hero-main{display:grid;grid-template-rows:auto auto auto 64px 64px;align-content:space-between;min-width:0;position:relative}
-.hero-greeting{margin:0;font:400 24px/1.2 var(--head);letter-spacing:-.02em;color:#d9dde2}
-.hero-time{font:300 96px/1 var(--head);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
-.hero-date{font:400 28px/1.1 var(--head);color:var(--muted)}
-.fit-hero .google-form{height:64px;padding:0 20px}.fit-hero .google-form input{font-size:22px}.fit-hero .google-form svg{width:26px}.fit-hero .google-form small{display:none}
-.fit-hero .command{position:relative;left:auto;right:auto;bottom:auto;width:auto;max-width:none;margin:0;padding:0;border:0;background:none;box-shadow:none;backdrop-filter:none}
-.fit-hero .command-main{height:64px;padding:0 12px;border:1px solid rgba(255,255,255,.1);border-radius:16px;background:var(--s1)}
-.fit-hero .command input{height:62px;font-size:22px}.fit-hero .cas-dot{width:40px;height:40px}.fit-hero .mic{width:44px;height:44px}.fit-hero .voice-mode{font-size:15px}
+.topbar-time{display:none}
+.overview-page.fit{display:flex;flex-direction:column;gap:16px;height:100vh;overflow:hidden;padding:32px 0 16px;margin:0}
+/* Card 121: the hero is one grid, built to the approved concept. Clock leads, weather answers it, then the limits band, then the two inputs. */
+.fit-hero{flex:none;display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);grid-template-rows:auto auto auto;column-gap:40px;row-gap:26px}
+.hero-main{min-width:0}
+.hero-clock{display:flex;align-items:flex-start;gap:10px;font:300 148px/.86 var(--head);letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+.hero-ampm{margin-top:14px;font:400 34px/1 var(--head);letter-spacing:0;color:var(--muted)}
+.hero-day{margin-top:18px;font:400 30px/1.25 var(--head)}
+.hero-date{color:#dfe3e8}
+.hero-greeting{margin:0;font:400 30px/1.25 var(--head);color:var(--muted)}
+.hero-wx{display:grid;align-content:start;gap:6px;min-width:0;margin:0;padding:6px 0 0;border-radius:0}
+.wx-now{display:flex;align-items:flex-start;gap:18px}
+.wx-temp{font:300 100px/.86 var(--head);letter-spacing:-.04em}
+.wx-copy{padding-top:8px}.wx-copy b{display:block;font:500 28px/1.1 var(--head)}.wx-copy span{display:block;margin-top:6px;font-size:20px;color:var(--muted)}
+.wx-range{margin-top:14px;font-size:21px;color:#c9ced5}
+.wx-hours{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}
+.wx-hours div{font:500 24px/1.2 var(--head);font-variant-numeric:tabular-nums}.wx-hours small{display:block;font:400 16px var(--sans);color:var(--muted)}
+.fit-hero .limits{grid-column:1/-1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));padding:18px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.fit-hero .limit{min-width:0;padding:0 24px;border-left:1px solid var(--line)}.fit-hero .limit:first-child{padding-left:0;border-left:0}
+.fit-hero .limit-label{font-size:18px;color:#c3c9d1}.fit-hero .limit-label b{font-weight:600;color:var(--text)}.fit-hero .limit-label small{margin-left:6px;font-size:15px;color:var(--dim)}
+.fit-hero .limit-val{margin-top:6px;font:500 36px/1 var(--head);font-variant-numeric:tabular-nums}.fit-hero .limit-val.none{font:400 20px/36px var(--sans);color:var(--muted)}
+.fit-hero .bar{height:6px;margin-top:12px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden}.fit-hero .bar i{display:block;height:100%;border-radius:99px;background:var(--teal)}
+.fit-hero .limit-val.none+.bar{height:0;margin-top:14px;background:none;border-top:1px dashed rgba(255,255,255,.12)}
+.hero-asks{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:16px}
+.fit-hero .google-form{height:68px;gap:14px;padding:0 18px;border-color:rgba(255,255,255,.1)}.fit-hero .google-form input{font-size:22px}.fit-hero .google-form svg{width:26px;color:var(--muted)}.fit-hero .google-form small{display:none}
+.fit-hero .command{position:relative;grid-column:auto;grid-row:auto;left:auto;right:auto;bottom:auto;width:auto;max-width:none;margin:0;padding:0;border:0;background:none;box-shadow:none;backdrop-filter:none;align-self:stretch}
+.fit-hero .command-main{grid-template-columns:auto minmax(0,1fr) auto auto;gap:14px;height:68px;padding:0 14px 0 18px;border:1px solid rgba(255,255,255,.1);border-radius:16px;background:var(--s1)}
+.fit-hero .command input{height:66px;font-size:22px}.fit-hero .cas-dot{width:40px;height:40px}.fit-hero .mic{width:48px;height:48px;border-radius:12px}.fit-hero .voice-mode{height:40px;padding:0 14px;border-radius:12px;font-size:16px}
 .fit-hero .voice-thread{position:absolute;z-index:6;left:0;right:0;bottom:calc(100% + 6px);padding:8px 12px;border-radius:12px;background:rgba(18,20,24,.96);max-height:200px}
 .fit-hero .voice-thread:empty{padding:0}
-.fit-hero .command-main{grid-template-columns:auto minmax(0,1fr) auto auto}
-.fit-hero .voice-line{position:absolute;z-index:6;right:0;bottom:calc(100% + 6px);padding:6px 12px;border-radius:10px;background:rgba(18,20,24,.96);font-size:15px}
-.hero-side{display:grid;align-content:space-between;gap:12px;min-width:0}
-.fit-hero .card{grid-column:auto;grid-row:auto;background:none;border:0;box-shadow:none;padding:0;border-radius:0}.fit-hero .card-head{margin-bottom:6px}.fit-hero .card h2{font-size:18px}
-.fit-hero .weather-link{margin:0;padding:0}.fit-hero .weather-temp{font-size:64px;line-height:1}.fit-hero .weather-top{gap:16px}
-.fit-hero .weather-copy b{font-size:22px}.fit-hero .weather-copy small{font-size:18px}.fit-hero .weather-hours{gap:16px;margin-top:10px}.fit-hero .weather-hour{font-size:18px}.fit-hero .weather-hour small{font-size:15px}
-.fit-hero .plan-title{display:none}.fit-hero .limit-group+.limit-group{margin-top:8px}.fit-hero .limit-head{margin-bottom:2px}.fit-hero .limit-head b{font-size:20px}.fit-hero .limit-head small{font-size:15px}
-.fit-hero .limit-row{grid-template-columns:120px minmax(0,1fr) 56px;margin-top:6px;font-size:20px}.fit-hero .limit-row small{display:none}.fit-hero .thin-bar{height:8px}
-.fit-grid{flex:none;height:calc(100vh - 452px);min-height:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:minmax(0,1.1fr) minmax(0,1fr) auto auto auto;gap:16px;
-grid-template-areas:"needs talk" "email working" "agenda agenda" "finance news" "follow care"}
+/* The status line lives in the voice button's title here, never as a chip over the search edge. */
+.fit-hero .command .voice-line,.fit-hero .command.active .voice-line{display:none}
+.fit-grid{flex:1 1 0;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:minmax(0,1.1fr) minmax(0,1fr) auto auto auto;gap:16px;
+grid-template-areas:"needs talk" "email working" "agenda news" "agenda follow" "finance care"}
 .fit-grid>.card{align-self:stretch}
 .fit-grid>*{min-width:0;min-height:0;overflow:hidden;scrollbar-width:thin;scrollbar-color:var(--s3) transparent}
 .fit-grid>.needs-card{grid-area:needs}.fit-grid>.talk-card{grid-area:talk}.fit-grid>.email-card{grid-area:email}.fit-grid>.agents-card{grid-area:working}
 .fit-grid>.agenda-card{grid-area:agenda}.fit-grid>.finance-card{grid-area:finance}.fit-grid>.news-card{grid-area:news}.fit-grid>.follow-card{grid-area:follow}.fit-grid>.care-card{grid-area:care}
 .fit-grid>.needs-card,.fit-grid>.talk-card,.fit-grid>.email-card,.fit-grid>.agents-card{overflow-y:auto;overflow-x:hidden}
-.fit-grid>.finance-card,.fit-grid>.news-card,.fit-grid>.follow-card,.fit-grid>.care-card{max-height:250px;overflow-y:auto}
-.fit-grid>.agenda-card{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);column-gap:28px;align-content:start;max-height:330px}
-.fit-grid>.agenda-card>.card-head,.fit-grid>.agenda-card>.agenda-empty{grid-column:1/-1}
-.fit-grid .agenda-list{margin-top:0;border-top:0;max-height:240px;overflow-y:auto}.fit-grid .calendar-grid{align-content:start}.fit-grid .cal-day{height:30px}.fit-grid .cal-label{height:22px}
+.fit-grid>.finance-card,.fit-grid>.news-card,.fit-grid>.follow-card,.fit-grid>.care-card{max-height:196px;overflow-y:auto}
+.fit-grid>.agenda-card{display:block;overflow-y:auto}
+.fit-grid .agenda-list{margin-top:12px;max-height:150px;overflow-y:auto}.fit-grid .calendar-grid{align-content:start}.fit-grid .cal-day{height:30px}.fit-grid .cal-label{height:22px}
 .fit-grid .card *{font-size:15px}.fit-grid .card h2{font-size:18px}
 .fit-grid .card{padding:16px 20px}.fit-grid .card-head{margin-bottom:10px}
 .fit-grid .talk-feed{grid-template-columns:minmax(0,1fr)}

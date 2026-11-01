@@ -55,5 +55,5 @@ test('the portrait layout draws every overview card once, in the fit grid, with 
     sort($placed);
     $want = ['agentTalkCard', 'agentsCard', 'calendarCard', 'careCard', 'emailCard', 'financeCard', 'followCard', 'needsCard', 'newsCard'];
     assert_same($want, $placed, 'each card once');
-    assert_true(str_contains($m[1], 'add(side, weatherCard(), planCard());'), 'plan limits beside the weather in the hero');
+    assert_true(str_contains($m[1], 'add(hero, lead, heroWeather(), heroLimits(), asks);'), 'plan limits and weather in the hero');
 });

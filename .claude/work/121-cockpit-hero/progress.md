@@ -1,0 +1,1 @@
+- voice.js: off label now "Voice off". Next: main.js (rail Find, voice-line to title), views.js hero, css, tests.

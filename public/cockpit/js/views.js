@@ -216,16 +216,22 @@ function financeCard() {
   const f = daily().finance;
   const c = card('kc-finance', 'finance-card');
   if (f) c.querySelector('.card-head').append(el('span', 'subtle', `${ago(f.at)} ago`));
-  const due = (x) => (x ? `${x.subject} · ${x.due} · ${money(x.amount_cents)}` : '–');
-  const rows = el('div', 'finance-strip');
-  [['Receivables', money(f?.receivables_cents)], ['Next due', due(f?.next_due)], ['Reserve', money(f?.reserve_cents)],
-    ['Oldest overdue', due(f?.oldest_overdue)]].forEach(([k, v]) => add(rows, add(el('div', 'finance-row'), el('span', '', k), el('b', '', v))));
-  c.append(rows);
+  const due = (x) => (x ? `${x.subject} · ${x.due} · ${money(x.amount_cents)}` : '');
+  const cents = (v) => (typeof v === 'number' ? money(v) : '');
+  // Card 121: a figure with no value draws no row, so an empty strip disappears and the alert lines move up.
+  const figures = [['Receivables', cents(f?.receivables_cents)], ['Next due', due(f?.next_due)], ['Reserve', cents(f?.reserve_cents)],
+    ['Oldest overdue', due(f?.oldest_overdue)]].filter(([, v]) => v);
+  if (figures.length) {
+    const rows = el('div', 'finance-strip');
+    figures.forEach(([k, v]) => add(rows, add(el('div', 'finance-row'), el('span', '', k), el('b', '', v))));
+    c.append(rows);
+  }
   if (f?.lines?.length) {
     const lines = el('div', 'finance-lines');
     f.lines.forEach((x) => add(lines, add(el('div', 'finance-line'), el('span', '', x.kind), el('b', '', x.subject), el('small', '', x.date ?? '–'))));
     c.append(lines);
   }
+  if (f && !figures.length && !f.lines?.length) c.append(el('p', 'agenda-empty', 'Nothing to report.'));
   skeleton(c, skeletonOn());
   if (!state.snap) return skeletonOn() ? c : notConnected(c, waiting());
   return f ? c : notConnected(c, 'Finance file not readable');
@@ -382,13 +388,62 @@ function searchForm() {
 }
 
 const needsLine = (n) => (n === 0 ? 'Nothing needs you' : n === 1 ? 'One thing needs you' : `${n} things need you`);
-const heroTime = (d) => d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+// "4:12 PM" as ['4:12', 'PM'] (the separator is a plain or a narrow no-break space, depending on the browser).
+const heroTime = (d) => d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }).split(/\s/);
 const heroDate = (d) => d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 let heroTimer = null;
 function heroTick() {
   const d = new Date();
-  document.querySelectorAll('.hero-time').forEach((x) => { x.textContent = heroTime(d); });
+  const [time, ampm] = heroTime(d);
+  document.querySelectorAll('.hero-time').forEach((x) => { x.textContent = time; });
+  document.querySelectorAll('.hero-ampm').forEach((x) => { x.textContent = ampm; });
   document.querySelectorAll('.hero-date').forEach((x) => { x.textContent = heroDate(d); });
+}
+
+// Card 121: the portrait hero's weather and plan limits, drawn to the approved concept.
+const minus = (v) => (typeof v === 'number' ? `${Math.round(v)}°`.replace('-', '−') : '--');
+const LIMIT_OLD_S = 3600;
+// "17:00" as "5 PM"; anything else is shown as it came.
+const hourLabel = (t) => {
+  const m = /^(\d{1,2}):\d{2}$/.exec(String(t));
+  return m ? `${Number(m[1]) % 12 || 12} ${Number(m[1]) < 12 ? 'AM' : 'PM'}` : String(t);
+};
+
+function heroWeather() {
+  const w = daily().weather;
+  const a = link('', 'hero-wx', 'https://weather.gc.ca/city/pages/on-118_metric_e.html');
+  a.setAttribute('aria-label', 'Open Environment Canada weather for Arnprior');
+  const now = el('div', 'wx-now');
+  const copy = el('div', 'wx-copy');
+  add(copy, el('b', '', w?.condition || 'Weather'), el('span', '', 'Arnprior'));
+  add(now, el('div', 'wx-temp', minus(w?.temp)), copy);
+  add(a, now, el('div', 'wx-range', w ? `High ${minus(w.high)} · overnight low ${minus(w.low)}` : state.snap ? 'No reading yet' : waiting()));
+  const hours = el('div', 'wx-hours');
+  (w?.hours ?? []).slice(0, 5).forEach((h) => add(hours, add(el('div'), el('small', '', hourLabel(h.time)), String(minus(h.temp)))));
+  a.append(hours);
+  skeleton(a, skeletonOn());
+  return a;
+}
+
+function heroLimits() {
+  const u = daily().usage;
+  const band = el('div', 'limits');
+  [['Claude', u?.at ? u : null], ['Codex', u?.codex]].forEach(([name, g]) => {
+    [['5-hour', g?.five_hour], ['week', g?.seven_day]].forEach(([label, w]) => {
+      const head = add(el('div', 'limit-label'), el('b', '', name), ` ${label}`);
+      // A fresh reading shows no age; one older than an hour shows how old.
+      if (g?.at && Date.now() / 1000 - g.at > LIMIT_OLD_S) head.append(el('small', '', `${ago(g.at)} ago`));
+      const bar = el('div', 'bar');
+      if (w) {
+        const fill = el('i');
+        fill.style.width = `${Math.min(100, Math.max(0, w.percent))}%`;
+        bar.append(fill);
+      }
+      add(band, add(el('div', 'limit'), head, w ? el('div', 'limit-val', `${w.percent}%`) : el('div', 'limit-val none', 'No reading yet'), bar));
+    });
+  });
+  skeleton(band, skeletonOn());
+  return band;
 }
 
 // Card 119: the 1080 x 1920 portrait cockpit. The hero is the first child, then one grid where every card owns a named area.
@@ -398,23 +453,24 @@ function renderFit(page) {
   const hour = now.getHours();
   const part = hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'evening';
   const hero = el('section', 'fit-hero');
-  const main = el('div', 'hero-main');
-  const side = el('div', 'hero-side');
-  add(main, el('h1', 'hero-greeting', `Good ${part} Rob` + (state.snap ? ` · ${needsLine(snap().needs.length)}` : '')),
-    el('div', 'hero-time', heroTime(now)), el('div', 'hero-date', heroDate(now)), searchForm());
-  add(side, weatherCard(), planCard());
-  add(hero, main, side);
+  const lead = el('div', 'hero-main');
+  const [time, ampm] = heroTime(now);
+  add(lead, add(el('div', 'hero-clock'), el('span', 'hero-time', time), el('small', 'hero-ampm', ampm)),
+    add(el('div', 'hero-day'), el('div', 'hero-date', heroDate(now)), el('h1', 'hero-greeting', `Good ${part} Rob`)));
+  const asks = el('div', 'hero-asks');
+  const cmd = $('.command');
+  if (cmd) {
+    cmd.classList.add('docked');
+    asks.append(cmd);
+  }
+  asks.append(searchForm());
+  add(hero, lead, heroWeather(), heroLimits(), asks);
   const grid = el('div', 'fit-grid');
   add(grid, needsCard(), agentTalkCard(), emailCard(), agentsCard(), calendarCard(), financeCard(), newsCard(), followCard(), careCard());
   page.append(hero, grid);
   // The banner is fixed over the page, so it never pushes the layout.
   const banner = careBanner();
   if (banner) page.append(banner);
-  const cmd = $('.command');
-  if (cmd) {
-    cmd.classList.add('docked');
-    main.append(cmd);
-  }
   if (!heroTimer) heroTimer = setInterval(heroTick, 15000);
 }
 

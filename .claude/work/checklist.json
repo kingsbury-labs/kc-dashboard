@@ -719,7 +719,17 @@
     "id": "121",
     "title": "Cockpit hero rebuilt to the approved concept, loose layout fixed",
     "brief": ".claude/work/121-cockpit-hero/brief.md",
-    "start_sha": "bf4258dc7a989d16865557f2efee073a2f70ecb3",
-    "passes": false
+    "start_sha": "ec02768e92e0ea137576a24bc897cadafe6ebf20",
+    "passes": true,
+    "scope_ok": {
+      "at": "2026-11-01T21:25:45.828Z",
+      "start_sha": "ec02768e92e0ea137576a24bc897cadafe6ebf20",
+      "mutation_evidence": true,
+      "tree": "c50323bf03105bcb73c3090ef77c3430e1a4ed00a0bfb56524adc40ff64f1cd7",
+      "size": "Normal"
+    },
+    "verified_at": "2026-11-01T21:26:49.555Z",
+    "tree": "c50323bf03105bcb73c3090ef77c3430e1a4ed00a0bfb56524adc40ff64f1cd7",
+    "gate": "full"
   }
 ]

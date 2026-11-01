@@ -5,7 +5,7 @@ import { $ } from './dom.js';
 
 const URL_WS = 'ws://127.0.0.1:8766/ws';
 const KEY = 'kc-voice-mode';
-export const MODES = { always: 'Always on', click: 'Click to talk', off: 'Off' };
+export const MODES = { always: 'Always on', click: 'Click to talk', off: 'Voice off' };
 
 let ws = null;
 let mode = 'off';

@@ -8,6 +8,7 @@ import { renderOverview, renderProject, renderSession, renderAgents, renderCare 
 
 let page = null;
 let find = null;
+let finder = null;
 // "Mic open" in the top bar whenever the mic is live (card 110).
 const micOpen = el('span', 'mic-open', 'Mic open');
 micOpen.hidden = true;
@@ -37,11 +38,21 @@ function commandBar() {
   const status = el('span', '', '');
   v.append(status);
   add(c, thread, main, v);
-  const say = (text) => {
-    status.textContent = text;
-    c.classList.add('active');
-  };
   let fade = null;
+  const turn = (who, text) => {
+    thread.append(el('p', `voice-turn ${who}`, text));
+    while (thread.children.length > 6) thread.firstChild.remove();
+    thread.classList.remove('faded');
+    clearTimeout(fade);
+    fade = setTimeout(() => thread.classList.add('faded'), 20000);
+  };
+  // The status line is the button's title too: the portrait hero hides the line itself (card 121), so a message Rob must see goes in the thread.
+  const say = (text, loud = false) => {
+    status.textContent = text;
+    toggle.title = text;
+    c.classList.add('active');
+    if (loud) turn('cas', text);
+  };
   const LABEL = { off: 'Voice engine is off', idle: 'Idle', listening: 'Listening', thinking: 'Thinking', speaking: 'Speaking' };
   const order = Object.keys(MODES);
   const showMode = () => { toggle.textContent = MODES[currentMode()]; };
@@ -51,13 +62,7 @@ function commandBar() {
       c.dataset.voice = k;
       say(k === 'off' && currentMode() === 'off' && available() ? 'Voice is off' : LABEL[k]);
     },
-    turn(who, text) {
-      thread.append(el('p', `voice-turn ${who}`, text));
-      while (thread.children.length > 6) thread.firstChild.remove();
-      thread.classList.remove('faded');
-      clearTimeout(fade);
-      fade = setTimeout(() => thread.classList.add('faded'), 20000);
-    },
+    turn,
     mic(on) { micOpen.hidden = !on; },
   });
   showMode();
@@ -66,12 +71,12 @@ function commandBar() {
     showMode();
   });
   mic.addEventListener('click', () => {
-    if (!available()) say('Voice engine is off');
+    if (!available()) say('Voice engine is off', true);
     else if (currentMode() === 'click') toggleTalk();
-    else say(currentMode() === 'always' ? 'Say Hey Cas or Time to work' : 'Voice is off. Choose Always on or Click to talk.');
+    else say(currentMode() === 'always' ? 'Say Hey Cas or Time to work' : 'Voice is off. Choose Always on or Click to talk.', true);
   });
   input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') say('Asking Cas is not connected yet. Find (Ctrl K) searches what is here.');
+    if (e.key === 'Enter') say('Asking Cas is not connected yet. Find (Ctrl K) searches what is here.', true);
   });
   // The dot breathes only while an agent is actually working.
   subscribe(() => {
@@ -82,7 +87,9 @@ function commandBar() {
 }
 
 function findBox() {
-  const label = el('label', 'search');
+  // Card 121: the finder is a panel the rail's Find button (or Ctrl K) opens; it is not in the top bar.
+  const label = el('label', 'finder');
+  label.hidden = true;
   label.append(icon('search'));
   const input = el('input');
   input.placeholder = 'Find a project session or file';
@@ -141,10 +148,20 @@ function findBox() {
       input.blur();
     }
   });
-  input.addEventListener('blur', close);
+  input.addEventListener('blur', () => {
+    close();
+    label.hidden = true;
+  });
   label.append(input, el('span', 'key', 'Ctrl K'), list);
   find = input;
+  finder = label;
   return label;
+}
+
+function openFind() {
+  if (!finder) return;
+  finder.hidden = false;
+  find.focus();
 }
 
 function shell() {
@@ -152,6 +169,10 @@ function shell() {
   const rail = el('nav', 'rail');
   rail.setAttribute('aria-label', 'Primary');
   rail.append(el('div', 'brand', 'KC'));
+  const findBtn = btn('', 'nav-btn find-btn', openFind);
+  findBtn.setAttribute('aria-label', 'Find a project session or file (Ctrl K)');
+  add(findBtn, icon('search'), el('span', '', 'Find'));
+  rail.append(findBtn);
   const navs = [['overview', 'Overview', 'overview'], ['project', 'Project', 'project'], ['session', 'Session', 'session'], ['agents', 'Agents', 'agents'], ['care', 'Care', 'care']];
   const buttons = navs.map(([path, label, ic]) => {
     const b = btn('', 'nav-btn');
@@ -172,12 +193,12 @@ function shell() {
   const top = el('header', 'topbar');
   // Plain muted text, "Sunday, November 1 · 1:58 PM" (Rob, 2026-11-01: no pills).
   const time = el('time', 'topbar-time');
-  add(top, el('div', 'mobile-mark', 'KC Cockpit'), findBox(), micOpen, time);
+  add(top, el('div', 'mobile-mark', 'KC Cockpit'), micOpen, time);
   page = el('main', 'page');
   page.id = 'page';
   add(main, top, page);
   app.replaceChildren(rail, main);
-  D.body.append(commandBar());
+  D.body.append(findBox(), commandBar());
   const tick = () => {
     const d = new Date();
     time.textContent = `${d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} · ${d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`;
@@ -215,7 +236,7 @@ addEventListener('hashchange', () => render(true));
 addEventListener('keydown', (e) => {
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
     e.preventDefault();
-    find?.focus();
+    openFind();
   }
   if (e.key === 'Escape' && D.activeElement === D.body) go('overview');
 });
