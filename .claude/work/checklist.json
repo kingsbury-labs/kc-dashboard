@@ -636,5 +636,12 @@
     "brief": ".claude/work/115-cockpit-care/brief.md",
     "start_sha": "b336359ede178eddbfe00d5150259fdf0c5c9604",
     "passes": false
+  },
+  {
+    "id": "110",
+    "title": "Cockpit voice: the Cas bar talks through cas-voice",
+    "brief": ".claude/work/110-cockpit-voice/brief.md",
+    "start_sha": "",
+    "passes": false
   }
 ]

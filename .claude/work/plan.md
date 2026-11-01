@@ -1398,6 +1398,24 @@ LOGOUT; no source file under `src/Mail/` contains STORE, COPY, MOVE, EXPUNGE,
 APPEND or SELECT; the app password never appears in the log or the API output;
 a follow-up write without the token is refused.
 
+### 110. Cockpit voice: the Cas bar talks through cas-voice (Risky)
+- Role: implementer, Opus. Risky path: CSP change for one page. Depends: 107,
+  115; cas-voice's side is done (`D:\Dev\cas-voice\proto\RESULT-110.md`).
+
+Always on / Click to talk / Off toggle in the Cas bar speaking cas-voice's
+socket protocol (hello with token, modes, audio both ways), wake phrases "Hey
+Cas" and "Time to work", both sides in the thread, "Voice engine is off" when
+it is not running, care incidents read aloud locally, a hidden Node launcher.
+
+Done-test: `c:\xampp\php\php.exe tests/run.php --filter Cockpit` passes,
+including new CockpitVoice tests proving: the cockpit page's CSP differs from
+`Response::SECURITY_HEADERS` only by `connect-src 'self' ws://127.0.0.1:8766`
+(plus `media-src 'self' blob:` if used) and other pages are unchanged;
+`voice.js` connects to no URL but `ws://127.0.0.1:8766/ws` and sends hello
+with the token first; the token value never appears in app.log; no innerHTML;
+the mode is read and written in localStorage inside try/catch; with no token
+file the page renders "Voice engine is off".
+
 ### 114. Cockpit email: only mail about Rob's projects (Risky)
 - Role: implementer, Opus. Risky path: mail, `public/api/`. Depends: 109.
 
