@@ -668,21 +668,21 @@
     "id": "119",
     "title": "Cockpit fitted to monitor 2: a hero on top, no dead space",
     "brief": ".claude/work/119-cockpit-fit/brief.md",
-    "start_sha": "",
+    "start_sha": "e51fe136a5b74b79b842b7de0fc5c49ab15f2f66",
     "passes": false
   },
   {
     "id": "117",
     "title": "Project knowledge graph",
     "brief": ".claude/work/117-knowledge-graph/brief.md",
-    "start_sha": "",
+    "start_sha": "e51fe136a5b74b79b842b7de0fc5c49ab15f2f66",
     "passes": false
   },
   {
     "id": "118",
     "title": "AI news sources from Rob's curated list",
     "brief": ".claude/work/118-ai-news-sources/brief.md",
-    "start_sha": "",
+    "start_sha": "e51fe136a5b74b79b842b7de0fc5c49ab15f2f66",
     "passes": false
   }
 ]
