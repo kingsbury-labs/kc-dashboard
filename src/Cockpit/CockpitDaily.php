@@ -59,12 +59,14 @@ class CockpitDaily
         $facts = [];
         foreach ($data['facts'] as $x) {
             $ok = fn($k) => is_array($x) && is_string($x[$k] ?? null) && $x[$k] !== '';
-            if (!$ok('id') || !$ok('kind') || !$ok('subject')) {
+            if (!$ok('id') || !$ok('kind')) {
                 continue;
             }
             $due = is_string($x['due_date'] ?? null) && preg_match('/^\d{4}-\d{2}-\d{2}\z/', $x['due_date']) ? $x['due_date'] : null;
-            $facts[] = ['kind' => $x['kind'], 'subject' => NeverShow::text($x['subject'], null, 120), 'due_date' => $due,
-                'amount_cents' => is_int($x['amount_cents'] ?? null) ? $x['amount_cents'] : null];
+            $cents = is_int($x['amount_cents'] ?? null) ? $x['amount_cents'] : null;
+            // A null or empty subject is labelled from the kind, as Finance::collect does.
+            $subject = $ok('subject') ? $x['subject'] : Finance::label($x['kind'], $cents, $due);
+            $facts[] = ['kind' => $x['kind'], 'subject' => NeverShow::text($subject, null, 120), 'due_date' => $due, 'amount_cents' => $cents];
         }
         $generated = is_string($data['generated_at'] ?? null) ? strtotime($data['generated_at']) : false;
         $amount = function (string $kind) use ($facts): ?int {

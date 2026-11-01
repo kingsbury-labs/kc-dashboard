@@ -39,8 +39,9 @@ test('a finance file with facts missing fields returns the good facts and no exc
         ['id' => 'c', 'kind' => 'offsite-stale', 'subject' => 'Offsite backup', 'due_date' => 'soon', 'amount_cents' => '12'],
     ]]));
     $f = CockpitDaily::finance($t . '/alerts.json', CK_NOW);
-    assert_same(2, $f['alerts']);
-    assert_same([['kind' => 'payment split', 'subject' => 'Split Fixture', 'date' => '2026-11-03'],
+    assert_same(3, $f['alerts']);
+    assert_same([['kind' => 'payment review', 'subject' => 'Payment to review', 'date' => null],
+        ['kind' => 'payment split', 'subject' => 'Split Fixture', 'date' => '2026-11-03'],
         ['kind' => 'offsite stale', 'subject' => 'Offsite backup', 'date' => null]], $f['lines']);
     assert_same([null, null], [$f['receivables_cents'], $f['reserve_cents']], 'figures it lacks are null, a dash on the page');
     assert_same(['subject' => 'Split Fixture', 'due' => '2026-11-03', 'amount_cents' => 5000], $f['next_due']);

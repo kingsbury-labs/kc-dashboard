@@ -70,13 +70,14 @@ export function needsCard() {
   return c;
 }
 
+const WORKING_SHOWN = 8;
 export function agentsCard() {
   const working = everyone().filter((a) => a.state === 'working' || a.state === 'waiting');
   const c = card('Working now', 'agents-card');
   c.querySelector('.card-head').append(el('span', 'subtle', `${working.length} active`));
   const list = el('div', 'agent-list');
   if (!working.length) list.append(el('p', 'agenda-empty', state.snap ? 'No agent is working.' : waiting()));
-  working.slice(0, 12).forEach((a) => {
+  working.slice(0, WORKING_SHOWN).forEach((a) => {
     const r = el('div', 'agent-row clickable');
     const main = btn('', 'agent-main', () => go(sessionPath(a)));
     const top = el('div', 'agent-top');
@@ -92,18 +93,25 @@ export function agentsCard() {
   return c;
 }
 
+const TALK_SHOWN = 10;
 let talkFilter = 'All';
+let talkOpen = false;
 export function agentTalkCard() {
   const c = card('Agent talk', 'talk-card');
   const filters = el('div', 'talk-filters');
   const feed = el('div', 'talk-feed');
+  const more = el('div');
   const kind = { agent: 'hand-off', handback: 'report', send: 'message', question: 'question' };
   function draw() {
     feed.replaceChildren();
+    more.replaceChildren();
     const items = snap().talk.filter((x) => talkFilter === 'All' || (talkFilter === 'Hand-offs' && x.kind === 'agent')
       || (talkFilter === 'Questions' && x.kind === 'question') || (talkFilter === 'Needs Rob' && x.cas === 'Needs Rob'));
     if (!items.length) feed.append(el('p', 'agenda-empty', state.snap ? 'No agent talk in the last 7 days.' : waiting()));
-    items.slice(0, 24).forEach((x) => {
+    if (items.length > TALK_SHOWN) {
+      more.append(btn(talkOpen ? 'Show fewer' : `Show ${items.length - TALK_SHOWN} more`, 'text-btn', () => { talkOpen = !talkOpen; draw(); }));
+    }
+    items.slice(0, talkOpen ? items.length : TALK_SHOWN).forEach((x) => {
       const r = el('article', 'talk-item');
       const route = el('div', 'talk-route');
       const meta = el('div', 'talk-meta');
@@ -124,7 +132,7 @@ export function agentTalkCard() {
     talkFilter = x;
     draw();
   })));
-  add(c, filters, feed);
+  add(c, filters, feed, more);
   draw();
   skeleton(c, skeletonOn());
   return c;
@@ -247,19 +255,28 @@ function calendarCard() {
   return k ? c : notConnected(c, 'No calendar reading yet');
 }
 
+const EMAIL_SHOWN = 6;
+let emailOpen = false;
 function emailCard() {
   const m = day().mail;
   const c = card('Email summaries', 'email-card');
   if (m) c.querySelector('.card-head').append(el('span', 'subtle', `${ago(m.at)} ago`));
   if (m?.error) c.append(el('p', 'agenda-empty', m.error));
   const list = el('div', 'email-list');
-  (m?.rows ?? []).forEach((x) => {
+  const rows = m?.rows ?? [];
+  rows.slice(0, emailOpen ? rows.length : EMAIL_SHOWN).forEach((x) => {
     const r = x.link ? link('', 'email-item', x.link) : el('div', 'email-item');
     add(r, el('b', '', x.from), el('span', '', x.subject), x.summary ? el('p', '', x.summary) : null, el('small', '', ago(x.date)));
     list.append(r);
   });
   if (m && !m.rows.length && !m.error) list.append(el('p', 'agenda-empty', 'No new mail in the last two weeks.'));
   c.append(list);
+  if (rows.length > EMAIL_SHOWN) {
+    c.append(btn(emailOpen ? 'Show fewer' : 'Show all', 'text-btn', () => {
+      emailOpen = !emailOpen;
+      c.replaceWith(emailCard());
+    }));
+  }
   skeleton(c, skeletonOn());
   if (!state.snap) return skeletonOn() ? c : notConnected(c, waiting());
   return m ? c : notConnected(c, 'No mail reading yet');
@@ -334,8 +351,9 @@ export function renderOverview(page) {
     const a = el('div', 'daily-col');
     const b = el('div', 'daily-col');
     if (portrait) {
-      add(a, needsCard(), calendarCard(), email, follow, finance);
-      add(b, agentTalkCard(), agentsCard(), news);
+      // Card 112: Agent talk is capped at 10, so finance moves right to keep the columns ending near each other.
+      add(a, needsCard(), calendarCard(), email, follow);
+      add(b, agentTalkCard(), agentsCard(), finance, news);
       add(cols, a, b);
     } else {
       const c = el('div', 'daily-col');

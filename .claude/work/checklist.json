@@ -566,7 +566,17 @@
     "id": "112",
     "title": "Cockpit tuned for portrait, finance alerts readable",
     "brief": ".claude/work/112-cockpit-portrait/brief.md",
-    "start_sha": "32c9b315c71191527f57a693d398d8f3510843f5",
-    "passes": false
+    "start_sha": "9bb48aab32077addde1d540a77591f1b77516690",
+    "passes": true,
+    "scope_ok": {
+      "at": "2026-11-01T19:46:01.669Z",
+      "start_sha": "9bb48aab32077addde1d540a77591f1b77516690",
+      "mutation_evidence": true,
+      "tree": "e2716648aa72bcba354526bc0866c59cbbc2fb4e8c5eb41362950ed2f6e69fb8",
+      "size": "Risky"
+    },
+    "verified_at": "2026-11-01T19:47:01.932Z",
+    "tree": "e2716648aa72bcba354526bc0866c59cbbc2fb4e8c5eb41362950ed2f6e69fb8",
+    "gate": "full"
   }
 ]

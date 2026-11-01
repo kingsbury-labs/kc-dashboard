@@ -45,6 +45,7 @@ then the same with `--filter Finance`.
 - `public/cockpit/js/`, `public/cockpit/cockpit.css`
 - `src/Cockpit/CockpitDaily.php`, `src/Collectors/Finance.php`
 - `tests/CockpitPortraitTest.php` (new), `tests/CollectorsTest.php`, `tests/FinanceCollectorTest.php`
+- `tests/CockpitFixesTest.php`: only the card 111 test "a finance file with facts missing fields..." whose null-subject expectation this card reverses (expect 3 lines, the payment review label first)
 - `tests/fixtures/cockpit-daily/`, `tests/fixtures/` finance fixtures if present
 - `.claude/work/112-cockpit-portrait/progress.md`, `.claude/work/112-cockpit-portrait/result.md`
 

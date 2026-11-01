@@ -1,0 +1,3 @@
+- Read brief and files. Conflict: tests/CockpitFixesTest.php (not in my list) expects a null-subject fact to be skipped. Next: Finance.php, CockpitDaily.php.
+- Done: Finance.php, CockpitDaily.php, views.js, cockpit.css, tests/CockpitPortraitTest.php. Mutation run done and restored. result.md written. Only failure left is the CockpitFixesTest conflict. Not committed.
+- Resume: CockpitFixesTest expectation updated to 3 alerts; Cockpit 33/33, Finance 15/15 green. Not committed. Done.
