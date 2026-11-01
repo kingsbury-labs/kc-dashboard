@@ -1398,6 +1398,19 @@ LOGOUT; no source file under `src/Mail/` contains STORE, COPY, MOVE, EXPUNGE,
 APPEND or SELECT; the app password never appears in the log or the API output;
 a follow-up write without the token is refused.
 
+### 122. Cockpit at desktop sizes: the monitor is beside Rob's face (Small)
+- Role: implementer, Sonnet, effort low. Depends: 121. Runs before 120.
+
+Rob: "The monitor is beside my face." Desktop type and control sizes in the
+portrait block, hero about half height, Agenda without dead space, Follow-ups
+add box visible, kc-finance lines without the repeated kind.
+
+Done-test: `c:\xampp\php\php.exe tests/run.php --filter Cockpit` passes, including new
+CockpitHero tests proving: inside the 1080x1920 portrait block no font-size
+is above 72px, the clock is 72px, grid card text is 14px, and the Cas bar and
+Google search are 44px tall; a finance line has no kind cell and no dash when
+its date is null.
+
 ### 121. Cockpit hero rebuilt to the approved concept, loose layout fixed (Normal)
 - Role: implementer, Sonnet. Depends: 119. Runs before 120.
 

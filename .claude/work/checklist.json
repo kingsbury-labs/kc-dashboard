@@ -731,5 +731,12 @@
     "verified_at": "2026-11-01T21:26:49.555Z",
     "tree": "c50323bf03105bcb73c3090ef77c3430e1a4ed00a0bfb56524adc40ff64f1cd7",
     "gate": "full"
+  },
+  {
+    "id": "122",
+    "title": "Cockpit at desktop sizes",
+    "brief": ".claude/work/122-cockpit-desktop-sizes/brief.md",
+    "start_sha": "25241dac951748c98898fc24f96ae697a27fb711",
+    "passes": false
   }
 ]
