@@ -119,3 +119,6 @@ Rob: the remaining cards collapse into 60-69 (feature-sized, about an hour of lo
 
 ## 2026-11-01 card 109 (loop)
 - 109 built and sent to the gate. Needs Rob: create D:\Dev\htdocs\.credentials\kc-dashboard-gmail-user holding the Gmail address (PII hook kept it out of config), or mail panels stay empty.
+
+## 2026-11-01 card 114 (loop)
+- 114 mail relevance built and sent to the gate. start_sha moved to 705eb19: the recorded b336359 predated cards 113 and 116 landing. Inbox count of visible rows not yet known: the 10 cached rows predate tagging and are refetched on the next collect.

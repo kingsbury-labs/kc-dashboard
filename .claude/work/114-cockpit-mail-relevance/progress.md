@@ -1,0 +1,3 @@
+- Read brief and files. Plan: src/Mail/Relevance.php (tag, corrections), addr in ImapReader, tag in Mail collector, filter in CockpitDay::mail, sender POST in CockpitDay::write, views.js buttons.
+- Done code: Relevance.php (new), Summarizer.php (generate), ImapReader.php (addr), Collectors/Mail.php, CockpitDay.php, CockpitDeps.php, api/cockpit.php, js/data.js, js/views.js, cockpit.css, config/collectors.php. Tests: CockpitMailRelevanceTest (3), fixture, CockpitDayTest helpers. Green 3/3 and 6/6.
+- Mutations done (domain match, corrections), restored, green. result.md written. Done.

@@ -165,6 +165,7 @@ class ImapReader
             $date = is_string($env[0] ?? null) ? strtotime($env[0]) : false;
             $out[(int) $f['UID']] = [
                 'from' => $who,
+                'addr' => is_array($from) ? strtolower(($from[2] ?? '') . '@' . ($from[3] ?? '')) : '',
                 'subject' => self::header((string) ($env[1] ?? '')),
                 'date' => $date === false ? null : $date,
                 'message_id' => trim((string) ($env[9] ?? ''), '<> '),

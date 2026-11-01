@@ -41,6 +41,7 @@ class CockpitDeps
                 'calendar' => $data . '/' . $collectors['calendar']['cache'],
                 'mail' => $data . '/' . $collectors['mail']['cache'],
                 'follow' => $data . '/' . $collectors['followups'],
+                'senders' => $data . '/' . $collectors['mail']['senders'],
                 'tz' => (string) $collectors['calendar']['tz'],
             ],
         ];

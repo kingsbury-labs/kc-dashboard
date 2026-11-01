@@ -2,6 +2,7 @@
 require_once __DIR__ . '/NeverShow.php';
 require_once __DIR__ . '/../Collectors/Calendar.php';
 require_once __DIR__ . '/../Collectors/Mail.php';
+require_once __DIR__ . '/../Mail/Relevance.php';
 require_once __DIR__ . '/../Http/RequestGuard.php';
 require_once __DIR__ . '/../Http/Response.php';
 
@@ -21,7 +22,7 @@ class CockpitDay
     public static function build(array $deps, int $now, ?Log $log = null): array
     {
         $tz = (string) ($deps['tz'] ?? 'America/Toronto');
-        $mail = self::part(fn() => isset($deps['mail']) ? self::mail((string) $deps['mail'], $now) : null, $log);
+        $mail = self::part(fn() => isset($deps['mail']) ? self::mail((string) $deps['mail'], $now, isset($deps['senders']) ? (string) $deps['senders'] : null) : null, $log);
         return [
             'calendar' => self::part(fn() => isset($deps['calendar']) ? self::calendar((string) $deps['calendar'], $now, $tz) : null, $log),
             'mail' => $mail,
@@ -53,19 +54,18 @@ class CockpitDay
         ];
     }
 
-    public static function mail(string $path, int $now): ?array
+    // Only mail tagged with a project, after Rob's corrections in $senders (Relevance).
+    public static function mail(string $path, int $now, ?string $senders = null): ?array
     {
         $m = Mail::cached($path, $now);
         if ($m === null) {
             return null;
         }
         $rows = [];
-        foreach (array_slice($m['rows'], 0, self::MAIL_ROWS) as $r) {
-            if (!is_array($r)) {
-                continue;
-            }
+        foreach (array_slice(Relevance::apply($m['rows'], $senders), 0, self::MAIL_ROWS) as $r) {
             $link = (string) ($r['link'] ?? '');
             $rows[] = ['from' => NeverShow::text((string) ($r['from'] ?? ''), null, 80), 'subject' => NeverShow::text((string) ($r['subject'] ?? ''), null, 200),
+                'sender' => (string) ($r['addr'] ?? ''), 'project' => NeverShow::text((string) $r['project'], null, Relevance::NAME_MAX),
                 'date' => is_int($r['date'] ?? null) ? $r['date'] : null,
                 'link' => str_starts_with($link, 'https://mail.google.com/') ? $link : null,
                 'summary' => is_string($r['summary'] ?? null) ? NeverShow::text($r['summary'], null, 200) : null,
@@ -98,16 +98,28 @@ class CockpitDay
     }
 
     /**
-     * POST: {"add": "text"} or {"done": "id"}. checkWrite (address, Host, POST, token, Origin) runs before the body
-     * is read. Answers the list as follow() shows it.
+     * POST: {"add": "text"} or {"done": "id"}, or a mail correction {"sender": address, "project": name or null}
+     * into $senders. checkWrite (address, Host, POST, token, Origin) runs before the body is read. Answers the list
+     * as follow() shows it, or the stored correction.
      */
-    public static function write(array $server, Closure $token, Closure $body, string $path, int $now, ?Log $log = null): array
+    public static function write(array $server, Closure $token, Closure $body, string $path, int $now, ?Log $log = null, ?string $senders = null): array
     {
         try {
             if (!(new RequestGuard(''))->checkRead($server) || !(new RequestGuard($token()))->checkWrite($server)) {
                 return Response::json(403, ['error' => 'forbidden']);
             }
             $in = json_decode((string) $body(), true);
+            if ($senders !== null && is_array($in) && array_key_exists('sender', $in)) {
+                $p = $in['project'] ?? null;
+                if (!is_string($in['sender']) || ($p !== null && !is_string($p))) {
+                    return Response::json(400, ['error' => 'send sender and project']);
+                }
+                try {
+                    return Response::json(200, Relevance::correct($senders, $in['sender'], $p));
+                } catch (InvalidArgumentException $e) {
+                    return Response::json(400, ['error' => $e->getMessage()]);
+                }
+            }
             $lock = fopen($path . '.lock', 'c');
             flock($lock, LOCK_EX);
             try {

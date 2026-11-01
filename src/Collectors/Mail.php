@@ -2,6 +2,7 @@
 require_once __DIR__ . '/Collector.php';
 require_once __DIR__ . '/../Mail/ImapReader.php';
 require_once __DIR__ . '/../Mail/Summarizer.php';
+require_once __DIR__ . '/../Mail/Relevance.php';
 
 /**
  * The newest inbox messages, each summed up in one line by the local model, saved to a cache file the cockpit reads.
@@ -27,9 +28,13 @@ class Mail extends Collector
     private string $cache;
     private Log $log;
 
+    private ?Closure $tag;
+
     // $wire: fn(): ImapWire. $model: fn(array message): ?array{summary:string, reply:bool}.
-    public function __construct(Closure $wire, string $user, string $passwordFile, Closure $model, string $cache, Log $log)
+    // $tag: fn(array message): ?string project (Relevance::tag); null builds it from the running config.
+    public function __construct(Closure $wire, string $user, string $passwordFile, Closure $model, string $cache, Log $log, ?Closure $tag = null)
     {
+        $this->tag = $tag;
         $this->wire = $wire;
         $this->user = $user;
         $this->passwordFile = $passwordFile;
@@ -51,7 +56,8 @@ class Mail extends Collector
         }
         $keep = [];
         foreach ((array) ($old['rows'] ?? []) as $r) {
-            if (is_array($r) && is_int($r['uid'] ?? null) && $r['summary'] !== null) {
+            // A row from before tagging has no project key and is read again.
+            if (is_array($r) && is_int($r['uid'] ?? null) && array_key_exists('project', $r) && ($r['summary'] !== null || $r['project'] === null)) {
                 $keep[$r['uid']] = $r;
             }
         }
@@ -79,6 +85,7 @@ class Mail extends Collector
                 'rows' => array_values($old['rows'] ?? [])]);
             throw $e;
         }
+        $tag = $this->tag ?? $this->defaultTag();
         $rows = [];
         foreach (array_reverse($uids) as $uid) {
             if (isset($keep[$uid])) {
@@ -90,11 +97,18 @@ class Mail extends Collector
                 continue;
             }
             try {
-                $s = ($this->model)($m + ['uid' => $uid]);
+                $project = $tag($m);
+            } catch (Throwable $e) {
+                $project = null;
+            }
+            // Hidden mail is not summed up.
+            try {
+                $s = $project === null ? null : ($this->model)($m + ['uid' => $uid]);
             } catch (Throwable $e) {
                 $s = null;
             }
-            $rows[] = ['uid' => $uid, 'from' => $m['from'], 'subject' => $m['subject'], 'date' => $m['date'],
+            $rows[] = ['uid' => $uid, 'from' => $m['from'], 'addr' => (string) ($m['addr'] ?? ''), 'project' => $project,
+                'subject' => $m['subject'], 'date' => $m['date'],
                 'link' => $m['message_id'] === '' ? 'https://mail.google.com/mail/u/0/#inbox'
                     : 'https://mail.google.com/mail/u/0/#search/' . rawurlencode('rfc822msgid:' . $m['message_id']),
                 'summary' => $s['summary'] ?? null, 'reply' => ($s['reply'] ?? false) === true];
@@ -112,6 +126,14 @@ class Mail extends Collector
         }
         return ['at' => $data['at'], 'age' => max(0, $now - $data['at']), 'error' => is_string($data['error'] ?? null) ? $data['error'] : null,
             'rows' => $data['rows']];
+    }
+
+    // Corrections beside the cache in data/mail-senders.json; the model from config/collectors.php.
+    private function defaultTag(): Closure
+    {
+        $cfg = (require __DIR__ . '/../../config/collectors.php')['mail'];
+        $r = Relevance::fromConfig(dirname($this->cache) . '/' . $cfg['senders'], Summarizer::generate($cfg['ollama'], $cfg['model']));
+        return fn(array $m): ?string => $r->tag($m);
     }
 
     private function save(array $data): void

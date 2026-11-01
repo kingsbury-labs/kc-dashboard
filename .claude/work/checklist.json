@@ -617,8 +617,18 @@
     "id": "114",
     "title": "Cockpit email: only mail about Rob's projects",
     "brief": ".claude/work/114-cockpit-mail-relevance/brief.md",
-    "start_sha": "b336359ede178eddbfe00d5150259fdf0c5c9604",
-    "passes": false
+    "start_sha": "705eb1967bd5b9f3ad946968230afb7a39a7c044",
+    "passes": true,
+    "scope_ok": {
+      "at": "2026-11-01T20:17:41.300Z",
+      "start_sha": "705eb1967bd5b9f3ad946968230afb7a39a7c044",
+      "mutation_evidence": true,
+      "tree": "b1598ef6d70dc656fb9817770313f583f4f477eba2135e5ec2302c27918d0e22",
+      "size": "Risky"
+    },
+    "verified_at": "2026-11-01T20:18:55.580Z",
+    "tree": "b1598ef6d70dc656fb9817770313f583f4f477eba2135e5ec2302c27918d0e22",
+    "gate": "full"
   },
   {
     "id": "115",

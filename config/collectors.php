@@ -18,6 +18,19 @@ return [
         'tz' => 'America/Toronto'],
     'mail' => ['gmail_user' => trim((string) @file_get_contents('D:\\Dev\\htdocs\\.credentials\\kc-dashboard-gmail-user')),
         'password_file' => 'D:\\Dev\\htdocs\\.credentials\\kc-dashboard-gmail-app-password',
-        'cache' => 'mail-cache.json', 'ollama' => 'http://127.0.0.1:11434', 'model' => 'qwen3.5:9b-q4_K_M'],
+        'cache' => 'mail-cache.json', 'ollama' => 'http://127.0.0.1:11434', 'model' => 'qwen3.5:9b-q4_K_M',
+        // Mail is shown only when it concerns a project, client or vendor. senders: Rob's corrections, under data/.
+        // care_clients: kc-care's client list (key and domain), read only. vendors: name => sender domains.
+        'senders' => 'mail-senders.json',
+        'care_clients' => 'D:\\Dev\\htdocs\\kc-care\\clients.json',
+        'vendors' => [
+            'DigitalOcean' => ['digitalocean.com'],
+            'WHC' => ['whc.ca'],
+            'Helcim' => ['helcim.com'],
+            'Stripe' => ['stripe.com'],
+            'GitHub' => ['github.com'],
+            'Cloudflare' => ['cloudflare.com'],
+            'Google Workspace' => ['workspace-noreply.google.com'],
+        ]],
     'followups' => 'followups.json',
 ];

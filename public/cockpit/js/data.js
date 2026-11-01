@@ -56,6 +56,24 @@ export async function postFollow(body) {
   emit();
 }
 
+// Corrects which project a sender's mail belongs to ({ sender, project }, project null for "not mine"). The rows in
+// hand change at once; the server applies it to every later snapshot.
+export async function postSender(sender, project) {
+  const res = await post(SNAPSHOT, JSON.stringify({ sender, project }));
+  if (!res.ok) throw new Error(`sender ${res.status}`);
+  const mail = state.snap?.day?.mail;
+  if (mail) {
+    mail.rows = project === null ? mail.rows.filter((r) => r.sender !== sender)
+      : mail.rows.map((r) => (r.sender === sender ? { ...r, project } : r));
+    const follow = state.snap.day.follow;
+    if (follow && project === null) {
+      const left = new Set(mail.rows.map((r) => r.link));
+      follow.threads = follow.threads.filter((t) => left.has(t.link));
+    }
+  }
+  emit();
+}
+
 function post(url, body) {
   return fetch(url, { method: 'POST', cache: 'no-store', headers: { 'Content-Type': 'application/json', 'X-KC-Token': token }, body });
 }

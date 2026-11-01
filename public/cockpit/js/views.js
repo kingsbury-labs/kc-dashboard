@@ -1,7 +1,7 @@
 // The cockpit's screens, ported from the v4 concept with its demo data replaced by the snapshot from data.js.
 // Every panel is live: agents, weather, plan limits, finance and news, and (card 109) agenda, email and follow-ups.
 import { el, add, btn, card, pill, link, go, ago, clock, icon, notConnected, $ } from './dom.js';
-import { state, liveState, waiting, skeletonOn, postFollow } from './data.js';
+import { state, liveState, waiting, skeletonOn, postFollow, postSender } from './data.js';
 
 const STEPS = ['Work', 'Gate', 'Audit', 'Done'];
 const PILL = { working: 'working', waiting: 'waiting', done: 'done', failed: 'failed', idle: 'idle' };
@@ -270,9 +270,12 @@ function emailCard() {
   if (m?.error) c.append(el('p', 'agenda-empty', m.error));
   const list = el('div', 'email-list');
   const rows = m?.rows ?? [];
+  const names = [...new Set(rows.map((x) => x.project))];
   rows.slice(0, emailOpen ? rows.length : EMAIL_SHOWN).forEach((x) => {
-    const r = x.link ? link('', 'email-item', x.link) : el('div', 'email-item');
-    add(r, el('b', '', x.from), el('span', '', x.subject), x.summary ? el('p', '', x.summary) : null, el('small', '', ago(x.date)));
+    const r = el('div', 'email-item');
+    const body = x.link ? link('', 'email-body', x.link) : el('div', 'email-body');
+    add(body, el('b', '', x.from), el('span', '', x.subject), x.summary ? el('p', '', x.summary) : null, el('small', '', ago(x.date)));
+    add(r, el('span', 'email-tag', x.project), body, x.sender ? emailFix(x, names) : null);
     list.append(r);
   });
   if (m && !m.rows.length && !m.error) list.append(el('p', 'agenda-empty', 'No new mail in the last two weeks.'));
@@ -286,6 +289,29 @@ function emailCard() {
   skeleton(c, skeletonOn());
   if (!state.snap) return skeletonOn() ? c : notConnected(c, waiting());
   return m ? c : notConnected(c, 'No mail reading yet');
+}
+
+// "Not mine" hides the sender from now on; "Project..." opens a name field (known names offered) that retags it.
+function emailFix(x, names) {
+  const row = el('div', 'email-actions');
+  const fail = () => row.append(el('small', '', 'Not saved'));
+  const project = () => {
+    const input = el('input', 'email-project');
+    input.value = x.project;
+    input.setAttribute('aria-label', 'Project for mail from ' + x.sender);
+    input.setAttribute('list', 'email-projects');
+    const opts = el('datalist');
+    opts.id = 'email-projects';
+    names.forEach((n) => { const o = el('option'); o.value = n; opts.append(o); });
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && input.value.trim()) postSender(x.sender, input.value.trim()).catch(fail);
+      if (e.key === 'Escape') row.replaceWith(emailFix(x, names));
+    });
+    row.replaceChildren(input, opts);
+    input.focus();
+  };
+  add(row, btn('Not mine', 'text-btn', () => postSender(x.sender, null).catch(fail)), btn('Project...', 'text-btn', project));
+  return row;
 }
 
 function followCard() {

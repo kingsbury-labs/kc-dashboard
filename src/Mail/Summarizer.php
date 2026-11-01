@@ -30,14 +30,24 @@ class Summarizer
 
     public static function ollama(string $base, string $model, int $timeout = 90): Closure
     {
+        $ask = self::generate($base, $model, $timeout);
+        return function (array $m) use ($ask): ?array {
+            $answer = $ask(self::prompt($m));
+            return $answer === null ? null : self::read($answer);
+        };
+    }
+
+    // fn(string prompt): ?string, the local model's raw answer. Shared with Relevance.
+    public static function generate(string $base, string $model, int $timeout = 90): Closure
+    {
         if (!preg_match('~^http://(127\.0\.0\.1|localhost)(:\d+)?/?$~', $base)) {
             throw new InvalidArgumentException('the summariser must be a loopback address');
         }
-        return function (array $m) use ($base, $model, $timeout): ?array {
+        return function (string $prompt) use ($base, $model, $timeout): ?string {
             $ch = curl_init(rtrim($base, '/') . '/api/generate');
             curl_setopt_array($ch, [
                 CURLOPT_POST => true,
-                CURLOPT_POSTFIELDS => json_encode(['model' => $model, 'prompt' => self::prompt($m), 'stream' => false,
+                CURLOPT_POSTFIELDS => json_encode(['model' => $model, 'prompt' => $prompt, 'stream' => false,
                     'format' => 'json', 'think' => false], JSON_INVALID_UTF8_SUBSTITUTE),
                 CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
                 CURLOPT_RETURNTRANSFER => true,
@@ -50,7 +60,7 @@ class Summarizer
             $code = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
             curl_close($ch);
             $d = is_string($body) && $code === 200 ? json_decode($body, true) : null;
-            return is_string($d['response'] ?? null) ? self::read($d['response']) : null;
+            return is_string($d['response'] ?? null) ? $d['response'] : null;
         };
     }
 }

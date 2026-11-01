@@ -11,9 +11,9 @@ define('CY_NOW', (int) strtotime('2026-11-01T10:05:00Z'));
 
 // A scripted Gmail: answers the five read commands from imap.json, counting literal lengths itself, and records
 // every command it is sent (tag stripped). $refuse makes LOGIN fail with a reply that echoes the command back.
-function cy_wire(array &$sent, bool $refuse = false): ImapWire
+function cy_wire(array &$sent, bool $refuse = false, string $fixDir = CY_FIX): ImapWire
 {
-    $fix = json_decode((string) file_get_contents(CY_FIX . '/imap.json'), true);
+    $fix = json_decode((string) file_get_contents($fixDir . '/imap.json'), true);
     return new class ($fix, $sent, $refuse) implements ImapWire {
         private string $out;
         public function __construct(private array $fix, private array &$sent, private bool $refuse)
@@ -86,11 +86,13 @@ function cy_calendar(string $t, Log $log): Calendar
     return new Calendar($http, $t . '/ical-url', $t . '/calendar-cache.json', 'America/Toronto', $log);
 }
 
-function cy_mail(string $t, Log $log, array &$sent, ?Closure $model = null, bool $refuse = false): Mail
+// Every message is tagged unless $tag says otherwise (CockpitMailRelevanceTest covers tagging).
+function cy_mail(string $t, Log $log, array &$sent, ?Closure $model = null, bool $refuse = false, ?Closure $tag = null, string $fixDir = CY_FIX): Mail
 {
-    return new Mail(function () use (&$sent, $refuse): ImapWire {
-        return cy_wire($sent, $refuse);
-    }, 'rob@example.org', $t . '/app-password', $model ?? fn(array $m): ?array => null, $t . '/mail-cache.json', $log);
+    return new Mail(function () use (&$sent, $refuse, $fixDir): ImapWire {
+        return cy_wire($sent, $refuse, $fixDir);
+    }, 'rob@example.org', $t . '/app-password', $model ?? fn(array $m): ?array => null, $t . '/mail-cache.json', $log,
+        $tag ?? fn(array $m): ?string => 'Acme');
 }
 
 // The snapshot's raw body and its day block, through the API with the guard and token.
@@ -100,7 +102,8 @@ function cy_snapshot(string $t, Log $log): array
         'index' => fn(): TranscriptIndex => new TranscriptIndex($t . '/cockpit.sqlite', $t . '/transcripts', null, fn(): int => CY_NOW),
         'projects' => fn(): array => [],
         'clock' => fn(): int => CY_NOW,
-        'day' => ['calendar' => $t . '/calendar-cache.json', 'mail' => $t . '/mail-cache.json', 'follow' => $t . '/followups.json', 'tz' => 'America/Toronto'],
+        'day' => ['calendar' => $t . '/calendar-cache.json', 'mail' => $t . '/mail-cache.json', 'follow' => $t . '/followups.json',
+            'senders' => $t . '/mail-senders.json', 'tz' => 'America/Toronto'],
     ];
     $server = ['REMOTE_ADDR' => '127.0.0.1', 'HTTP_HOST' => '127.0.0.1:8787', 'REQUEST_METHOD' => 'GET',
         'HTTP_SEC_FETCH_SITE' => 'same-origin', 'HTTP_SEC_FETCH_MODE' => 'cors', RequestGuard::TOKEN_HEADER => CY_TOKEN];

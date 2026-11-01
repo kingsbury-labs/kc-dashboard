@@ -1,0 +1,21 @@
+{
+  "greeting": "* OK Gimap ready for requests from 127.0.0.1",
+  "capability_note": "Mail for CockpitMailRelevanceTest, served by cy_wire from CockpitDayTest. example.com stands in for a client's domain.",
+  "messages": [
+    {
+      "uid": 201,
+      "envelope": "(\"Sat, 31 Oct 2026 16:20:00 -0400\" \"Logo files\" ((\"Ann Acme\" NIL \"ann\" \"example.com\")) NIL NIL NIL NIL NIL NIL \"<m201@example.com>\")",
+      "body": "Hi Rob, attached are the zebrafinch logo files for the new site."
+    },
+    {
+      "uid": 202,
+      "envelope": "(\"Sun, 01 Nov 2026 07:02:00 -0500\" \"Pay in 4 this weekend\" ((\"Klarna\" NIL \"deals\" \"example.net\")) NIL NIL NIL NIL NIL NIL \"<m202@example.com>\")",
+      "body": "Shop the marmalade sale and split it into four payments."
+    },
+    {
+      "uid": 203,
+      "envelope": "(\"Sun, 01 Nov 2026 09:40:00 -0500\" \"Staging login for the portal\" ((\"Dev Helper\" NIL \"dev\" \"example.org\")) NIL NIL NIL NIL NIL NIL \"<m203@example.com>\")",
+      "body": "The kc-portal staging login is ready, the quokka account works."
+    }
+  ]
+}
