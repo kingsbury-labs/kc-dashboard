@@ -685,8 +685,18 @@
     "id": "117",
     "title": "Project knowledge graph",
     "brief": ".claude/work/117-knowledge-graph/brief.md",
-    "start_sha": "2a94a6680fb16a4cecd779b7d1e809adde589874",
-    "passes": false
+    "start_sha": "81a806ee8782b985d41a4ea107aa4097410b0e79",
+    "passes": true,
+    "scope_ok": {
+      "at": "2026-11-01T21:05:31.094Z",
+      "start_sha": "81a806ee8782b985d41a4ea107aa4097410b0e79",
+      "mutation_evidence": true,
+      "tree": "15b518802f6bf73dcacb3dd869e700ca41e8d82e3ba0f138dd6ad61b72f9baac",
+      "size": "Risky"
+    },
+    "verified_at": "2026-11-01T21:06:59.910Z",
+    "tree": "15b518802f6bf73dcacb3dd869e700ca41e8d82e3ba0f138dd6ad61b72f9baac",
+    "gate": "full"
   },
   {
     "id": "118",

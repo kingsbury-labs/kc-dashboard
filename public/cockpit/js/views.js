@@ -276,11 +276,27 @@ function emailCard() {
     const r = el('div', 'email-item');
     const body = x.link ? link('', 'email-body', x.link) : el('div', 'email-body');
     add(body, el('b', '', x.from), el('span', '', x.subject), x.summary ? el('p', '', x.summary) : null, el('small', '', ago(x.date)));
-    add(r, el('span', 'email-tag', x.project), body, x.sender ? emailFix(x, names) : null);
+    const tag = el('span', 'email-tag', x.project);
+    if (x.reason) tag.title = x.reason;
+    add(r, tag, body, x.sender ? emailFix(x, names) : null);
     list.append(r);
   });
   if (m && !m.rows.length && !m.error) list.append(el('p', 'agenda-empty', 'No new mail in the last two weeks.'));
   c.append(list);
+  // Mail the graph could not place: one click on "Project..." tags the sender, and the tag becomes an edge.
+  const unsure = m?.unsure ?? [];
+  if (unsure.length) {
+    const pile = el('details', 'email-unsure');
+    add(pile, el('summary', '', `Unsure (${unsure.length})`));
+    unsure.forEach((x) => {
+      const r = el('div', 'email-item');
+      const body = x.link ? link('', 'email-body', x.link) : el('div', 'email-body');
+      add(body, el('b', '', x.from), el('span', '', x.subject), x.reason ? el('p', '', x.reason) : null, el('small', '', ago(x.date)));
+      add(r, body, x.sender ? emailFix({ ...x, project: '' }, names) : null);
+      pile.append(r);
+    });
+    c.append(pile);
+  }
   if (rows.length > EMAIL_SHOWN) {
     c.append(btn(emailOpen ? 'Show fewer' : 'Show all', 'text-btn', () => {
       emailOpen = !emailOpen;

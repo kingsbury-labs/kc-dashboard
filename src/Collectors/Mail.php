@@ -3,6 +3,7 @@ require_once __DIR__ . '/Collector.php';
 require_once __DIR__ . '/../Mail/ImapReader.php';
 require_once __DIR__ . '/../Mail/Summarizer.php';
 require_once __DIR__ . '/../Mail/Relevance.php';
+require_once __DIR__ . '/../Graph/Classifier.php';
 
 /**
  * The newest inbox messages, each summed up in one line by the local model, saved to a cache file the cockpit reads.
@@ -96,11 +97,15 @@ class Mail extends Collector
             if ($m === null) {
                 continue;
             }
+            // A tag is a project name, or the Classifier's {project, reason, unsure}.
             try {
-                $project = $tag($m);
+                $t = $tag($m);
             } catch (Throwable $e) {
-                $project = null;
+                $t = null;
             }
+            $project = is_array($t) ? ($t['project'] ?? null) : $t;
+            $reason = is_array($t) ? (string) ($t['reason'] ?? '') : '';
+            $unsure = is_array($t) && ($t['unsure'] ?? false) === true;
             // Hidden mail is not summed up.
             try {
                 $s = $project === null ? null : ($this->model)($m + ['uid' => $uid]);
@@ -108,7 +113,7 @@ class Mail extends Collector
                 $s = null;
             }
             $rows[] = ['uid' => $uid, 'from' => $m['from'], 'addr' => (string) ($m['addr'] ?? ''), 'project' => $project,
-                'subject' => $m['subject'], 'date' => $m['date'],
+                'reason' => $reason, 'unsure' => $unsure, 'subject' => $m['subject'], 'date' => $m['date'],
                 'link' => $m['message_id'] === '' ? 'https://mail.google.com/mail/u/0/#inbox'
                     : 'https://mail.google.com/mail/u/0/#search/' . rawurlencode('rfc822msgid:' . $m['message_id']),
                 'summary' => $s['summary'] ?? null, 'reply' => ($s['reply'] ?? false) === true];
@@ -128,12 +133,14 @@ class Mail extends Collector
             'rows' => $data['rows']];
     }
 
-    // Corrections beside the cache in data/mail-senders.json; the model from config/collectors.php.
+    // The knowledge graph in data/dashboard.sqlite (the Graph collector builds it), corrections beside the cache in
+    // data/mail-senders.json, the model from config/collectors.php.
     private function defaultTag(): Closure
     {
         $cfg = (require __DIR__ . '/../../config/collectors.php')['mail'];
-        $r = Relevance::fromConfig(dirname($this->cache) . '/' . $cfg['senders'], Summarizer::generate($cfg['ollama'], $cfg['model']));
-        return fn(array $m): ?string => $r->tag($m);
+        $c = new Classifier(new GraphStore(Db::open(dirname($this->cache) . '/dashboard.sqlite')), dirname($this->cache) . '/' . $cfg['senders'],
+            Summarizer::generate($cfg['ollama'], $cfg['model']));
+        return fn(array $m): array => $c->tag($m);
     }
 
     private function save(array $data): void

@@ -76,13 +76,16 @@ class ImapRefused extends RuntimeException
 /**
  * Gmail's inbox, read only (XAMPP's PHP has no imap extension). The mailbox is opened with EXAMINE and bodies are
  * fetched with BODY.PEEK, so nothing is ever marked read. Every command is checked against ALLOWED before it is
- * sent: LOGIN, EXAMINE INBOX, UID SEARCH SINCE, UID FETCH of ENVELOPE and a peeked first part, LOGOUT. Nothing else.
+ * sent: LOGIN, EXAMINE of INBOX or Sent Mail, UID SEARCH SINCE, UID FETCH of ENVELOPE alone or with a peeked first
+ * part, LOGOUT. Nothing else.
  */
 class ImapReader
 {
     private const Q = '"(?:[^"\\\\\r\n]|\\\\["\\\\])*"';
-    public const ALLOWED = '/\A(?:LOGIN ' . self::Q . ' ' . self::Q . '|EXAMINE INBOX|LOGOUT|UID SEARCH SINCE \d{1,2}-[A-Z][a-z]{2}-\d{4}'
-        . '|UID FETCH \d+(?:,\d+)* \(UID ENVELOPE BODY\.PEEK\[1\]<0\.\d{1,5}>\))\z/';
+    public const ALLOWED = '/\A(?:LOGIN ' . self::Q . ' ' . self::Q . '|EXAMINE INBOX|EXAMINE "\[Gmail\]\/Sent Mail"|LOGOUT'
+        . '|UID SEARCH SINCE \d{1,2}-[A-Z][a-z]{2}-\d{4}'
+        . '|UID FETCH \d+(?:,\d+)* \(UID ENVELOPE BODY\.PEEK\[1\]<0\.\d{1,5}>\)|UID FETCH \d+(?:,\d+)* \(UID ENVELOPE\))\z/';
+    public const SENT = '"[Gmail]/Sent Mail"';
     public const MAX_LITERAL = 1048576;
 
     private ImapWire $wire;
@@ -110,12 +113,50 @@ class ImapReader
         }
     }
 
-    public function examine(): void
+    // $box: INBOX, or SENT for Gmail's sent mail (the knowledge graph reads its envelopes).
+    public function examine(string $box = 'INBOX'): void
     {
-        [$ok, $text] = $this->run('EXAMINE INBOX');
+        [$ok, $text] = $this->run('EXAMINE ' . ($box === 'SENT' ? self::SENT : 'INBOX'));
         if (!$ok) {
-            throw new RuntimeException('EXAMINE INBOX failed: ' . $text);
+            throw new RuntimeException('EXAMINE failed: ' . $text);
         }
+    }
+
+    /**
+     * Envelopes only, no body part: per UID, to (addresses), subject, date.
+     * @param int[] $uids
+     */
+    public function envelopes(array $uids): array
+    {
+        [$ok, $text, $lines] = $this->run('UID FETCH ' . implode(',', array_map('intval', $uids)) . ' (UID ENVELOPE)');
+        if (!$ok) {
+            throw new RuntimeException('UID FETCH failed: ' . $text);
+        }
+        $out = [];
+        foreach ($lines as $l) {
+            if (!preg_match('/^\* \d+ FETCH \(/', $l)) {
+                continue;
+            }
+            $i = strpos($l, '(');
+            $items = self::parse($l, $i);
+            $f = [];
+            for ($k = 0; $k + 1 < count($items); $k += 2) {
+                $f[strtoupper((string) $items[$k])] = $items[$k + 1];
+            }
+            $env = $f['ENVELOPE'] ?? null;
+            if (!isset($f['UID']) || !is_array($env)) {
+                continue;
+            }
+            $to = [];
+            foreach (array_merge(is_array($env[5] ?? null) ? $env[5] : [], is_array($env[6] ?? null) ? $env[6] : []) as $a) {
+                if (is_array($a) && is_string($a[2] ?? null) && is_string($a[3] ?? null)) {
+                    $to[] = strtolower($a[2] . '@' . $a[3]);
+                }
+            }
+            $date = is_string($env[0] ?? null) ? strtotime($env[0]) : false;
+            $out[(int) $f['UID']] = ['to' => $to, 'subject' => self::header((string) ($env[1] ?? '')), 'date' => $date === false ? null : $date];
+        }
+        return $out;
     }
 
     /** @return int[] UIDs of messages since the day of $since, lowest first */

@@ -1,0 +1,2 @@
+- Built migration 010, src/Graph/*, Collectors/Graph.php, Mail/Classifier wiring, ImapReader sent, CockpitDay unsure, views.js, css, collect-facts, GraphTest + fixtures. Graph 4/4, CockpitMail 3/3. Next: mutation.
+- Read brief and sources. Next: GraphStore + migration + readers + Classifier + tests.

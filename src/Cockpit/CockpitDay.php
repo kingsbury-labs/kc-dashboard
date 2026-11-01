@@ -66,12 +66,25 @@ class CockpitDay
             $link = (string) ($r['link'] ?? '');
             $rows[] = ['from' => NeverShow::text((string) ($r['from'] ?? ''), null, 80), 'subject' => NeverShow::text((string) ($r['subject'] ?? ''), null, 200),
                 'sender' => (string) ($r['addr'] ?? ''), 'project' => NeverShow::text((string) $r['project'], null, Relevance::NAME_MAX),
+                'reason' => NeverShow::text((string) ($r['reason'] ?? ''), null, 200),
                 'date' => is_int($r['date'] ?? null) ? $r['date'] : null,
                 'link' => str_starts_with($link, 'https://mail.google.com/') ? $link : null,
                 'summary' => is_string($r['summary'] ?? null) ? NeverShow::text($r['summary'], null, 200) : null,
                 'reply' => ($r['reply'] ?? false) === true];
         }
-        return ['at' => $m['at'], 'age' => $m['age'], 'error' => $m['error'], 'rows' => $rows];
+        // The Unsure pile: mail the graph and the model could not place, until Rob tags its sender.
+        $learned = $senders === null ? [] : Relevance::senders($senders);
+        $unsure = [];
+        foreach ($m['rows'] as $r) {
+            if (is_array($r) && ($r['unsure'] ?? false) === true && !array_key_exists(strtolower((string) ($r['addr'] ?? '')), $learned)) {
+                $link = (string) ($r['link'] ?? '');
+                $unsure[] = ['from' => NeverShow::text((string) ($r['from'] ?? ''), null, 80), 'subject' => NeverShow::text((string) ($r['subject'] ?? ''), null, 200),
+                    'sender' => (string) ($r['addr'] ?? ''), 'reason' => NeverShow::text((string) ($r['reason'] ?? ''), null, 200),
+                    'date' => is_int($r['date'] ?? null) ? $r['date'] : null,
+                    'link' => str_starts_with($link, 'https://mail.google.com/') ? $link : null];
+            }
+        }
+        return ['at' => $m['at'], 'age' => $m['age'], 'error' => $m['error'], 'rows' => $rows, 'unsure' => array_slice($unsure, 0, self::MAIL_ROWS)];
     }
 
     // Threads that need a reply, and the local list: open items, and ones ticked off in the last two days.

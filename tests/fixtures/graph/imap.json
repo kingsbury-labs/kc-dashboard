@@ -1,0 +1,36 @@
+{
+  "greeting": "* OK Gimap ready for requests from 127.0.0.1",
+  "note": "Inbox and sent mail for GraphTest. example.com/net/org stand in for real domains; hosting.example.com is the WHC vendor.",
+  "inbox": [
+    {
+      "uid": 301,
+      "envelope": "(\"Sat, 31 Oct 2026 16:20:00 -0400\" \"Logo files\" ((\"Ann Acme\" NIL \"ann\" \"example.com\")) NIL NIL NIL NIL NIL NIL \"<m301@example.com>\")",
+      "body": "Hi Rob, attached are the zebrafinch logo files for the new site."
+    },
+    {
+      "uid": 302,
+      "envelope": "(\"Sun, 01 Nov 2026 09:40:00 -0500\" \"Staging login\" ((\"Dev Helper\" NIL \"dev\" \"example.org\")) NIL NIL NIL NIL NIL NIL \"<m302@example.org>\")",
+      "body": "The staging login is ready, the quokka account works."
+    },
+    {
+      "uid": 303,
+      "envelope": "(\"Sun, 01 Nov 2026 07:02:00 -0500\" \"This weekend only\" ((\"Deals\" NIL \"deals\" \"example.net\")) NIL NIL NIL NIL NIL NIL \"<m303@example.net>\")",
+      "body": "Shop the marmalade sale and split it into four payments."
+    },
+    {
+      "uid": 304,
+      "envelope": "(\"Sun, 01 Nov 2026 08:00:00 -0500\" \"Your invoice\" ((\"WHC Billing\" NIL \"billing\" \"hosting.example.com\")) NIL NIL NIL NIL NIL NIL \"<m304@example.com>\")",
+      "body": "Your hosting invoice is ready."
+    }
+  ],
+  "sent": [
+    {
+      "uid": 51,
+      "envelope": "(\"Thu, 29 Oct 2026 10:00:00 -0400\" \"kc-portal staging access\" ((\"Rob\" NIL \"rob\" \"example.org\")) NIL NIL ((\"Bob Portal\" NIL \"bob\" \"example.net\")) NIL NIL NIL \"<s51@example.org>\")"
+    },
+    {
+      "uid": 52,
+      "envelope": "(\"Thu, 29 Oct 2026 11:00:00 -0400\" \"Lunch Friday?\" ((\"Rob\" NIL \"rob\" \"example.org\")) NIL NIL ((\"Pal\" NIL \"pal\" \"example.net\")) NIL NIL NIL \"<s52@example.org>\")"
+    }
+  ]
+}

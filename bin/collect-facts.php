@@ -18,6 +18,7 @@ require_once __DIR__ . '/../src/Collectors/Finance.php';
 require_once __DIR__ . '/../src/Collectors/Weather.php';
 require_once __DIR__ . '/../src/Collectors/Calendar.php';
 require_once __DIR__ . '/../src/Collectors/Mail.php';
+require_once __DIR__ . '/../src/Collectors/Graph.php';
 require_once __DIR__ . '/../src/Collectors/Care.php';
 require_once __DIR__ . '/../src/Cockpit/CockpitDeps.php';
 
@@ -42,6 +43,9 @@ try {
         new Finance($cfg['finance_path'], $cfg['finance_aliases']),
         new Weather(new CurlHttpClient(), $root . '/data/' . $cfg['weather']['cache'], $cfg['weather']['latitude'], $cfg['weather']['longitude']),
         new Calendar(new CurlHttpClient(), $cfg['calendar']['url_file'], $root . '/data/' . $cfg['calendar']['cache'], $cfg['calendar']['tz'], $log),
+        // The knowledge graph first, so Mail classifies against this run's edges.
+        new Graph(new GraphStore($pdo), Graph::sources($root . '/data'), fn(): ImapWire => new TlsWire(), (string) $cfg['mail']['gmail_user'],
+            $cfg['mail']['password_file'], $log),
         new Mail(fn(): ImapWire => new TlsWire(), (string) $cfg['mail']['gmail_user'], $cfg['mail']['password_file'],
             Summarizer::ollama($cfg['mail']['ollama'], $cfg['mail']['model']), $root . '/data/' . $cfg['mail']['cache'], $log),
         new Care($cfg['care']['clients'], $cfg['care']['uptimerobot_key_file'], $root . '/data/' . $cfg['care']['cache'],
