@@ -1,0 +1,21 @@
+{
+  "greeting": "* OK Gimap ready for requests from 127.0.0.1",
+  "capability_note": "The fake server in CockpitDayTest answers LOGIN, EXAMINE, UID SEARCH, UID FETCH and LOGOUT from these messages; literal lengths are counted by the fake.",
+  "messages": [
+    {
+      "uid": 101,
+      "envelope": "(\"Sat, 31 Oct 2026 16:20:00 -0400\" \"Invoice question\" ((\"Ann Client\" NIL \"ann\" \"example.com\")) ((\"Ann Client\" NIL \"ann\" \"example.com\")) NIL ((NIL NIL \"rob\" \"example.org\")) NIL NIL NIL \"<m101@example.com>\")",
+      "body": "Hi Rob, can you resend the October invoice? The one I have shows the old address. Thanks, Ann"
+    },
+    {
+      "uid": 102,
+      "envelope": "(\"Sun, 01 Nov 2026 07:02:00 -0500\" \"=?UTF-8?Q?Weekly_digest_=E2=80=94_November?=\" ((NIL NIL \"news\" \"example.net\")) NIL NIL NIL NIL NIL NIL \"<m102@example.net>\")",
+      "body": "Top stories this week=0D=0A<b>Nothing</b> you need to act on."
+    },
+    {
+      "uid": 103,
+      "envelope": "(\"Sun, 01 Nov 2026 09:40:00 -0500\" \"Site is down?\" ((\"Bob Fixture\" NIL \"bob\" \"example.com\")) NIL NIL NIL NIL NIL NIL \"<m103@example.com>\")",
+      "body": "The contact page gives a 500 since this morning. Can you look?"
+    }
+  ]
+}

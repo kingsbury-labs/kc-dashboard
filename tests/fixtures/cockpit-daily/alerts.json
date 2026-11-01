@@ -1,0 +1,9 @@
+{"generated_at": "2026-11-01T08:00:00Z", "schema": 1,
+ "sources": [{"name": "ledger", "last_ok_at": "2026-11-01T08:00:00Z", "status": "ok"}],
+ "facts": [
+  {"id": "invoice:INV-0040:overdue-30", "kind": "invoice-overdue", "subject": "Acme Fixture Co", "due_date": "2026-09-20", "severity": "high", "amount_cents": 120000, "evidence": "30 days overdue", "url": null},
+  {"id": "invoice:INV-0042:overdue-14", "kind": "invoice-overdue", "subject": "Beta Fixture Ltd", "due_date": "2026-10-10", "severity": "med", "amount_cents": 45000, "evidence": "14 days overdue", "url": null},
+  {"id": "invoice:INV-0050:due-5", "kind": "invoice-due", "subject": "Gamma Fixture Inc", "due_date": "2026-11-04", "severity": "low", "amount_cents": 80000, "evidence": "due in 3 days", "url": null},
+  {"id": "bill:B-7:due-5", "kind": "bill-due", "subject": "Hosting Fixture", "due_date": "2026-11-05", "severity": "low", "amount_cents": 2500, "evidence": "due in 4 days", "url": null},
+  {"id": "display:receivables", "kind": "open-receivables", "subject": "Receivables", "due_date": null, "severity": "low", "amount_cents": 245000, "evidence": "open receivables", "url": null}
+ ]}

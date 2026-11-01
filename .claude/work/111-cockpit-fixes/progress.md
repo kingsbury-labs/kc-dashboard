@@ -1,0 +1,8 @@
+- start: brief read, measuring
+- measured: index listing 2.7s (reads 0 files, budget hit by glob), usage 0.66s; plan: snapshot cache file, stale served then rebuilt after response
+- PHP done: CockpitApi cached/stale/refresh/briefLabel/needs sort, CockpitDaily tolerant finance+lines+subagent usage, new CockpitDeps.php, api/cockpit.php from cache, collect-facts Weather+cache refresh. next: JS
+- JS+CSS done (data.js waiting/skeletonOn, views needs 6/expand, empty bar, finance lines, main.js text clock). next: tests
+- tests: CockpitFixesTest 6 tests, filter Cockpit 23/23 green. next: measure, mutation
+- MUTATION 1 in place: cache hit broken (|| true) in CockpitApi::cached
+- mutation 1 restored; MUTATION 2 in place: finance skip -> throw in CockpitDaily::finance
+- mutation 2 restored, green 23/23; measured warm 16-27ms, cold 5.6s; result.md written. DONE

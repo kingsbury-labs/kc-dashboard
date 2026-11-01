@@ -57,12 +57,27 @@ class Finance extends Collector
         return $facts;
     }
 
+    /** A fact's kind in plain words, with its amount and due date when present: "Payment to review · $12.50 · 2026-11-03". */
+    public static function label(string $kind, ?int $amountCents = null, ?string $due = null): string
+    {
+        $words = strtolower(trim(str_replace(['-', '_'], ' ', $kind)));
+        $words = preg_replace('/^(.+) review$/', '$1 to review', $words);
+        $parts = [ucfirst($words)];
+        if ($amountCents !== null) {
+            $parts[] = ($amountCents < 0 ? '-' : '') . '$' . number_format(abs($amountCents) / 100, 2);
+        }
+        if ($due !== null) {
+            $parts[] = $due;
+        }
+        return implode(' · ', $parts);
+    }
+
     private function map(array $f, int $i): array
     {
         $id = $f['id'] ?? null;
         $subject = $f['subject'] ?? null;
-        if (!is_string($id) || $id === '' || !is_string($subject) || $subject === '' || !is_string($f['kind'] ?? null) || $f['kind'] === '') {
-            throw new RuntimeException("finance fact $i needs id, kind and subject");
+        if (!is_string($id) || $id === '' || !is_string($f['kind'] ?? null) || $f['kind'] === '' || ($subject !== null && !is_string($subject))) {
+            throw new RuntimeException("finance fact $i needs id and kind");
         }
         $id = 'finance:' . $id;
         if (strlen($id) > FactStore::MAX_ID_BYTES || !mb_check_encoding($id, 'UTF-8') || preg_match('/[\x00-\x1f\x7f]/', $id) === 1) {
@@ -82,7 +97,8 @@ class Finance extends Collector
         }
         $evidence = is_string($f['evidence'] ?? null) ? $f['evidence'] : null;
         $url = is_string($f['url'] ?? null) && str_starts_with($f['url'], self::URL_PREFIX) ? $f['url'] : null;
-        $subject = $this->aliases[$subject] ?? $subject;
+        // kc-finance leaves subject null on facts with no customer; the kind, amount and date stand in for it.
+        $subject = $subject === null || $subject === '' ? self::label($f['kind'], $amount, $due) : ($this->aliases[$subject] ?? $subject);
         return [
             'id' => $id,
             'source' => 'finance',

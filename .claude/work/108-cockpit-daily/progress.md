@@ -1,0 +1,4 @@
+- Started at 7e4a66c. Reading 107's code.
+- Built Weather collector, CockpitDaily, daily block in CockpitApi + api/cockpit.php, config weather key, test + fixtures: 4/4 green.
+- views.js + cockpit.css panels wired.
+- Mutations done (both caught), restored, Cockpit 17/17 green. result.md written. Done, nothing committed.

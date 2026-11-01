@@ -5,6 +5,8 @@
 // into D:\Dev\htdocs, so a session started there still maps to its project without following the junction.
 return [
     'sessions_dir' => 'C:\\Users\\roban\\.claude\\sessions',
+    // Claude Code's transcripts, read only by the cockpit's index (src/Cockpit/TranscriptIndex.php).
+    'transcripts_dir' => 'C:\\Users\\roban\\.claude\\projects',
     'task_folder' => '\\KC Dashboard\\',
     'aliases' => ['C:\\xampp\\htdocs' => 'D:\\Dev\\htdocs'],
     'cache_seconds' => 3,
