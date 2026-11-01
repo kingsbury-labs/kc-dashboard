@@ -600,8 +600,18 @@
     "id": "116",
     "title": "Cockpit AI news: real stories only",
     "brief": ".claude/work/116-cockpit-ai-news/brief.md",
-    "start_sha": "b336359ede178eddbfe00d5150259fdf0c5c9604",
-    "passes": false
+    "start_sha": "a66ce2aadc355857a3349dc3abe89ec3fe3cff7e",
+    "passes": true,
+    "scope_ok": {
+      "at": "2026-11-01T20:10:38.953Z",
+      "start_sha": "a66ce2aadc355857a3349dc3abe89ec3fe3cff7e",
+      "mutation_evidence": true,
+      "tree": "1e3354217384916b4a64a60d60928371fd37fe11743a6b67e856cb77734f1836",
+      "size": "Normal"
+    },
+    "verified_at": "2026-11-01T20:11:38.363Z",
+    "tree": "1e3354217384916b4a64a60d60928371fd37fe11743a6b67e856cb77734f1836",
+    "gate": "full"
   },
   {
     "id": "114",

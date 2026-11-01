@@ -5,7 +5,7 @@
 // own, so it comes through the Olshansk/rss-feeds community scrape, which can stop without notice.
 return [
     'feeds' => [
-        ['name' => 'Simon Willison', 'url' => 'https://simonwillison.net/atom/everything/', 'topic' => 'ai'],
+        ['name' => 'Simon Willison', 'url' => 'https://simonwillison.net/atom/entries/', 'topic' => 'ai'],
         ['name' => 'OpenAI', 'url' => 'https://openai.com/news/rss.xml', 'topic' => 'ai'],
         ['name' => 'Anthropic', 'url' => 'https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_anthropic_news.xml', 'topic' => 'ai'],
         ['name' => 'Google AI', 'url' => 'https://blog.google/technology/ai/rss/', 'topic' => 'ai'],

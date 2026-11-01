@@ -2,6 +2,8 @@
 require_once __DIR__ . '/NeverShow.php';
 require_once __DIR__ . '/../Collectors/Weather.php';
 require_once __DIR__ . '/../Collectors/Finance.php';
+require_once __DIR__ . '/../News/TitleFilter.php';
+require_once __DIR__ . '/../News/Scorer.php';
 
 /**
  * The daily block of the cockpit snapshot: weather, AI news, kc-finance and plan limits. Every part reads a file or
@@ -20,7 +22,7 @@ class CockpitDaily
     {
         return [
             'weather' => self::part(fn() => isset($deps['weather']) ? Weather::cached((string) $deps['weather'], $now) : null, $log),
-            'news' => self::part(fn() => isset($deps['news']) ? self::news(($deps['news'])()) : null, $log),
+            'news' => self::part(fn() => isset($deps['news']) ? self::news(($deps['news'])(), $now) : null, $log),
             'finance' => self::part(fn() => isset($deps['finance']) ? self::finance((string) $deps['finance'], $now) : null, $log),
             'usage' => self::part(fn() => self::limits($deps, $now), $log),
         ];
@@ -75,18 +77,24 @@ class CockpitDaily
         return null;
     }
 
-    // The newest AI items with an http(s) link.
-    public static function news(PDO $pdo): array
+    // The hottest recent AI items with an http(s) link, in Scorer order, bare slugs, versions and quotes dropped.
+    // Not clustered: Clusterer would fold same-source look-alike titles, and the panel is one story per item.
+    public static function news(PDO $pdo, ?int $now = null): array
     {
+        $now = $now ?? time();
         $q = $pdo->prepare("SELECT title, source, url, MIN(COALESCE(published_at, first_seen), first_seen) AS date FROM news_items
-            WHERE topic = 'ai' AND url IS NOT NULL ORDER BY date DESC LIMIT 30");
+            WHERE topic = 'ai' AND url IS NOT NULL ORDER BY date DESC LIMIT 100");
         $q->execute();
-        $out = [];
+        $items = [];
         foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $r) {
-            if (count($out) < self::NEWS && preg_match('~^https?://[^\s]+$~i', (string) $r['url'])) {
-                $out[] = ['title' => NeverShow::text((string) $r['title'], null, 200), 'source' => (string) $r['source'],
-                    'url' => (string) $r['url'], 'ts' => (int) $r['date']];
+            if (preg_match('~^https?://[^\s]+$~i', (string) $r['url']) && TitleFilter::keep((string) $r['title'])) {
+                $items[] = ['title' => (string) $r['title'], 'source' => (string) $r['source'], 'url' => (string) $r['url'],
+                    'date' => (int) $r['date'], 'sources' => [(string) $r['source']], 'points' => 0];
             }
+        }
+        $out = [];
+        foreach (array_slice(Scorer::rank($items, $now), 0, self::NEWS) as $s) {
+            $out[] = ['title' => NeverShow::text($s['title'], null, 200), 'source' => $s['source'], 'url' => $s['url'], 'ts' => $s['date']];
         }
         return $out;
     }

@@ -1,0 +1,14 @@
+[
+  ["Anthropic", "ai", "Claude gets a bigger context window", "https://example.com/n1", 3600],
+  ["OpenAI", "ai", "OpenAI ships a new reasoning model", "https://example.com/n2", 7200],
+  ["Simon Willison", "ai", "Quoting Kyle Kingsbury", "https://example.com/q1", 60],
+  ["Simon Willison", "ai", "dbreunig/nesformer", "https://example.com/r1", 120],
+  ["Simon Willison", "ai", "datasette-llm 0.1a9", "https://example.com/v1", 180],
+  ["Simon Willison", "ai", "nemotron-halloween", "https://example.com/h1", 240],
+  ["Hugging Face", "ai", "Open models catch up on coding benchmarks", "https://example.com/n3", 10800],
+  ["DeepMind", "ai", "DeepMind reports a protein folding advance", "https://example.com/n4", 14400],
+  ["Google AI", "ai", "Google adds Gemini to the search results", "https://example.com/n5", 18000],
+  ["Latent Space", "ai", "The state of agent frameworks this autumn", "https://example.com/n6", 21600],
+  ["Ollama", "ai", "Ollama runs vision models locally", "https://example.com/n7", 25200],
+  ["web.dev", "webdev", "A webdev story that is not AI", "https://example.com/w1", 30]
+]
