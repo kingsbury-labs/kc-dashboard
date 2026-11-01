@@ -561,5 +561,12 @@
     "verified_at": "2026-11-01T19:32:07.880Z",
     "tree": "211e62f5ac92c4b77c27f918916a988952f845b56476b7d95b6bc6163ba32102",
     "gate": "full"
+  },
+  {
+    "id": "112",
+    "title": "Cockpit tuned for portrait, finance alerts readable",
+    "brief": ".claude/work/112-cockpit-portrait/brief.md",
+    "start_sha": "",
+    "passes": false
   }
 ]

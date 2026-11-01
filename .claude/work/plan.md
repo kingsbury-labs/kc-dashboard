@@ -1398,6 +1398,22 @@ LOGOUT; no source file under `src/Mail/` contains STORE, COPY, MOVE, EXPUNGE,
 APPEND or SELECT; the app password never appears in the log or the API output;
 a follow-up write without the token is refused.
 
+### 112. Cockpit tuned for portrait, finance alerts readable (Risky)
+- Role: implementer, Opus. Risky path: no new endpoint, but it changes the
+  Finance collector that feeds the attention engine. Depends: 109, 111.
+
+Rob, 2026-11-01: it always runs in Chrome, portrait, on monitor 2. Balance the
+two portrait columns, cap Agent talk (10), Working now (8) and Email (6) with
+show-more buttons, and read kc-finance alerts whose subject is null (all 8 are
+today) by labelling them from their kind.
+
+Done-test: `c:\xampp\php\php.exe tests/run.php --filter Cockpit` and `--filter
+Finance` pass, including new tests proving: a finance fact with a null subject
+is collected with a label made from its kind (both readers), and the panel
+shows it; Agent talk renders at most 10 items until expanded and Working now at
+most 8; the portrait media query places every overview card in one of two
+columns.
+
 ### 111. Cockpit fixes from the first live look (Risky)
 - Role: implementer, Opus. Risky path: yes (`public/api/`). Depends: 107, 108.
   Runs before 109.
