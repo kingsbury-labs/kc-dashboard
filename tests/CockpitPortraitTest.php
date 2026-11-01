@@ -47,21 +47,13 @@ test('Agent talk renders at most 10 items until expanded and Working now at most
     assert_true(str_contains($src, 'const EMAIL_SHOWN = 6;') && str_contains($src, 'rows.slice(0, emailOpen ? rows.length : EMAIL_SHOWN)'), 'six emails');
 });
 
-test('the portrait layout places every overview card in one of two columns', function () {
+test('the portrait layout draws every overview card once, in the fit grid, with plan limits in the hero', function () {
     $src = cp_views();
-    assert_true(preg_match('/if \(portrait\) \{(.*?)\} else \{/s', $src, $m) === 1, 'portrait branch found');
-    preg_match_all('/add\((a|b), ([^;]*)\);/', $m[1], $cols, PREG_SET_ORDER);
-    $placed = [];
-    foreach ($cols as [, $col, $args]) {
-        foreach (array_map('trim', explode(',', $args)) as $x) {
-            $placed[$x] = $col;
-        }
-    }
-    foreach (['needsCard()', 'careCard()', 'calendarCard()', 'email', 'follow', 'agentTalkCard()', 'agentsCard()', 'finance', 'news'] as $card) {
-        assert_true(isset($placed[$card]), "$card is not in a portrait column");
-    }
-    assert_same(9, count($placed), 'each card once');
-    $css = (string) file_get_contents(dirname(__DIR__) . '/public/cockpit/cockpit.css');
-    assert_true(str_contains($css, '@media(min-width:1000px) and (max-aspect-ratio:4/5){.daily-cols{grid-template-columns:repeat(2,minmax(0,1fr))}'), 'two columns in portrait');
-    assert_true(str_contains($css, '.daily-top .plan-card{grid-column:2;grid-row:3'), 'plan limits under the weather');
+    assert_true(preg_match('/function renderFit\(page\) \{(.*?)\r?\n\}\r?\n/s', $src, $m) === 1, 'portrait branch found');
+    assert_true(preg_match('/add\(grid, ([^;]*)\);/', $m[1], $g) === 1, 'cards added to the grid');
+    $placed = array_map('trim', explode(',', str_replace('()', '', $g[1])));
+    sort($placed);
+    $want = ['agentTalkCard', 'agentsCard', 'calendarCard', 'careCard', 'emailCard', 'financeCard', 'followCard', 'needsCard', 'newsCard'];
+    assert_same($want, $placed, 'each card once');
+    assert_true(str_contains($m[1], 'add(side, weatherCard(), planCard());'), 'plan limits beside the weather in the hero');
 });

@@ -351,9 +351,7 @@ function followCard() {
   return c;
 }
 
-export function renderOverview(page) {
-  page.classList.add('overview-page');
-  const top = el('section', 'daily-top');
+function searchForm() {
   const form = el('form', 'google-form');
   form.action = 'https://www.google.com/search';
   form.method = 'get';
@@ -364,39 +362,76 @@ export function renderOverview(page) {
   q.placeholder = 'Search Google';
   q.setAttribute('aria-label', 'Search Google');
   add(form, q, el('small', '', 'Opens Google search'));
+  return form;
+}
+
+const needsLine = (n) => (n === 0 ? 'Nothing needs you' : n === 1 ? 'One thing needs you' : `${n} things need you`);
+const heroTime = (d) => d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+const heroDate = (d) => d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+let heroTimer = null;
+function heroTick() {
+  const d = new Date();
+  document.querySelectorAll('.hero-time').forEach((x) => { x.textContent = heroTime(d); });
+  document.querySelectorAll('.hero-date').forEach((x) => { x.textContent = heroDate(d); });
+}
+
+// Card 119: the 1080 x 1920 portrait cockpit. The hero is the first child, then one grid where every card owns a named area.
+function renderFit(page) {
+  page.classList.add('fit');
+  const now = new Date();
+  const hour = now.getHours();
+  const part = hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'evening';
+  const hero = el('section', 'fit-hero');
+  const main = el('div', 'hero-main');
+  const side = el('div', 'hero-side');
+  add(main, el('h1', 'hero-greeting', `Good ${part} Rob` + (state.snap ? ` · ${needsLine(snap().needs.length)}` : '')),
+    el('div', 'hero-time', heroTime(now)), el('div', 'hero-date', heroDate(now)), searchForm());
+  add(side, weatherCard(), planCard());
+  add(hero, main, side);
+  const grid = el('div', 'fit-grid');
+  add(grid, needsCard(), agentTalkCard(), emailCard(), agentsCard(), calendarCard(), financeCard(), newsCard(), followCard(), careCard());
+  page.append(hero, grid);
+  // The banner is fixed over the page, so it never pushes the layout.
+  const banner = careBanner();
+  if (banner) page.append(banner);
+  const cmd = $('.command');
+  if (cmd) {
+    cmd.classList.add('docked');
+    main.append(cmd);
+  }
+  if (!heroTimer) heroTimer = setInterval(heroTick, 15000);
+}
+
+export function renderOverview(page) {
+  page.classList.add('overview-page');
+  if (matchMedia('(min-width:1000px) and (max-aspect-ratio:4/5)').matches) return renderFit(page);
+  const top = el('section', 'daily-top');
+  const form = searchForm();
   const now = new Date();
   const hour = now.getHours();
   const part = hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'evening';
   const n = snap().needs.length;
   const greet = el('div', 'daily-greeting');
   add(greet, el('h1', '', `Good ${part} Rob`), el('p', '', now.toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric' })
-    + (state.snap ? ` · ${n === 0 ? 'Nothing needs you' : n === 1 ? 'One thing needs you' : `${n} things need you`}` : '')));
+    + (state.snap ? ` · ${needsLine(n)}` : '')));
   add(top, form, greet, weatherCard(), planCard());
   const banner = careBanner();
   if (banner) page.append(banner);
   page.append(top);
   const wide = matchMedia('(min-width:1100px)').matches;
-  const portrait = matchMedia('(min-width:1000px) and (max-aspect-ratio:4/5)').matches;
   const email = emailCard();
   const follow = followCard();
   const finance = financeCard();
   const news = newsCard();
-  if (wide || portrait) {
+  if (wide) {
     const cols = el('div', 'daily-cols');
     const a = el('div', 'daily-col');
     const b = el('div', 'daily-col');
-    if (portrait) {
-      // Card 112: Agent talk is capped at 10, so finance moves right to keep the columns ending near each other.
-      add(a, needsCard(), careCard(), calendarCard(), email, follow);
-      add(b, agentTalkCard(), agentsCard(), finance, news);
-      add(cols, a, b);
-    } else {
-      const c = el('div', 'daily-col');
-      add(a, needsCard(), careCard(), email, follow);
-      add(b, calendarCard(), finance, news);
-      add(c, agentTalkCard(), agentsCard());
-      add(cols, a, b, c);
-    }
+    const c = el('div', 'daily-col');
+    add(a, needsCard(), careCard(), email, follow);
+    add(b, calendarCard(), finance, news);
+    add(c, agentTalkCard(), agentsCard());
+    add(cols, a, b, c);
     page.append(cols);
   } else {
     const grid = el('div', 'daily-grid');
@@ -404,7 +439,7 @@ export function renderOverview(page) {
     page.append(grid);
   }
   const cmd = $('.command');
-  if (cmd && (wide || portrait)) {
+  if (cmd && wide) {
     cmd.classList.add('docked');
     top.append(cmd);
   }

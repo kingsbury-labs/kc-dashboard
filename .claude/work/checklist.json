@@ -668,21 +668,31 @@
     "id": "119",
     "title": "Cockpit fitted to monitor 2: a hero on top, no dead space",
     "brief": ".claude/work/119-cockpit-fit/brief.md",
-    "start_sha": "e51fe136a5b74b79b842b7de0fc5c49ab15f2f66",
-    "passes": false
+    "start_sha": "2a94a6680fb16a4cecd779b7d1e809adde589874",
+    "passes": true,
+    "scope_ok": {
+      "at": "2026-11-01T20:56:18.215Z",
+      "start_sha": "2a94a6680fb16a4cecd779b7d1e809adde589874",
+      "mutation_evidence": true,
+      "tree": "f54aac783584d3c6de493ecff1a7d38be780ce9b461896d0660c9f7accff8671",
+      "size": "Normal"
+    },
+    "verified_at": "2026-11-01T20:57:34.814Z",
+    "tree": "f54aac783584d3c6de493ecff1a7d38be780ce9b461896d0660c9f7accff8671",
+    "gate": "full"
   },
   {
     "id": "117",
     "title": "Project knowledge graph",
     "brief": ".claude/work/117-knowledge-graph/brief.md",
-    "start_sha": "e51fe136a5b74b79b842b7de0fc5c49ab15f2f66",
+    "start_sha": "2a94a6680fb16a4cecd779b7d1e809adde589874",
     "passes": false
   },
   {
     "id": "118",
     "title": "AI news sources from Rob's curated list",
     "brief": ".claude/work/118-ai-news-sources/brief.md",
-    "start_sha": "e51fe136a5b74b79b842b7de0fc5c49ab15f2f66",
+    "start_sha": "2a94a6680fb16a4cecd779b7d1e809adde589874",
     "passes": false
   }
 ]
