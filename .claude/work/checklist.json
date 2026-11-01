@@ -498,14 +498,14 @@
     "id": "107",
     "title": "Cockpit: the v4 page on real, live agent data",
     "brief": ".claude/work/107-cockpit-live/brief.md",
-    "start_sha": "1aa2a7b1721fa96d34813429e6c4ab03054c1407",
+    "start_sha": "d64ffc69c210ec965c8b5e5b3f484d1929937d72",
     "passes": false
   },
   {
     "id": "108",
     "title": "Cockpit daily panels: weather, AI news, kc-finance, plan limits",
     "brief": ".claude/work/108-cockpit-daily/brief.md",
-    "start_sha": "1aa2a7b1721fa96d34813429e6c4ab03054c1407",
+    "start_sha": "d64ffc69c210ec965c8b5e5b3f484d1929937d72",
     "passes": false
   }
 ]
