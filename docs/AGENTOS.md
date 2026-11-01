@@ -1223,8 +1223,8 @@ Every process the cockpit starts goes through `cockpit/lib/runner.mjs`:
   streams it to xterm.js over a WebSocket. Closing the pane ends only the attach.
 - **Stop.** `claude.exe stop <id>`, only after a confirm in the page that names
   the session. Never on a timer.
-- **Start a loop.** `node <project>\.claude\bin\claude-loop.cjs` from that
-  project's own copy, refused while its lock is live (one loop per project).
+- **Start a loop.** `node C:\Users\roban\.claude\bin\claude-loop.cjs` in that project,
+  refused while its lock is live (one loop per project).
 - **Stop a loop.** Write the loop's own `STOP` file. The cockpit never kills a
   loop process.
 - **Chat with the PM (phase 3).** One long-lived `claude.exe -p --resume <pm-id>
