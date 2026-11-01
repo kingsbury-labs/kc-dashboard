@@ -11,6 +11,7 @@ verify_max_age_min: 30
 ci: none
 afk_log: .claude/work/log.md
 scope_ignore: .claude/settings.json, .claude/settings.local.json
+window_merge: allowed
 ---
 
 # KC Dashboard, for the shared agents
