@@ -8,7 +8,7 @@ blockers: Rob runs the Apache-as-service admin script once 120 lands; Rob's real
 # KC Dashboard context
 
 ## To Resume
-Session 14. Session 13 built the cockpit live at http://127.0.0.1:8787/cockpit.php through the loop: cards 107-119 on main (last 0c3b239), all gated and audited. Full state, keys, standing orders and the ordered next steps are in `.claude/work/agentos/HANDOFF-2026-11-01-s13.md`; read it first. The plan 6 re-plan below is superseded by that work.
+Session 14. Session 13 built the cockpit live at http://127.0.0.1:8787/cockpit.php through the loop: cards 107-119 on main (last card commit 0c3b239, then the handoff commit), all gated and audited. Full state, keys, standing orders and the ordered next steps are in `.claude/work/agentos/HANDOFF-2026-11-01-s13.md`; read it first. The plan 6 re-plan below is superseded by that work.
 
 ## Session 13 (superseded notes kept below)
 main on origin (kingsbury-labs/kc-dashboard, public) at the session 12 handoff merge. Loop files and `.claude/work/` are untracked on purpose (8b933c9; `.git/info/exclude`). Issue 3 open (Later).
