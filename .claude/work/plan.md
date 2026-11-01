@@ -1398,6 +1398,50 @@ LOGOUT; no source file under `src/Mail/` contains STORE, COPY, MOVE, EXPUNGE,
 APPEND or SELECT; the app password never appears in the log or the API output;
 a follow-up write without the token is refused.
 
+### 119. Cockpit fitted to monitor 2: a hero on top, no dead space (Normal)
+- Role: implementer, Sonnet. Depends: 110, 115.
+
+Measured: monitor 2 is 1080 x 1920 portrait at 100% scaling, Chrome full
+screen. A large-type hero (time, date, Google search, Cas bar, weather, plan
+limits) on top, then a two-column grid that fills the rest exactly, no page
+scroll, list cards scroll inside.
+
+Done-test: `c:\xampp\php\php.exe tests/run.php --filter Cockpit` passes,
+including new CockpitFit tests proving: at the 1080x1920 portrait query the
+overview root is `height: 100vh` with `overflow: hidden`; the hero is the first
+child; every overview card is placed in a named grid area; the list cards
+(Needs you, Agent talk, Email, Working now) have `overflow-y: auto`.
+
+### 117. Project knowledge graph (Risky)
+- Role: implementer, Opus. Risky path: client data, mail, `public/api/`.
+  Depends: 114. Replaces 114's flat name list.
+
+A typed node and edge store in SQLite (projects, clients, people, domains,
+vendors, repos, topics), rebuilt incrementally from project folders, client
+records, kc-care, kc-finance, calendar attendees, sent-mail envelopes and
+Rob's corrections. Email is tagged by graph walk with a reason, else by the
+local model given the project's neighbourhood, else "Unsure".
+
+Done-test: `c:\xampp\php\php.exe tests/run.php --filter Graph` and `--filter
+CockpitMail` pass: against fixture project folders, client records, a fake IMAP
+server (inbox and sent envelopes) and a stubbed model, the graph links a
+contact to a client and its project; an inbox message from that contact is
+tagged by graph walk with a reason naming the path and no model call; a message
+with no path goes to the model with that project's neighbourhood in the prompt;
+a low-confidence answer lands in Unsure; a correction becomes an edge that wins
+next run; no .env value, credential file or mail body is read into the graph or
+the API output; the IMAP client still sends only the allowed read commands.
+
+### 118. AI news sources from Rob's curated list (Small)
+- Role: implementer, Sonnet, effort low. Depends: 116.
+
+Add at most 15 AI feeds from the gist Rob shared, each checked to parse with a
+recent item.
+
+Done-test: `c:\xampp\php\php.exe tests/run.php --filter Feed` passes, and
+`config/feeds.php` has at most 15 more `ai` feeds than before, each a https URL
+from the gist.
+
 ### 110. Cockpit voice: the Cas bar talks through cas-voice (Risky)
 - Role: implementer, Opus. Risky path: CSP change for one page. Depends: 107,
   115; cas-voice's side is done (`D:\Dev\cas-voice\proto\RESULT-110.md`).

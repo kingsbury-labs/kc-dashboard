@@ -663,5 +663,26 @@
     "verified_at": "2026-11-01T20:46:10.585Z",
     "tree": "d19d81e56e46f60c6b5b33beec9611a629eddf7f29db9aad05c4a60d2358093f",
     "gate": "full"
+  },
+  {
+    "id": "119",
+    "title": "Cockpit fitted to monitor 2: a hero on top, no dead space",
+    "brief": ".claude/work/119-cockpit-fit/brief.md",
+    "start_sha": "",
+    "passes": false
+  },
+  {
+    "id": "117",
+    "title": "Project knowledge graph",
+    "brief": ".claude/work/117-knowledge-graph/brief.md",
+    "start_sha": "",
+    "passes": false
+  },
+  {
+    "id": "118",
+    "title": "AI news sources from Rob's curated list",
+    "brief": ".claude/work/118-ai-news-sources/brief.md",
+    "start_sha": "",
+    "passes": false
   }
 ]
