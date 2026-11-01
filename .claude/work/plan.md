@@ -1329,3 +1329,64 @@ Done-test: the full suite through `R` passes, and
 `.claude/work/106-audit/report.md` names a test for each AGENTOS 7.7 bullet
 phase 1 builds (bind, every request, API reads, writes, token, ticket, CSP,
 ids, untrusted text, secrets), or files a card for any without one.
+
+### 107. Cockpit: the v4 page on real, live agent data (Risky)
+- Role: implementer, Opus. Risky path: yes (`public/api/`). Rob, 2026-11-01,
+  approving the v4 concept: "this is it ... Let's fix those issue and then wire
+  it!" It runs full time on a second monitor, landscape or portrait.
+  Stands in for the first pass of 88, 89, 91, 92 and 95.
+
+The v4 concept (`.claude/work/agentos/codex-hub4/index.html`) is served by the
+dashboard at `/cockpit.php` and its agent half draws only real data: Needs you
+(sessions waiting on Rob, parked loop cards), Working now and the Agents table
+(every live session and subagent, its project, model, state, current tool,
+elapsed, and card pipeline step from the loop state), Agent talk (Agent-tool
+prompts parent to child, SubagentHandback replies child to parent, cross-session
+messages), and the session and project screens. Read from Claude Code's
+transcripts and the existing `NowService`, live through `wall-stream.php` plus a
+snapshot poll. The daily panels (weather, news, finance, plan limits, calendar,
+email, follow-ups) render as not connected until 108 and 109 fill them.
+
+Done-test: `c:\xampp\php\php.exe tests/run.php --filter Cockpit` passes, and
+`tests/ApiGuardSweepTest.php` passes with `cockpit.php` in its pages. The
+Cockpit tests prove, against fixture transcripts: the snapshot API refuses a
+request without the token; returns projects, sessions, agents with parent links,
+pipeline steps and agent-talk messages from the fixtures; never returns a path
+on the never-show list, file contents, or message text over 300 characters; the
+page sends the unchanged `Response::SECURITY_HEADERS`; no file under
+`public/cockpit/` uses `innerHTML`, `insertAdjacentHTML`, `Math.random` or an
+`http(s)://` script URL; `public/cockpit/js/data.js` reads `api/cockpit.php`
+and `api/wall-stream.php`.
+
+### 108. Cockpit daily panels: weather, AI news, kc-finance, plan limits (Risky)
+- Role: implementer, Opus. Risky path: yes (`public/api/`). Depends: 107.
+
+Fills four overview panels from real sources, cached server side so a page load
+never waits on the network: weather for Arnprior from Open-Meteo (no key,
+refreshed every 15 minutes on the existing collector schedule); AI news from the
+dashboard's news store (`src/News/`, the `public/api/news.php` data), each
+headline a link; kc-finance from the existing finance collector
+(`src/Collectors/Finance.php`): receivables, next due, reserve and the oldest
+overdue invoice; plan limits from the newest `rate_limit_event` reading
+(`five_hour`, `seven_day`, `resetsAt`) in loop pass files and transcripts, shown
+with its age and muted past 30 minutes.
+
+Done-test: `c:\xampp\php\php.exe tests/run.php --filter CockpitDaily` passes:
+against fixtures and a stubbed HTTP fetcher (no real network), the snapshot API
+returns weather, news, finance and usage blocks with the fixture values; a
+failed weather fetch returns the last cached reading with its age, never an
+error; usage picks the newest reading across two fixture files.
+
+### 109. Cockpit calendar, email summaries and follow-ups (Risky, waits on Rob)
+- Role: implementer, Opus. Risky path: yes (mail, client data). Depends: 107.
+  Waits on Rob for access: the Google Calendar secret iCal address and a Gmail
+  app password, each saved by Rob in the shared credentials folder and named in
+  config by path only.
+
+Calendar from the iCal feed (month grid and day agenda, events link to Google
+Calendar); email read-only over IMAP (EXAMINE and BODY.PEEK only, never a flag
+change), the newest threads summarised in one line each by the local model in
+`llm/`, no mail text leaving the PC; follow-ups from threads marked reply-needed
+plus a small local list Rob can tick off.
+
+Done-test: written when Rob supplies access.

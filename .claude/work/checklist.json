@@ -493,5 +493,19 @@
     },
     "verified_at": "2026-10-20T20:05:00.893Z",
     "tree": "a7ba19bde9d8d0b307c60440cb7385c8ebe0231d2d3ce5fc91d1fb0f35b37c35"
+  },
+  {
+    "id": "107",
+    "title": "Cockpit: the v4 page on real, live agent data",
+    "brief": ".claude/work/107-cockpit-live/brief.md",
+    "start_sha": "1aa2a7b1721fa96d34813429e6c4ab03054c1407",
+    "passes": false
+  },
+  {
+    "id": "108",
+    "title": "Cockpit daily panels: weather, AI news, kc-finance, plan limits",
+    "brief": ".claude/work/108-cockpit-daily/brief.md",
+    "start_sha": "1aa2a7b1721fa96d34813429e6c4ab03054c1407",
+    "passes": false
   }
 ]
