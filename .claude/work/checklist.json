@@ -532,14 +532,14 @@
     "id": "111",
     "title": "Cockpit fixes from the first live look",
     "brief": ".claude/work/111-cockpit-fixes/brief.md",
-    "start_sha": "",
+    "start_sha": "cd0534261deeedec91b8fac2a51558d6f3653109",
     "passes": false
   },
   {
     "id": "109",
     "title": "Cockpit calendar, email summaries and follow-ups",
     "brief": ".claude/work/109-cockpit-day/brief.md",
-    "start_sha": "",
+    "start_sha": "cd0534261deeedec91b8fac2a51558d6f3653109",
     "passes": false
   }
 ]
