@@ -1,0 +1,11 @@
+Vendored 2026-11-01 for the cockpit (card 107): the CSP's default-src 'self' blocks Google Fonts.
+Both are Google's variable latin subsets, so one file covers every weight the page uses.
+License: SIL Open Font License 1.1 (both families).
+
+dm-sans-latin-var.woff2   DM Sans, weights 400-600
+  https://fonts.gstatic.com/s/dmsans/v17/rP2Yp2ywxg089UriI5-g4vlH9VoD8Cmcqbu0-K4.woff2
+  sha256 9fea608a947e67020c33cad9a6fe3d60c54119dfb8cff87768a8117a15ed7543
+
+manrope-latin-var.woff2   Manrope, weights 300-600
+  https://fonts.gstatic.com/s/manrope/v23/xn7gYHE41ni1AdIRggexSg.woff2
+  sha256 8c2def024c1bf31aacf3624ae3c4d701269b4ec3dc765c04830839f0d36b2d9e

@@ -498,8 +498,18 @@
     "id": "107",
     "title": "Cockpit: the v4 page on real, live agent data",
     "brief": ".claude/work/107-cockpit-live/brief.md",
-    "start_sha": "d64ffc69c210ec965c8b5e5b3f484d1929937d72",
-    "passes": false
+    "start_sha": "2261b91597c33f5574eb5e0b41adb56e3b79dd78",
+    "passes": true,
+    "scope_ok": {
+      "at": "2026-11-01T18:42:32.372Z",
+      "start_sha": "2261b91597c33f5574eb5e0b41adb56e3b79dd78",
+      "mutation_evidence": true,
+      "tree": "0903f19c004d7fe55772a4f6f3cc7138d4fd6124597de607fee872ca178b7292",
+      "size": "Risky"
+    },
+    "verified_at": "2026-11-01T18:46:20.291Z",
+    "tree": "0903f19c004d7fe55772a4f6f3cc7138d4fd6124597de607fee872ca178b7292",
+    "gate": "full"
   },
   {
     "id": "108",
