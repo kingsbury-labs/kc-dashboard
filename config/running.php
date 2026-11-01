@@ -20,4 +20,6 @@ return [
     'port_always' => [8787, 8000],
     // CPU, RAM and disk from one PowerShell CIM query, cached this long.
     'system_cache_seconds' => 10,
+    // cas-voice's socket token (card 110), read by CockpitPage into a meta tag. Missing: "Voice engine is off".
+    'voice_token' => 'D:\\Dev\\cas-voice\\proto\\voice-token',
 ];

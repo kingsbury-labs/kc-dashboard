@@ -651,7 +651,17 @@
     "id": "110",
     "title": "Cockpit voice: the Cas bar talks through cas-voice",
     "brief": ".claude/work/110-cockpit-voice/brief.md",
-    "start_sha": "5f57c1cbb1c0e183b46b6c1f96186ba152dddb48",
-    "passes": false
+    "start_sha": "c37cfebbdab584cb0d8bdd7331b967a3227c948b",
+    "passes": true,
+    "scope_ok": {
+      "at": "2026-11-01T20:44:49.654Z",
+      "start_sha": "c37cfebbdab584cb0d8bdd7331b967a3227c948b",
+      "mutation_evidence": true,
+      "tree": "d19d81e56e46f60c6b5b33beec9611a629eddf7f29db9aad05c4a60d2358093f",
+      "size": "Risky"
+    },
+    "verified_at": "2026-11-01T20:46:10.585Z",
+    "tree": "d19d81e56e46f60c6b5b33beec9611a629eddf7f29db9aad05c4a60d2358093f",
+    "gate": "full"
   }
 ]

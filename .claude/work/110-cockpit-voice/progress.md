@@ -1,0 +1,3 @@
+- Read brief and files. Next: CockpitPage voice token + CSP, voice.js, main.js wiring, tests.
+- Done: CockpitPage, running.php, voice.js, mic-worklet.js, main.js, views.js, cockpit.css, bin/cas-voice-start.cjs, tests. Filtered green 54.
+- Mutation (ws:, mode before hello): 3 fails, restored, green. result.md written. Complete, uncommitted.

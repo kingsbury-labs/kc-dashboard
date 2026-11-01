@@ -196,16 +196,18 @@ test('a zero budget answers at once with what is stored and says more is pending
     assert_same([], $s['sessions']);
 });
 
-test('the page is checkRead, carries the token and sends the unchanged security headers', function () {
+test('the page is checkRead, carries the token and sends the security headers plus only the voice connect-src', function () {
     [$t] = ck_world();
     file_put_contents($t . '/token', CK_TOKEN);
     $log = new Log($t . '/app.log');
     [$status] = CockpitPage::handle(ck_server(['HTTP_HOST' => 'evil.com']), $t . '/token', $log);
     assert_same(403, $status);
     [$status, $headers, $body] = CockpitPage::handle(['REMOTE_ADDR' => '127.0.0.1', 'HTTP_HOST' => '127.0.0.1:8787',
-        'HTTP_SEC_FETCH_SITE' => 'none', 'HTTP_SEC_FETCH_MODE' => 'navigate'], $t . '/token', $log);
+        'HTTP_SEC_FETCH_SITE' => 'none', 'HTTP_SEC_FETCH_MODE' => 'navigate'], $t . '/token', $log, $t . '/no-voice-token');
     assert_same(200, $status);
-    assert_same(['Content-Type' => 'text/html; charset=utf-8'] + Response::SECURITY_HEADERS, $headers);
+    $want = ['Content-Type' => 'text/html; charset=utf-8'] + Response::SECURITY_HEADERS;
+    $want['Content-Security-Policy'] .= "; connect-src 'self' ws://127.0.0.1:8766";
+    assert_same($want, $headers);
     assert_true(str_contains($body, '<meta name="kc-token" content="' . CK_TOKEN . '">'), 'token meta');
     assert_true(str_contains($body, '<script type="module" src="/cockpit/js/main.js"></script>'), 'main module');
     assert_true(!preg_match('~https?://~', $body), 'the page loads nothing from another origin');
@@ -231,15 +233,13 @@ test('no file under public/cockpit uses innerHTML, insertAdjacentHTML, Math.rand
     }
 });
 
-test('data.js reads api/cockpit.php and api/wall-stream.php with the token, and voice is a stub', function () {
+test('data.js reads api/cockpit.php and api/wall-stream.php with the token', function () {
     $src = (string) file_get_contents(dirname(__DIR__) . '/public/cockpit/js/data.js');
     assert_true(str_contains($src, "'/api/cockpit.php'"), 'snapshot URL');
     assert_true(str_contains($src, "'/api/wall-stream.php'"), 'stream URL');
     assert_true(str_contains($src, "addEventListener('now'"), 'listens to event: now');
     assert_same(2, substr_count($src, "'X-KC-Token': token"), 'both fetches send the token');
     assert_true(str_contains($src, 'POLL_MS = 10000'), 'polls every 10 s');
-    $voice = (string) file_get_contents(dirname(__DIR__) . '/public/cockpit/js/voice.js');
-    assert_true(preg_match('/export function available\(\)\s*\{\s*return false;\s*\}/', $voice) === 1, 'voice.available() is false');
 });
 
 test('the fonts are vendored with their URL and sha256', function () {

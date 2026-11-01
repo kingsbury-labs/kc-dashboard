@@ -2,6 +2,7 @@
 // Every panel is live: agents, weather, plan limits, finance and news, and (card 109) agenda, email and follow-ups.
 import { el, add, btn, card, pill, link, go, ago, clock, icon, notConnected, $ } from './dom.js';
 import { state, liveState, waiting, skeletonOn, postFollow, postSender } from './data.js';
+import { announce, currentMode } from './voice.js';
 
 const STEPS = ['Work', 'Gate', 'Audit', 'Done'];
 const PILL = { working: 'working', waiting: 'waiting', done: 'done', failed: 'failed', idle: 'idle' };
@@ -638,6 +639,19 @@ function notifyCare() {
   if (fresh.length) remember(done.concat(fresh.map((x) => x.id)));
 }
 
+// Card 110: each new incident read aloud once while voice is on, in a local browser voice.
+const SPOKEN = 'kc-care-spoken';
+function speakCare(inc) {
+  if (currentMode() === 'off') return;
+  let done = [];
+  try { done = JSON.parse(localStorage.getItem(SPOKEN) || '[]'); } catch { /* storage off */ }
+  const fresh = inc.filter((x) => !done.includes(x.id));
+  fresh.forEach((x) => announce(x.text));
+  if (fresh.length) {
+    try { localStorage.setItem(SPOKEN, JSON.stringify(done.concat(fresh.map((x) => x.id)).slice(-50))); } catch { /* may speak again next load */ }
+  }
+}
+
 export function careBanner() {
   const inc = care()?.incidents ?? [];
   if (!inc.length) return null;
@@ -648,6 +662,7 @@ export function careBanner() {
     b.append(btn('Turn on notices', 'text-btn', () => Notification.requestPermission().then(notifyCare)));
   }
   notifyCare();
+  speakCare(inc);
   return b;
 }
 

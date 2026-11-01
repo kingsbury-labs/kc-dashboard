@@ -3,11 +3,14 @@
 import { el, add, btn, icon, go, $, D } from './dom.js';
 import { begin, subscribe, findItems, state } from './data.js';
 import { search } from './fuzzy.js';
-import { available } from './voice.js';
+import { available, start, setMode, toggleTalk, currentMode, MODES } from './voice.js';
 import { renderOverview, renderProject, renderSession, renderAgents, renderCare } from './views.js';
 
 let page = null;
 let find = null;
+// "Mic open" in the top bar whenever the mic is live (card 110).
+const micOpen = el('span', 'mic-open', 'Mic open');
+micOpen.hidden = true;
 
 function route() {
   const parts = location.hash.replace(/^#\//, '').split('/').map(decodeURIComponent);
@@ -24,16 +27,49 @@ function commandBar() {
   mic.setAttribute('aria-label', 'Talk to Cas');
   mic.append(icon('mic'));
   const dot = el('div', 'cas-dot');
-  add(main, dot, input, mic);
+  // Card 110: Always on / Click to talk / Off, one button cycling through the three in text.
+  const toggle = btn('', 'voice-mode');
+  toggle.setAttribute('aria-label', 'Voice mode');
+  add(main, dot, input, toggle, mic);
+  const thread = el('div', 'voice-thread');
+  thread.setAttribute('aria-live', 'polite');
   const v = el('div', 'voice-line');
   const status = el('span', '', '');
   v.append(status);
-  add(c, main, v);
+  add(c, thread, main, v);
   const say = (text) => {
     status.textContent = text;
     c.classList.add('active');
   };
-  mic.addEventListener('click', () => say(available() ? 'Listening' : 'Voice is not connected yet.'));
+  let fade = null;
+  const LABEL = { off: 'Voice engine is off', idle: 'Idle', listening: 'Listening', thinking: 'Thinking', speaking: 'Speaking' };
+  const order = Object.keys(MODES);
+  const showMode = () => { toggle.textContent = MODES[currentMode()]; };
+  start({
+    state(s) {
+      const k = s in LABEL ? s : 'idle';
+      c.dataset.voice = k;
+      say(k === 'off' && currentMode() === 'off' && available() ? 'Voice is off' : LABEL[k]);
+    },
+    turn(who, text) {
+      thread.append(el('p', `voice-turn ${who}`, text));
+      while (thread.children.length > 6) thread.firstChild.remove();
+      thread.classList.remove('faded');
+      clearTimeout(fade);
+      fade = setTimeout(() => thread.classList.add('faded'), 20000);
+    },
+    mic(on) { micOpen.hidden = !on; },
+  });
+  showMode();
+  toggle.addEventListener('click', () => {
+    setMode(order[(order.indexOf(currentMode()) + 1) % order.length]).then(showMode);
+    showMode();
+  });
+  mic.addEventListener('click', () => {
+    if (!available()) say('Voice engine is off');
+    else if (currentMode() === 'click') toggleTalk();
+    else say(currentMode() === 'always' ? 'Say Hey Cas or Time to work' : 'Voice is off. Choose Always on or Click to talk.');
+  });
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') say('Asking Cas is not connected yet. Find (Ctrl K) searches what is here.');
   });
@@ -136,7 +172,7 @@ function shell() {
   const top = el('header', 'topbar');
   // Plain muted text, "Sunday, November 1 · 1:58 PM" (Rob, 2026-11-01: no pills).
   const time = el('time', 'topbar-time');
-  add(top, el('div', 'mobile-mark', 'KC Cockpit'), findBox(), time);
+  add(top, el('div', 'mobile-mark', 'KC Cockpit'), findBox(), micOpen, time);
   page = el('main', 'page');
   page.id = 'page';
   add(main, top, page);
