@@ -22,6 +22,9 @@ return [
         // Mail is shown only when it concerns a project, client or vendor. senders: Rob's corrections, under data/.
         // care_clients: kc-care's client list (key and domain), read only. vendors: name => sender domains.
         'senders' => 'mail-senders.json',
+        // Daybook's active client contacts, read-only: a MySQL user with SELECT on four clients columns, its
+        // password read at run time from this file. Missing file or failed query: no contacts, mail still works.
+        'daybook' => ['password_file' => 'D:\\Dev\\htdocs\\.credentials\\kc-dashboard-daybook-ro', 'user' => 'kc_dashboard_ro', 'db' => 'daybook'],
         'care_clients' => 'D:\\Dev\\htdocs\\kc-care\\clients.json',
         'vendors' => [
             'DigitalOcean' => ['digitalocean.com'],

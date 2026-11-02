@@ -90,17 +90,14 @@ class CockpitDay
                 'summary' => is_string($r['summary'] ?? null) ? NeverShow::text($r['summary'], null, 200) : null,
                 'reply' => ($r['reply'] ?? false) === true];
         }
-        // The Unsure pile: mail the graph and the model could not place, until Rob tags its sender.
-        $learned = $senders === null ? [] : Relevance::senders($senders);
+        // The Unsorted pile (card 131, folds card 117's Unsure): every row no project claims, until Rob tags its sender.
         $unsure = [];
-        foreach ($m['rows'] as $r) {
-            if (is_array($r) && ($r['unsure'] ?? false) === true && !array_key_exists(strtolower((string) ($r['addr'] ?? '')), $learned)) {
-                $link = (string) ($r['link'] ?? '');
-                $unsure[] = ['from' => NeverShow::text((string) ($r['from'] ?? ''), null, 80), 'subject' => NeverShow::text((string) ($r['subject'] ?? ''), null, 200),
-                    'sender' => (string) ($r['addr'] ?? ''), 'reason' => NeverShow::text((string) ($r['reason'] ?? ''), null, 200),
-                    'date' => is_int($r['date'] ?? null) ? $r['date'] : null,
-                    'link' => str_starts_with($link, 'https://mail.google.com/') ? $link : null];
-            }
+        foreach (Relevance::unsorted($m['rows'], $senders) as $r) {
+            $link = (string) ($r['link'] ?? '');
+            $unsure[] = ['from' => NeverShow::text((string) ($r['from'] ?? ''), null, 80), 'subject' => NeverShow::text((string) ($r['subject'] ?? ''), null, 200),
+                'sender' => (string) ($r['addr'] ?? ''), 'reason' => NeverShow::text((string) ($r['reason'] ?? ''), null, 200),
+                'date' => is_int($r['date'] ?? null) ? $r['date'] : null,
+                'link' => str_starts_with($link, 'https://mail.google.com/') ? $link : null];
         }
         return ['at' => $m['at'], 'age' => $m['age'], 'error' => $m['error'], 'rows' => self::newestFirst($rows, 'date'),
             'unsure' => array_slice(self::newestFirst($unsure, 'date'), 0, self::MAIL_ROWS)];

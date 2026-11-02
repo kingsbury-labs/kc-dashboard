@@ -200,7 +200,12 @@ test('the IMAP command list allows reading and nothing else', function () {
         'UID COPY 1 Trash', 'UID MOVE 1 Trash', 'EXPUNGE', 'APPEND INBOX {3}', "LOGOUT\r\nk9 EXPUNGE", 'UID FETCH 1 (UID ENVELOPE BODY.PEEK[1]<0.2000>) X'] as $no) {
         assert_true(!ImapReader::allowed($no), $no);
     }
-    foreach (glob(__DIR__ . '/../src/Mail/*.php') as $f) {
+    // ClientContacts (card 131) speaks SQL to Daybook, not IMAP: one SELECT and no write verb at all.
+    $sql = (string) file_get_contents(__DIR__ . '/../src/Mail/ClientContacts.php');
+    assert_same(1, preg_match_all('/\bSELECT\b/', $sql), 'ClientContacts runs one SELECT');
+    assert_true(!preg_match('/\b(INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|REPLACE|GRANT|TRUNCATE|STORE|COPY|MOVE|EXPUNGE|APPEND)\b/i', $sql, $m),
+        'ClientContacts contains ' . ($m[1] ?? ''));
+    foreach (array_diff(glob(__DIR__ . '/../src/Mail/*.php'), [__DIR__ . '/../src/Mail/ClientContacts.php']) as $f) {
         assert_true(!preg_match('/\b(STORE|COPY|MOVE|EXPUNGE|APPEND|SELECT)\b/i', (string) file_get_contents($f), $m), basename($f) . ' contains ' . ($m[1] ?? ''));
     }
 });

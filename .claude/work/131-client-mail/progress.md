@@ -1,0 +1,3 @@
+- Step 1: read brief and files. Nothing edited. Next: find live tagger.
+- Step 2: live tagger is Classifier. Edited Relevance, Classifier, ClientContacts (new), Mail collector, CockpitDay, views.js, config, tests + freemail fixture. Next: run done-test.
+- Step 3: tests green, three mutations done and restored, result.md written. Live capture not done (no credential, would overwrite data/). Done.
