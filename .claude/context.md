@@ -8,7 +8,7 @@ blockers: none. Optional, Rob as admin when he likes: ops\install-apache-autosta
 # KC Dashboard context
 
 ## To Resume
-Session 16. main at 0db4a9f on origin (kingsbury-labs/kc-dashboard): the PM's plan for voice Cas as the PM (card 130, bdc7d91) landed and card 131 is queued. The PM (hq-ad, D:\Dev\hq) commits, pushes and starts loops; this window's guards refuse commit and push. The PM stashed Rob's .claude/settings.json Chrome grants ("pm: settings.json chrome grants") to pop later.
+Session 16. main at f4bb3ae on origin (kingsbury-labs/kc-dashboard): the PM's plan for voice Cas as the PM (card 130, bdc7d91) landed; card 131 is parked on branch wip/131-client-mail (ad4c97a). The PM (hq-ad, D:\Dev\hq) commits, pushes and starts loops; this window's guards refuse commit and push. The PM stashed Rob's .claude/settings.json Chrome grants ("pm: settings.json chrome grants") to pop later.
 THIS WINDOW (if opened here for dashboard work):
 1. Voice tweaks only when Rob names them. Engine settings live in D:\Dev\cas-voice\proto\server.py args (--min-silence-ms 600, --turn-p 0.7, --voice qwen, --ref wav\emma_en-gb.wav). Restart: stop the pythonw tree, then `node bin\cas-voice-start.cjs` (hidden, single-start guarded); ready in ~15-90 s, check with curl to 8766, never netstat (it misses listeners here).
 2. PM panel card, sized by the PM.
@@ -21,7 +21,7 @@ THIS WINDOW (if opened here for dashboard work):
 - Local models: Ollama on D:\ai\ollama\models; llama.cpp and Bonsai under `llm/` (mail tagging).
 
 ## Waiting on Rob
-- REMIND ROB: voice recordings for speaker recognition, about 30 s each from Rob and Shandra, spoken into the cockpit mic. SpeechBrain ECAPA (speechbrain 1.1.2) is installed in cas-voice's venv and its model is cached at V:\hf\spkrec-ecapa-voxceleb (load with LocalStrategy.COPY; Windows refuses symlinks). Check script D:\Dev\cas-voice\spk_check.py: same voice 0.63-0.92, different voices under 0.28, a 1 s wake-word clip only ~0.5. Feeds plan 130 step 7.
+- REMIND ROB: Shandra's voice recording for speaker recognition (Rob's is done: D:\Dev\cas-voice\enroll\rob.wav, 25 s of speech, halves 0.85 alike; enroll/ is gitignored). Record with `venv\Scripts\python.exe proto\enroll_record.py shandra 40` from D:\Dev\cas-voice, Scarlett Solo, voice Off on the cockpit. SpeechBrain ECAPA (speechbrain 1.1.2) is installed in cas-voice's venv and its model is cached at V:\hf\spkrec-ecapa-voxceleb (load with LocalStrategy.COPY; Windows refuses symlinks). Check script D:\Dev\cas-voice\spk_check.py: same voice 0.63-0.92, different voices under 0.28, a 1 s wake-word clip only ~0.5. Feeds plan 130 step 7.
 - Optional: the two autostart installs above.
 - Docker disk move: D:\_logs\docker-move\status.json says preflight-ok (2026-11-01); delete the `.premove` disk only after it says ok.
 - Issue 3 (follow-ups from cards 14 and 15), parked as Later.
