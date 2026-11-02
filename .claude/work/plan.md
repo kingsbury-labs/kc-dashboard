@@ -1398,6 +1398,19 @@ LOGOUT; no source file under `src/Mail/` contains STORE, COPY, MOVE, EXPUNGE,
 APPEND or SELECT; the app password never appears in the log or the API output;
 a follow-up write without the token is refused.
 
+### 123. Cockpit gaps: Agenda dead space, finance clip, Care half-empty (Small)
+- Role: implementer, Sonnet, effort low. Depends: 120.
+
+Three leftovers from 122 on the 1080x1920 portrait cockpit: about 55px empty
+under the Agenda, the kc-finance card's last line cut at its edge, and Care
+clients in one column with the right half empty. Layout only, 122's sizes stay.
+
+Done-test: `c:\xampp\php\php.exe tests/run.php --filter Cockpit` passes, including new
+CockpitFit tests proving: inside the portrait block the AI news card's height
+follows the Agenda's row (it scrolls, and has no fixed px height of its own),
+the kc-finance card has no fixed max-height that is not a whole number of
+lines, and the Care client list is a two-column grid.
+
 ### 120. Cockpit comes back by itself after a restart; mic VU meter (Normal)
 - Role: implementer, Sonnet. Depends: 122.
 

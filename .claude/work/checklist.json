@@ -765,5 +765,12 @@
     "verified_at": "2026-11-02T00:56:26.957Z",
     "tree": "702bda6509fd05b1516908bb6692f6eb06a0c2056cafad96d7b0737a67eb7761",
     "gate": "full"
+  },
+  {
+    "id": "123",
+    "title": "Cockpit gaps: Agenda, finance, Care",
+    "brief": ".claude/work/123-cockpit-gaps/brief.md",
+    "start_sha": "e8c04b8d91d1483d29d52bb15bc6494c1388ce89",
+    "passes": false
   }
 ]
