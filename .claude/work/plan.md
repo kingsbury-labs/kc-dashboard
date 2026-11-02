@@ -1398,6 +1398,24 @@ LOGOUT; no source file under `src/Mail/` contains STORE, COPY, MOVE, EXPUNGE,
 APPEND or SELECT; the app password never appears in the log or the API output;
 a follow-up write without the token is refused.
 
+### 124. Voice engine: say when it is down or starting, log it, never a window (Normal)
+- Role: implementer, Sonnet. Depends: 120, 123.
+
+Rob: "I said hey cas and it registered on the vu but I had no response." cas-voice
+was not running and the Cas bar still said Listening. The bar waits for the
+socket and shows starting or not running from a new read-only /api/voice.php,
+the launcher logs to data/cas-voice.log and writes a pid file, and nothing in
+the start chain opens a window.
+
+Done-test: `c:\xampp\php\php.exe tests/run.php --filter CockpitVoice`, `--filter Autostart`
+and `--filter VoiceApi` pass, including tests proving: voice.js sets
+"Listening" only inside the socket's onopen path; after 3 s without onopen it
+shows the engine state from `/api/voice.php`; `cas-voice-start.cjs` sends
+output to `data/cas-voice.log`, never `stdio: 'ignore'`, writes
+`data/cas-voice.pid`, and every spawn passes `windowsHide: true` with no
+`python.exe` console launch; voice.php returns up, starting and down against
+a fake listener and fake pid file, and refuses a request without the token.
+
 ### 123. Cockpit gaps: Agenda dead space, finance clip, Care half-empty (Small)
 - Role: implementer, Sonnet, effort low. Depends: 120.
 

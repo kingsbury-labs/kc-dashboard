@@ -782,5 +782,12 @@
     "verified_at": "2026-11-02T01:14:05.239Z",
     "tree": "a6fb4c191edf4e3441cfb94d695b1dc15225628eb168cc872a2b37730deea7c2",
     "gate": "full"
+  },
+  {
+    "id": "124",
+    "title": "Voice engine status, launcher log, no windows",
+    "brief": ".claude/work/124-voice-engine-status/brief.md",
+    "start_sha": "800637dccb9c33b841f115d8c83f5b8c6e89f177",
+    "passes": false
   }
 ]
