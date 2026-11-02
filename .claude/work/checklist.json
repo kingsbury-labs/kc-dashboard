@@ -804,7 +804,17 @@
     "id": "125",
     "title": "Voice launcher starts the engine once",
     "brief": ".claude/work/125-voice-single-start/brief.md",
-    "start_sha": "f69728d70e98721abfacd70329da16ff8d35f83a",
-    "passes": false
+    "start_sha": "4f1986d92813121cb4f21aadff5f1519939a0168",
+    "passes": true,
+    "scope_ok": {
+      "at": "2026-11-02T01:44:55.512Z",
+      "start_sha": "4f1986d92813121cb4f21aadff5f1519939a0168",
+      "mutation_evidence": true,
+      "tree": "0d320eff042d79e879ea6f9c3b7430f8f3b025349276f4ee39960d6b6e4df709",
+      "size": "Small"
+    },
+    "verified_at": "2026-11-02T01:46:16.286Z",
+    "tree": "0d320eff042d79e879ea6f9c3b7430f8f3b025349276f4ee39960d6b6e4df709",
+    "gate": "full"
   }
 ]

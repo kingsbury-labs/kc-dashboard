@@ -8,6 +8,7 @@
 const { spawn, spawnSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const net = require('net');
 
 const PARENT = 'D:\\Dev\\cas-voice';
 const DATA = path.join(__dirname, '..', 'data');
@@ -26,30 +27,95 @@ function drive() {
   return null;
 }
 
-function main() {
+const PORT = 8766;
+const STARTING_MS = 5 * 60 * 1000; // models take about 2.5 minutes to load
+const STALE_LOCK_MS = 60 * 1000;
+
+function listening(port) {
+  return new Promise((resolve) => {
+    const s = net.connect({ port, host: '127.0.0.1' });
+    const done = (v) => { s.destroy(); resolve(v); };
+    s.setTimeout(1000, () => done(false));
+    s.on('connect', () => done(true));
+    s.on('error', () => done(false));
+  });
+}
+
+function alive(pid) {
+  try { process.kill(pid, 0); return true; } catch (e) { return e.code === 'EPERM'; }
+}
+
+// Exclusive lock for the check-and-spawn; a lock older than 60 s is dead and replaced. Answers a release function or null.
+function takeLock(lock, now) {
+  for (let i = 0; i < 2; i++) {
+    try {
+      fs.closeSync(fs.openSync(lock, 'wx'));
+      return () => { try { fs.unlinkSync(lock); } catch (e) { /* gone already */ } };
+    } catch (e) {
+      if (e.code !== 'EEXIST') throw e;
+      let age = 0;
+      try { age = now() - fs.statSync(lock).mtimeMs; } catch (e2) { continue; }
+      if (age < STALE_LOCK_MS) return null;
+      try { fs.unlinkSync(lock); } catch (e2) { /* another run replaced it */ }
+    }
+  }
+  return null;
+}
+
+// deps are for the tests: data dir, port, spawn, drive, probe, alive, now. Answers 'running', 'starting', 'locked', or the pid.
+async function run(deps = {}) {
+  const data = deps.data || DATA;
+  const log = path.join(data, 'cas-voice.log');
+  const pidFile = path.join(data, 'cas-voice.pid');
+  const now = deps.now || Date.now;
+  const spawn = deps.spawn || require('child_process').spawn;
+  const note = (m) => fs.appendFileSync(log, new Date().toISOString() + ' ' + m + '\n');
+  fs.mkdirSync(data, { recursive: true });
+  const release = takeLock(path.join(data, 'cas-voice.lock'), now);
+  if (!release) { note('cas-voice already starting (another start holds the lock)'); return 'locked'; }
+  try {
+    if (await (deps.probe || listening)(deps.port || PORT)) { note('cas-voice already running'); return 'running'; }
+    try {
+      const p = JSON.parse(fs.readFileSync(pidFile, 'utf8'));
+      if (p && p.pid && now() - Date.parse(p.started) < STARTING_MS && (deps.alive || alive)(p.pid)) {
+        note('cas-voice already starting (pid ' + p.pid + ')');
+        return 'starting';
+      }
+    } catch (e) { /* no pid file, or unreadable */ }
+    const drv = (deps.drive || drive)();
+    if (!drv) {
+      note('no free drive letter to map ' + PARENT);
+      return null;
+    }
+    fs.appendFileSync(log, '\n' + new Date().toISOString() + ' cas-voice start on ' + drv + '\n');
+    const out = fs.openSync(log, 'a');
+    const child = spawn(drv + '\\venv\\Scripts\\pythonw.exe', [drv + '\\proto\\server.py', '--no-browser'], {
+      cwd: drv + '\\proto',
+      env: { ...process.env, HF_HOME: drv + '\\hf', PYTHONIOENCODING: 'utf-8', PYTHONUNBUFFERED: '1' },
+      detached: true,
+      stdio: ['ignore', out, out],
+      windowsHide: true,
+    });
+    fs.writeFileSync(pidFile, JSON.stringify({ pid: child.pid, started: new Date(now()).toISOString() }));
+    child.unref();
+    return child.pid;
+  } finally {
+    release();
+  }
+}
+
+async function main() {
   if (!fs.existsSync(path.join(PARENT, 'proto', 'server.py'))) {
     console.error('cas-voice not found at ' + PARENT);
     process.exit(1);
   }
-  fs.mkdirSync(DATA, { recursive: true });
-  const drv = drive();
-  if (!drv) {
-    fs.appendFileSync(LOG, new Date().toISOString() + ' no free drive letter to map ' + PARENT + '\n');
+  const r = await run();
+  if (r === null) {
     console.error('no free drive letter');
     process.exit(1);
   }
-  fs.appendFileSync(LOG, '\n' + new Date().toISOString() + ' cas-voice start on ' + drv + '\n');
-  const out = fs.openSync(LOG, 'a');
-  const child = spawn(drv + '\\venv\\Scripts\\pythonw.exe', [drv + '\\proto\\server.py', '--no-browser'], {
-    cwd: drv + '\\proto',
-    env: { ...process.env, HF_HOME: drv + '\\hf', PYTHONIOENCODING: 'utf-8', PYTHONUNBUFFERED: '1' },
-    detached: true,
-    stdio: ['ignore', out, out],
-    windowsHide: true,
-  });
-  fs.writeFileSync(PID, JSON.stringify({ pid: child.pid, started: new Date().toISOString() }));
-  child.unref();
-  console.log('cas-voice started, pid ' + child.pid);
+  console.log(typeof r === 'number' ? 'cas-voice started, pid ' + r : 'cas-voice ' + (r === 'running' ? 'already running' : 'already starting'));
 }
 
+module.exports = { run, takeLock };
 if (require.main === module) main();

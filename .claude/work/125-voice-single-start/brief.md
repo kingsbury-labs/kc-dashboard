@@ -53,13 +53,14 @@ Then the mutation check through the runner
 (`node C:\Users\roban\.claude\bin\project-test.cjs`): remove the lock, run
 filtered, name the failing tests, restore, green.
 
-Live check, recorded in result.md. Only when nothing listens on 8766 and no
-pythonw engine is alive; if one is, stop and say so in result.md rather than
-killing it. Run `node bin/cas-voice-start.cjs` twice in the same second; the log
-shows one "start on" and one "already starting"; within 4 minutes exactly one
-LISTENING line for 8766 in `netstat -ano`, "status: ready" in
-`data/cas-voice.log`, and `/api/voice.php` says up. Leave that engine running.
-No Chrome.
+Live check, recorded in result.md. The engine is expected to be up already
+(`curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8766/` gives 200; do
+not use netstat, which missed a live listener on this machine on 2026-11-01).
+Note the pythonw pids from `tasklist`, run `node bin/cas-voice-start.cjs` twice
+in the same second: the log gains two "already running" lines and no "start
+on", the pythonw pid list is unchanged, 8766 still answers 200 and
+`/api/voice.php` says up. If the engine is down when you start, stop and say so
+in result.md rather than starting one. Never kill it. No Chrome.
 
 ## Boundaries
 No commit, no push, no install. Never edit anything under `D:\Dev\cas-voice`.
