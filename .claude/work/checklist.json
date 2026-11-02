@@ -838,8 +838,7 @@
     "id": "131",
     "title": "Client mail shows in the cockpit",
     "brief": ".claude/work/131-client-mail/brief.md",
-    "start_sha": "0db4a9f912de706ed61e846630f6b3099268b499",
-    "passes": false,
-    "parked": "built, done-test green, on wip/131-client-mail; scope check failed on another window's uncommitted .claude/context.md edit, restore refused by branch guard"
+    "start_sha": "f4bb3ae0b210c4b2c9faf2ad5104e36cbcde7837",
+    "passes": false
   }
 ]
