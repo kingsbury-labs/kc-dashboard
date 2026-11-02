@@ -1,8 +1,8 @@
 ---
 session: 15
 last_updated: 2026-11-01
-continue_with: The PM moves to D:\Dev\hq (read D:\Dev\hq\.claude\context.md first). Dashboard work left - card 120 (mic VU meter, newest-first everywhere, autostart; brief in .claude/work/agentos/held/120-autostart-vu/), plus the Agenda gap, the clipped finance line and Care's empty right half, and a PM panel (asks, conch, live work).
-blockers: Rob runs the Apache-as-service admin script once 120 lands; Rob's real "Hey Cas" mic test.
+continue_with: The PM runs from D:\Dev\hq (read D:\Dev\hq\.claude\context.md first). Cards 120, 123 and 124 landed 2026-11-01 (autostart and VU meter, cockpit gaps, voice engine status). Left - the voice swap Rob asked for (smoother British female or neutral voice, auditions in D:\Dev\cas-voice\wav\aud_*.wav) and a PM panel (asks, conch, live work).
+blockers: none. Optional, Rob as admin when he likes: ops\install-apache-autostart.ps1 then node bin\install-autostart.cjs (dashboard back by itself after a reboot).
 ---
 
 # KC Dashboard context
@@ -21,7 +21,7 @@ THIS WINDOW (if opened here for dashboard work):
 - Local models: Ollama on D:\ai\ollama\models; llama.cpp and Bonsai under `llm/` (used for mail tagging).
 
 ## Waiting on Rob
-- Apache-as-service script after card 120; real "Hey Cas" mic test.
+- Optional: the two autostart installs above (card 120 replaced the old Apache-as-service script). "Hey Cas" wakes since the 2026-11-01 matcher fix.
 - Delete the `.premove` Docker disk once `D:\_logs\docker-move\status.json` says ok (move ran 2026-11-02 04:00).
 - Issue 3 (follow-ups from cards 14 and 15), parked as Later.
 
