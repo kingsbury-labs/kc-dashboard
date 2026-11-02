@@ -1,18 +1,18 @@
 ---
 session: 15
 last_updated: 2026-11-01
-continue_with: The PM runs from D:\Dev\hq (read D:\Dev\hq\.claude\context.md first). Cards 120, 123 and 124 landed 2026-11-01 (autostart and VU meter, cockpit gaps, voice engine status). Left - the voice swap Rob asked for (smoother British female or neutral voice, auditions in D:\Dev\cas-voice\wav\aud_*.wav) and a PM panel (asks, conch, live work).
+continue_with: The PM runs from D:\Dev\hq (read D:\Dev\hq\.claude\context.md first). Cards 120, 123 and 124 landed 2026-11-01 (autostart and VU meter, cockpit gaps, voice engine status). The voice is now wav\aud_brit_warm.wav (server.py --ref default). Left - a PM panel (asks, conch, live work).
 blockers: none. Optional, Rob as admin when he likes: ops\install-apache-autostart.ps1 then node bin\install-autostart.cjs (dashboard back by itself after a reboot).
 ---
 
 # KC Dashboard context
 
 ## To Resume
-Session 15. main at b785dd2 on origin (kingsbury-labs/kc-dashboard). Tree carries only Rob's unrelated .claude/settings.json edit (leave it). The orchestrator (PM) no longer runs from this window: its home is D:\Dev\hq with its own context.md; this project is one of the projects it manages.
+Session 15. main at 1ac8b4e on origin (kingsbury-labs/kc-dashboard); card 124 the last card landed, 1ac8b4e the PM's context commit. The PM (hq-ad, D:\Dev\hq) commits, pushes and starts loops; this window's guards refuse commit and push. The PM stashed Rob's .claude/settings.json Chrome grants ("pm: settings.json chrome grants") to pop later.
 THIS WINDOW (if opened here for dashboard work):
-1. Card 120 through the loop: move the held brief to `.claude/work/120-autostart-vu/`, add its plan.md entry, checklist, commit, `node C:\Users\roban\.claude\bin\loop-start.cjs D:/Dev/htdocs/_kc-dashboard --no-handoff --max-cards 1`.
-2. One Small card for the three cockpit gaps above; desktop sizes (memory: cockpit-monitor-beside-face).
-3. Prove every UI card with a headless Edge shot at 1080x1920 before showing Rob; never resize Chrome (Henike holds the conch).
+1. Voice: Rob picked aud_brit_warm (server.py --ref default); the brain speaks plain Canadian English, swearing allowed (brain.py VOICE_SECTION). Engine starts only through card 124's launcher; nobody starts it by hand (it pops console windows).
+2. cas-voice is not git: the wake matcher fix (speech.py, server.py, backups in proto\bak-wake\) and the voice persona edit (brain.py) live only on disk.
+3. Prove every UI card with a headless shot at 1080x1920 before showing Rob; never use Chrome (Henike holds the conch).
 
 ## What exists
 - Cockpit live at http://127.0.0.1:8787/cockpit.php, Chrome on portrait monitor 2. Cards 107-122 on main. 121 rebuilt the hero (Find moved to the rail, voice chip gone), 122 set desktop sizes. Care reads UptimeRobot correctly since bf4258d (custom_uptime_ratios).
