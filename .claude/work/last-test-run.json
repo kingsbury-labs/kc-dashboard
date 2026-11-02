@@ -1,14 +1,17 @@
 {
   "status": "finished",
   "exit_code": 0,
-  "started_at": "2026-11-02T02:22:21.869Z",
-  "finished_at": "2026-11-02T02:23:13.262Z",
-  "at": "2026-11-02T02:23:13.262Z",
-  "command": "c:\\xampp\\php\\php.exe tests/run.php",
-  "args": [],
-  "tree": "56ad7c4a0d6647cdc66eda8fda17099f61f5804422b84f60ba47da2fe3fe4dc4",
+  "started_at": "2026-11-02T02:33:43.948Z",
+  "finished_at": "2026-11-02T02:33:44.839Z",
+  "at": "2026-11-02T02:33:44.839Z",
+  "command": "c:\\xampp\\php\\php.exe tests/run.php \"--filter\" \"CockpitDay\"",
+  "args": [
+    "--filter",
+    "CockpitDay"
+  ],
+  "tree": "d87956670cb6e0737b456339470a762f08b372f0036da5348f59f59b12aadf1b",
   "lines": 1,
-  "summary": "Tests: 492 passed, 0 failed",
+  "summary": "Tests: 6 passed, 0 failed",
   "filtered": false,
   "log": "D:\\Dev\\htdocs\\_kc-dashboard\\data\\test-last.log"
 }
