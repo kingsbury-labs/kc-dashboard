@@ -8,7 +8,7 @@ blockers: none. Optional, Rob as admin when he likes: ops\install-apache-autosta
 # KC Dashboard context
 
 ## To Resume
-Session 16. main at f4bb3ae on origin (kingsbury-labs/kc-dashboard): the PM's plan for voice Cas as the PM (card 130, bdc7d91) landed; card 131 is parked on branch wip/131-client-mail (ad4c97a). The PM (hq-ad, D:\Dev\hq) commits, pushes and starts loops; this window's guards refuse commit and push. The PM stashed Rob's .claude/settings.json Chrome grants ("pm: settings.json chrome grants") to pop later.
+Session 16. main at 5d8ce5d on origin (kingsbury-labs/kc-dashboard): the PM's plan for voice Cas as the PM (card 130, bdc7d91) landed; card 131 was requeued as client contacts from the clients folder (b2e6565) and landed as 5d8ce5d (live capture still owed); its earlier attempt is parked on origin/wip/131-client-mail. The PM (hq-ad, D:\Dev\hq) commits, pushes and starts loops; this window's guards refuse commit and push. The PM stashed Rob's .claude/settings.json Chrome grants ("pm: settings.json chrome grants") to pop later.
 THIS WINDOW (if opened here for dashboard work):
 1. Voice tweaks only when Rob names them. Engine settings live in D:\Dev\cas-voice\proto\server.py args (--min-silence-ms 600, --turn-p 0.7, --voice qwen, --ref wav\emma_en-gb.wav). Restart: stop the pythonw tree, then `node bin\cas-voice-start.cjs` (hidden, single-start guarded); ready in ~15-90 s, check with curl to 8766, never netstat (it misses listeners here).
 2. PM panel card, sized by the PM.
