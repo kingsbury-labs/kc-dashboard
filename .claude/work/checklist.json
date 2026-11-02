@@ -906,8 +906,18 @@
     "id": "134",
     "title": "Traps, fixes, asks and dream proposals join the knowledge graph",
     "brief": ".claude/work/134-kg-lessons/brief.md",
-    "start_sha": "01c9ac36dba19738dcb39a43967361339655ed31",
-    "passes": false,
-    "size": "Normal"
+    "start_sha": "83c96c0b3d1dc63010a0dd0f1835217084b91265",
+    "passes": true,
+    "size": "Normal",
+    "scope_ok": {
+      "at": "2026-11-02T20:43:29.562Z",
+      "start_sha": "83c96c0b3d1dc63010a0dd0f1835217084b91265",
+      "mutation_evidence": true,
+      "tree": "0b4b840e34d87d1d83145f98e1ec8f6137477f70a38bcb725115d5f60bc9bf3e",
+      "size": "Normal"
+    },
+    "verified_at": "2026-11-02T20:44:47.107Z",
+    "tree": "0b4b840e34d87d1d83145f98e1ec8f6137477f70a38bcb725115d5f60bc9bf3e",
+    "gate": "full"
   }
 ]

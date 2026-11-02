@@ -218,3 +218,184 @@ test('no .env value, credential file or mail body reaches the graph or the API, 
         assert_true(!ImapReader::allowed($bad), "allowed: $bad");
     }
 });
+
+// Lessons (card 134): traps, fixes, asks and dream proposals on invented fixtures in tests/fixtures/graph/lessons.
+const LS_FIX = GR_FIX . '/lessons';
+
+function ls_projects(?string $root = null): array
+{
+    $out = [];
+    foreach (glob(($root ?? LS_FIX . '/projects') . '/*', GLOB_ONLYDIR) as $d) {
+        $out[basename($d)] = $d;
+    }
+    return $out;
+}
+
+function ls_store(): GraphStore
+{
+    return new GraphStore(Db::open(sys_get_temp_dir() . '/kcls_' . bin2hex(random_bytes(6)) . '.sqlite'));
+}
+
+// Every lesson source rebuilt on its own, from the fixture tree.
+function ls_build(GraphStore $g, string $only = ''): void
+{
+    $p = ls_projects();
+    $all = [
+        'traps' => fn() => GraphReaders::traps((string) file_get_contents(LS_FIX . '/traps.md'), $p),
+        'fixes' => fn() => GraphReaders::fixes(GraphReaders::cards($p), $p),
+        'asks' => fn() => GraphReaders::asks((string) file_get_contents(LS_FIX . '/asks.md'), $p),
+        'dreams' => fn() => GraphReaders::dreams(GraphReaders::proposals($p), $p),
+    ];
+    foreach ($all as $source => $edges) {
+        if ($only === '' || $only === $source) {
+            $g->replace($source, $edges());
+        }
+    }
+}
+
+// One source's edges as sorted "type:key -edge-> type:key" lines.
+function ls_edges(GraphStore $g, string $source): array
+{
+    $q = $g->pdo()->prepare("SELECT s.type || ':' || s.key || ' -' || e.type || '-> ' || d.type || ':' || d.key FROM graph_edge e
+        JOIN graph_node s ON s.id = e.src JOIN graph_node d ON d.id = e.dst WHERE e.source = ?");
+    $q->execute([$source]);
+    $rows = $q->fetchAll(PDO::FETCH_COLUMN);
+    sort($rows);
+    return $rows;
+}
+
+function ls_match(array $rows, string $needle): array
+{
+    return array_values(array_filter($rows, fn($r) => str_contains($r, $needle)));
+}
+
+test('a trap that names a file in a project tree links to that project, that file and its section as the cause', function () {
+    $g = ls_store();
+    ls_build($g);
+    $rows = ls_match(ls_edges($g, 'traps'), 'the-css-minifier-changes-units');
+    assert_same(3, count($rows), implode("\n", $rows));
+    assert_true(str_contains(implode("\n", $rows), '-concerns-> project:henike-contracting'), 'project link');
+    assert_true(str_contains(implode("\n", $rows), '-names-> file:henike-contracting:src/scripts/menu-morph.ts'), 'file link');
+    assert_true(str_contains(implode("\n", $rows), '-caused_by-> cause:builds rewrite what you wrote'), 'cause link');
+    $label = $g->pdo()->query("SELECT label FROM graph_node WHERE type = 'trap' AND label LIKE 'The CSS minifier%'")->fetchColumn();
+    assert_same(120, strlen($label), 'the label is the first 120 characters');
+    $other = implode("\n", ls_match(ls_edges($g, 'traps'), 'screenshots-freeze-animation'));
+    assert_true(str_contains($other, '-concerns-> project:kc-portal') && !str_contains($other, 'names'), 'a trap naming kc-portal and no file');
+});
+
+test('brief-context returns the trap, fix and dream item for a file before the project-only ones', function () {
+    $g = ls_store();
+    ls_build($g);
+    $got = array_map(fn($l) => $l['kind'] . ' ' . $l['match'], $g->lessons('henike-contracting', ['src/scripts/menu-morph.ts']));
+    assert_same(['trap file', 'fix file', 'dream file', 'trap project', 'dream project'], $got);
+    $first = $g->lessons('henike-contracting', ['src\\scripts\\menu-morph.ts'])[0];
+    assert_true(str_starts_with($first['label'], 'The CSS minifier changes units.'), 'the file trap is first: ' . $first['label']);
+    assert_same(['trap project', 'trap project', 'fix project', 'dream project', 'dream project'],
+        array_map(fn($l) => $l['kind'] . ' ' . $l['match'], $g->lessons('henike-contracting', ['src/nothing.ts'])), 'an unlinked file adds no match');
+    assert_same([], $g->lessons('no-such-project', ['src/scripts/menu-morph.ts']));
+});
+
+test('a fix from a result.md links to its project and the files it names, and not to another project', function () {
+    $g = ls_store();
+    ls_build($g);
+    $rows = ls_edges($g, 'fixes');
+    $h = implode("\n", ls_match($rows, 'henike-contracting/172-menu'));
+    assert_true(str_contains($h, '-concerns-> project:henike-contracting'), $h);
+    assert_true(str_contains($h, '-names-> file:henike-contracting:src/scripts/menu-morph.ts'), $h);
+    $k = implode("\n", ls_match($rows, 'kc-portal/9-login'));
+    assert_true(str_contains($k, '-names-> file:kc-portal:src/login.ts') && !str_contains($k, 'henike'), $k);
+    $label = $g->pdo()->query("SELECT label FROM graph_node WHERE type = 'fix' AND label LIKE 'henike-contracting/172-menu%'")->fetchColumn();
+    assert_same('henike-contracting/172-menu: Files: `src/scripts/menu-morph.ts` now reads times through cssTime. Mutation caught.', $label);
+});
+
+test('an ask links to its project by folder, by client word or by a path, and "all" links to none', function () {
+    $g = ls_store();
+    ls_build($g);
+    $rows = ls_edges($g, 'asks');
+    $h = implode("\n", ls_match($rows, 'homepage-fly-in'));
+    assert_true(str_contains($h, '-concerns-> project:henike-contracting'), 'henike is the start of henike-contracting: ' . $h);
+    assert_true(str_contains($h, '-names-> file:henike-contracting:src/scripts/menu-morph.ts'), $h);
+    assert_true(str_contains(implode("\n", ls_match($rows, 'whc-deploy')), '-concerns-> project:kc-portal'), 'kc-portal by folder');
+    assert_same([], ls_match($rows, 'one-pm-over-every-session'), 'an ask for "all" has no links, so no node');
+});
+
+test('each dream item is a node linked to its project, and a proposal under dream/logs gives none', function () {
+    $g = ls_store();
+    ls_build($g);
+    $rows = ls_edges($g, 'dreams');
+    assert_same(['dream:henike-contracting/proposal-20261102-000001.md/first-item -concerns-> project:henike-contracting',
+        'dream:henike-contracting/proposal-20261102-000001.md/first-item -names-> file:henike-contracting:src/scripts/menu-morph.ts',
+        'dream:henike-contracting/proposal-20261102-000001.md/second-item -concerns-> project:henike-contracting'], $rows);
+    $labels = $g->pdo()->query("SELECT label FROM graph_node WHERE type = 'dream' ORDER BY label")->fetchAll(PDO::FETCH_COLUMN);
+    assert_same(['henike-contracting: first-item', 'henike-contracting: second-item'], $labels);
+    assert_same([], ls_match($rows, 'logged-item'));
+});
+
+test('rebuilding traps leaves the other sources alone, and the same input twice gives the same edges', function () {
+    $g = ls_store();
+    ls_build($g);
+    $before = ['fixes' => ls_edges($g, 'fixes'), 'asks' => ls_edges($g, 'asks'), 'dreams' => ls_edges($g, 'dreams'), 'traps' => ls_edges($g, 'traps')];
+    assert_true(count($before['fixes']) > 0 && count($before['traps']) > 0, 'something to compare');
+    ls_build($g, 'traps');
+    assert_same($before, ['fixes' => ls_edges($g, 'fixes'), 'asks' => ls_edges($g, 'asks'), 'dreams' => ls_edges($g, 'dreams'), 'traps' => ls_edges($g, 'traps')]);
+    $g->replace('traps', []);
+    assert_same([], ls_edges($g, 'traps'), 'traps emptied');
+    assert_same($before['fixes'], ls_edges($g, 'fixes'), 'fixes untouched');
+    assert_same($before['dreams'], ls_edges($g, 'dreams'), 'dreams untouched');
+    $p = ls_projects();
+    $a = GraphReaders::traps((string) file_get_contents(LS_FIX . '/traps.md'), $p);
+    assert_same($a, GraphReaders::traps((string) file_get_contents(LS_FIX . '/traps.md'), $p), 'same input, same edges');
+});
+
+test('a path in a secret place is never linked, only a plain file in the project is', function () {
+    $t = sys_get_temp_dir() . '/kcls_' . bin2hex(random_bytes(6));
+    mkdir($t . '/shop/src', 0777, true);
+    mkdir($t . '/shop/.credentials', 0777, true);
+    foreach (['src/app.ts', '.env', '.credentials/token.md', 'src/settings.json', 'src/auth-token.ts'] as $f) {
+        file_put_contents($t . '/shop/' . $f, 'x');
+    }
+    $text = "## Leaks\n\n- **Keys.** In shop: see `src/app.ts`, `.env`, `.credentials/token.md`, `src/settings.json`, src/auth-token.ts and ../shop/src/app.ts.\n";
+    $edges = GraphReaders::traps($text, ls_projects($t));
+    assert_same(3, count($edges), 'project, one file, cause: ' . json_encode($edges));
+    assert_same(['file', 'shop:src/app.ts'], [$edges[1][4], $edges[1][5]], json_encode($edges));
+});
+
+test('the Graph collector rebuilds the four lesson sources from its config paths', function () {
+    [$t, $log, $g] = gr_world();
+    $src = ['projects' => ls_projects(), 'vendors' => [], 'clients' => GR_FIX . '/clients', 'care' => GR_FIX . '/care.json',
+        'senders' => $t . '/mail-senders.json', 'traps' => LS_FIX . '/traps.md', 'asks' => LS_FIX . '/asks.md'];
+    (new Graph($g, $src, null, '', $t . '/app-password', $log))->collect(GR_NOW);
+    foreach (['traps', 'fixes', 'asks', 'dreams'] as $source) {
+        assert_true(count(ls_edges($g, $source)) > 0, "$source has edges");
+    }
+    $cfg = Graph::sources($t);
+    assert_true(str_ends_with($cfg['traps'], 'traps.md') && str_ends_with($cfg['asks'], 'asks.md'), 'sources() names both files');
+});
+
+test('bin/brief-context.php prints one plain line per lesson, file matches first', function () {
+    $g = ls_store();
+    ls_build($g);
+    $db = $g->pdo()->query('PRAGMA database_list')->fetch(PDO::FETCH_ASSOC)['file'];
+    $run = function (array $args): array {
+        $proc = proc_open(array_merge([PHP_BINARY, dirname(__DIR__) . '/bin/brief-context.php'], $args), [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
+        assert_true(is_resource($proc), 'could not start php');
+        $out = stream_get_contents($pipes[1]);
+        $err = stream_get_contents($pipes[2]);
+        fclose($pipes[1]);
+        fclose($pipes[2]);
+        return [proc_close($proc), $out, $err];
+    };
+    [$code, $out, $err] = $run(['--db=' . $db, '--project', 'henike-contracting', '--files', 'src/scripts/menu-morph.ts,src/none.ts']);
+    assert_same(0, $code, $err);
+    $lines = explode("\n", trim($out));
+    assert_same(5, count($lines), $out);
+    assert_true(str_starts_with($lines[0], 'trap [file] The CSS minifier changes units.'), $lines[0]);
+    assert_true(str_starts_with($lines[1], 'fix [file] henike-contracting/172-menu: '), $lines[1]);
+    assert_same('dream [file] henike-contracting: first-item', $lines[2]);
+    assert_true(str_starts_with($lines[3], 'trap [project] '), $lines[3]);
+    assert_same('dream [project] henike-contracting: second-item', $lines[4]);
+    [$code, $out] = $run(['--db=' . $db, '--project=henike-contracting', '--limit=1']);
+    assert_same(3, count(explode("\n", trim($out))), 'one of each kind with --limit=1: ' . $out);
+    [$code] = $run(['--db=' . $db]);
+    assert_same(2, $code, 'project is required');
+});
