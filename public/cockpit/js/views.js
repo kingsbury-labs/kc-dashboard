@@ -389,6 +389,19 @@ function searchForm() {
   return form;
 }
 
+// Card 132: every page but the overview gets the one Cas bar and Google search in a top row under its head (700px and up).
+export function dockAsks(page) {
+  const cmd = $('.command');
+  if (!cmd || !matchMedia('(min-width:700px)').matches) return;
+  const row = el('div', 'top-asks');
+  cmd.classList.add('docked');
+  row.append(cmd);
+  row.append(searchForm());
+  const headEl = page.querySelector('.page-head');
+  if (headEl) headEl.after(row);
+  else page.prepend(row);
+}
+
 const needsLine = (n) => (n === 0 ? 'Nothing needs you' : n === 1 ? 'One thing needs you' : `${n} things need you`);
 // "4:12 PM" as ['4:12', 'PM'] (the separator is a plain or a narrow no-break space, depending on the browser).
 const heroTime = (d) => d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }).split(/\s/);
@@ -488,7 +501,9 @@ export function renderOverview(page) {
   const greet = el('div', 'daily-greeting');
   add(greet, el('h1', '', `Good ${part} Rob`), el('p', '', now.toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric' })
     + (state.snap ? ` · ${needsLine(n)}` : '')));
-  add(top, form, greet, weatherCard(), planCard());
+  // 700-1099px: the Cas bar and search take the same top row as every other page, not a squeezed column of the hero.
+  const band = matchMedia('(min-width:700px) and (max-width:1099px)').matches;
+  add(top, ...(band ? [] : [form]), greet, weatherCard(), planCard());
   const banner = careBanner();
   if (banner) page.append(banner);
   page.append(top);
@@ -513,7 +528,8 @@ export function renderOverview(page) {
     page.append(grid);
   }
   const cmd = $('.command');
-  if (cmd && wide) {
+  if (band) dockAsks(page);
+  else if (cmd && matchMedia('(min-width:700px)').matches) {
     cmd.classList.add('docked');
     top.append(cmd);
   }

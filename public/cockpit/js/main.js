@@ -4,7 +4,7 @@ import { el, add, btn, icon, go, $, D } from './dom.js';
 import { begin, subscribe, findItems, state } from './data.js';
 import { search } from './fuzzy.js';
 import { available, start, setMode, toggleTalk, currentMode, MODES } from './voice.js';
-import { renderOverview, renderProject, renderSession, renderAgents, renderCare } from './views.js';
+import { renderOverview, renderProject, renderSession, renderAgents, renderCare, dockAsks } from './views.js';
 
 let page = null;
 let find = null;
@@ -226,6 +226,7 @@ function render(scroll) {
   else if (r.name === 'agents') renderAgents(fresh);
   else if (r.name === 'care') renderCare(fresh, r.id);
   else renderOverview(fresh);
+  if (r.name !== 'overview') dockAsks(fresh);
   page.replaceWith(fresh);
   page = fresh;
   if (scroll) scrollTo(0, 0);

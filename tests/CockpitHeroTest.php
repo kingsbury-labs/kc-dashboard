@@ -119,3 +119,30 @@ test('the Agenda card takes one column at 1080 x 1920 and every grid slot is fil
     assert_same(['agenda', 'care', 'email', 'finance', 'follow', 'needs', 'news', 'talk', 'working'], $names, 'nine cards, no empty slot');
     assert_same(10, count($cells), 'ten cells: only Care repeats');
 });
+
+test('card 132: every non-overview route docks the single Cas bar beside Google search in a top row', function () {
+    $main = ch_file('js/main.js');
+    assert_true(str_contains($main, "if (r.name !== 'overview') dockAsks(fresh);"), 'main docks on every route but the overview');
+    $fn = ch_fn(ch_file('js/views.js'), 'export function dockAsks(page) {');
+    assert_true(str_contains($fn, "cmd.classList.add('docked')") && str_contains($fn, 'row.append(cmd);'), 'the one .command is moved, not rebuilt');
+    assert_true(str_contains($fn, 'row.append(searchForm())'), 'Google search beside it');
+    assert_true(!str_contains($fn, 'commandBar'), 'no second Cas bar is built');
+    assert_true(str_contains($fn, "headEl.after(row)"), 'the row sits under the page head');
+});
+
+test('card 132: at 700px and up no .command rule is position:fixed, and the docked bar and search are 44px', function () {
+    $css = ch_file('cockpit.css');
+    $at = strpos($css, '/* Card 132');
+    assert_true($at !== false, 'card 132 block exists');
+    $block = substr($css, $at);
+    assert_true(str_contains($block, '@media(min-width:700px){'), 'inside the 700px query');
+    assert_true(preg_match('/\.command,\.command\.docked\{[^}]*position:relative/', $block) === 1, 'the bar is in flow');
+    // Every other rule that sets position:fixed on .command sits outside a 700px-and-up query (the phone rule).
+    preg_match_all('/\.command(?:\.docked)?\{[^}]*position:fixed/', $css, $m, PREG_OFFSET_CAPTURE);
+    foreach ($m[0] as [$rule, $pos]) {
+        assert_true($pos < $at, 'a fixed .command only precedes the card 132 override');
+    }
+    assert_true(!str_contains($block, 'position:fixed'), 'the override block pins nothing');
+    assert_true(str_contains($block, '.top-asks .google-form{height:44px'), 'search is 44px');
+    assert_true(str_contains($block, '.top-asks .command-main{grid-template-columns:auto minmax(0,1fr) auto auto;gap:10px;height:44px'), 'Cas bar is 44px');
+});

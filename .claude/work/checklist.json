@@ -889,7 +889,17 @@
     "id": "132",
     "title": "Cas bar and Google search at the top of every cockpit page",
     "brief": ".claude/work/132-cas-bar-top/brief.md",
-    "start_sha": "0dd874a63483621b10855dd689b64725c7cb11a6",
-    "passes": false
+    "start_sha": "889bb5713d646389767f8d9f1363fd654c6ec211",
+    "passes": true,
+    "scope_ok": {
+      "at": "2026-11-02T09:16:08.583Z",
+      "start_sha": "889bb5713d646389767f8d9f1363fd654c6ec211",
+      "mutation_evidence": true,
+      "tree": "b33694a1018d2baa6021419f24eaef165fc6e65307dc1c4de7888eecaf41c4ca",
+      "size": "Small"
+    },
+    "verified_at": "2026-11-02T09:17:19.001Z",
+    "tree": "b33694a1018d2baa6021419f24eaef165fc6e65307dc1c4de7888eecaf41c4ca",
+    "gate": "full"
   }
 ]

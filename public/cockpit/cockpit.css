@@ -139,3 +139,14 @@ grid-template-areas:"needs talk" "email working" "agenda news" "follow finance" 
 .vu{display:flex;padding:4px 8px 0;align-items:center;gap:6px;flex:none;color:var(--muted);font-size:11px}.vu[hidden]{display:none}.vu-bars{display:flex;align-items:flex-end;gap:2px;height:16px}.vu-bars i{width:3px;height:100%;border-radius:2px;background:rgba(255,255,255,.08)}.vu-bars i.on{background:var(--teal)}.vu-bars i.on:nth-child(n+10){background:var(--amber)}.vu.silent .vu-text{color:var(--amber)}.vu-text:empty{display:none}
 @media (prefers-reduced-motion:reduce){.vu-bars{display:none}}
 .agenda-item.past{opacity:.45}
+/* Card 132: the Cas bar and Google search sit in a top row on every page at 700px and up; nothing is pinned to the bottom. */
+@media(min-width:700px){
+.command,.command.docked{position:relative;z-index:6;left:auto;right:auto;bottom:auto;width:auto;max-width:none;margin:0;padding:0;border:0;background:none;box-shadow:none;backdrop-filter:none;align-self:stretch;grid-column:auto;grid-row:auto}
+.shell{padding-bottom:24px}
+.top-asks{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:12px;margin:0 0 16px}
+.top-asks .google-form{height:44px;gap:10px;padding:0 14px;border-color:rgba(255,255,255,.1)}.top-asks .google-form input{font-size:15px}.top-asks .google-form svg{width:18px;color:var(--muted)}.top-asks .google-form small{display:none}
+.top-asks .command-main{grid-template-columns:auto minmax(0,1fr) auto auto;gap:10px;height:44px;padding:0 8px 0 14px;border:1px solid rgba(255,255,255,.1);border-radius:16px;background:var(--s1)}
+.top-asks .command input{height:42px;font-size:15px}.top-asks .cas-dot{width:26px;height:26px}.top-asks .mic{width:32px;height:32px;border-radius:10px}.top-asks .mic svg{width:18px;height:18px}.top-asks .voice-mode{height:28px;padding:0 10px;border-radius:10px;font-size:13px}
+.top-asks .voice-thread{position:absolute;z-index:6;left:0;right:0;top:calc(100% + 6px);padding:8px 12px;border-radius:12px;background:rgba(18,20,24,.96);max-height:200px}.top-asks .voice-thread:empty{padding:0}
+.top-asks .command .voice-line,.top-asks .command.active .voice-line{display:none}
+}
