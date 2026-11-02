@@ -8,7 +8,7 @@ blockers: none. Optional, Rob as admin when he likes: ops\install-apache-autosta
 # KC Dashboard context
 
 ## To Resume
-Session 16. main at 9c53252 on origin (kingsbury-labs/kc-dashboard), card 125 the last landed. The PM (hq-ad, D:\Dev\hq) commits, pushes and starts loops; this window's guards refuse commit and push. The PM stashed Rob's .claude/settings.json Chrome grants ("pm: settings.json chrome grants") to pop later.
+Session 16. main at 7fa3bd8 on origin (kingsbury-labs/kc-dashboard): this handoff; card 125 (9c53252) the last card landed. The PM (hq-ad, D:\Dev\hq) commits, pushes and starts loops; this window's guards refuse commit and push. The PM stashed Rob's .claude/settings.json Chrome grants ("pm: settings.json chrome grants") to pop later.
 THIS WINDOW (if opened here for dashboard work):
 1. Voice tweaks only when Rob names them. Engine settings live in D:\Dev\cas-voice\proto\server.py args (--min-silence-ms 600, --turn-p 0.7, --voice qwen, --ref wav\emma_en-gb.wav). Restart: stop the pythonw tree, then `node bin\cas-voice-start.cjs` (hidden, single-start guarded); ready in ~15-90 s, check with curl to 8766, never netstat (it misses listeners here).
 2. PM panel card, sized by the PM.
