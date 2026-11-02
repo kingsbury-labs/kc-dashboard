@@ -278,18 +278,8 @@ function emailCard() {
   const list = el('div', 'email-list');
   const rows = m?.rows ?? [];
   const names = [...new Set(rows.map((x) => x.project))];
-  rows.slice(0, emailOpen ? rows.length : EMAIL_SHOWN).forEach((x) => {
-    const r = el('div', 'email-item');
-    const body = x.link ? link('', 'email-body', x.link) : el('div', 'email-body');
-    add(body, el('b', '', x.from), el('span', '', x.subject), x.summary ? el('p', '', x.summary) : null, el('small', '', ago(x.date)));
-    const tag = el('span', 'email-tag', x.project);
-    if (x.reason) tag.title = x.reason;
-    add(r, tag, body, x.sender ? emailFix(x, names) : null);
-    list.append(r);
-  });
-  if (m && !m.rows.length && !m.error) list.append(el('p', 'agenda-empty', 'No new mail in the last two weeks.'));
-  c.append(list);
-  // Mail no project claims: one click on "Project..." tags the sender, and the tag becomes an edge.
+  // Mail no project claims sits first, so its count shows without scrolling the card (card 133). One click on
+  // "Project..." tags the sender, and the tag becomes an edge.
   const unsure = m?.unsure ?? [];
   if (unsure.length) {
     const pile = el('details', 'email-unsure');
@@ -303,6 +293,18 @@ function emailCard() {
     });
     c.append(pile);
   }
+  rows.slice(0, emailOpen ? rows.length : EMAIL_SHOWN).forEach((x) => {
+    const r = el('div', 'email-item');
+    const body = x.link ? link('', 'email-body', x.link) : el('div', 'email-body');
+    add(body, el('b', '', x.from), el('span', '', x.subject), x.summary ? el('p', '', x.summary) : null, el('small', '', ago(x.date)));
+    // Mail about a client (rule 4) goes to the project pile, not the reply pile: it says so.
+    const tag = el('span', 'email-tag', x.kind === 'about' ? `About ${x.project}` : x.project);
+    if (x.reason) tag.title = x.reason;
+    add(r, tag, body, x.sender ? emailFix(x, names) : null);
+    list.append(r);
+  });
+  if (m && !m.rows.length && !m.error) list.append(el('p', 'agenda-empty', 'No new mail in the last two weeks.'));
+  c.append(list);
   if (rows.length > EMAIL_SHOWN) {
     c.append(btn(emailOpen ? 'Show fewer' : 'Show all', 'text-btn', () => {
       emailOpen = !emailOpen;

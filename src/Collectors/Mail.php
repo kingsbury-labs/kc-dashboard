@@ -20,6 +20,7 @@ class Mail extends Collector
     public const ROWS = 10;
     public const CHARS = 2000;
     public const DAYS = 14;
+    public const SENT_MAX = 200;
     public const MAX_BYTES = 262144;
     public const REFUSED = "Gmail sign-in refused: check the app password's account";
 
@@ -58,8 +59,9 @@ class Mail extends Collector
         }
         $keep = [];
         foreach ((array) ($old['rows'] ?? []) as $r) {
-            // A row from before tagging has no project key and is read again.
-            if (is_array($r) && is_int($r['uid'] ?? null) && array_key_exists('project', $r) && ($r['summary'] !== null || $r['project'] === null)) {
+            // A row from before tagging, or before the client pattern (no rule key), is read again.
+            if (is_array($r) && is_int($r['uid'] ?? null) && array_key_exists('project', $r) && array_key_exists('rule', $r)
+                && ($r['summary'] !== null || $r['project'] === null)) {
                 $keep[$r['uid']] = $r;
             }
         }
@@ -79,6 +81,19 @@ class Mail extends Collector
                 $uids = array_slice($imap->search($now - self::DAYS * 86400), -self::ROWS);
                 $need = array_values(array_diff($uids, array_keys($keep)));
                 $got = $need ? $imap->fetch($need, self::CHARS) : [];
+                // Rule 3 and To/Cc (card 133): envelopes only, then Sent Mail's envelopes, both read-only (EXAMINE).
+                $env = $need ? $imap->envelopes($need) : [];
+                $threads = [];
+                if ($need) {
+                    $imap->examine('SENT');
+                    $s = array_slice($imap->search($now - self::DAYS * 86400), -self::SENT_MAX);
+                    foreach ($s ? $imap->envelopes($s) : [] as $e) {
+                        $k = MailRules::thread((string) $e['subject']);
+                        if ($k !== '') {
+                            $threads[$k] = array_values(array_unique(array_merge($threads[$k] ?? [], $e['to'])));
+                        }
+                    }
+                }
             } finally {
                 $imap->logout();
             }
@@ -98,6 +113,9 @@ class Mail extends Collector
             if ($m === null) {
                 continue;
             }
+            // To and Cc, and who Rob wrote to in this thread (by subject: the envelope fetch keeps no thread id).
+            $m['to'] = (array) ($env[$uid]['to'] ?? []);
+            $m['sent_to'] = $threads[MailRules::thread((string) $m['subject'])] ?? [];
             // A tag is a project name, or the Classifier's {project, reason, unsure}.
             try {
                 $t = $tag($m);
@@ -114,7 +132,8 @@ class Mail extends Collector
                 $s = null;
             }
             $rows[] = ['uid' => $uid, 'from' => $m['from'], 'addr' => (string) ($m['addr'] ?? ''), 'project' => $project,
-                'reason' => $reason, 'unsure' => $unsure, 'subject' => $m['subject'], 'date' => $m['date'],
+                'reason' => $reason, 'unsure' => $unsure, 'rule' => is_array($t) && is_int($t['rule'] ?? null) ? $t['rule'] : null,
+                'kind' => is_array($t) && in_array($t['kind'] ?? null, ['from', 'about'], true) ? $t['kind'] : null, 'subject' => $m['subject'], 'date' => $m['date'],
                 'link' => $m['message_id'] === '' ? 'https://mail.google.com/mail/u/0/#inbox'
                     : 'https://mail.google.com/mail/u/0/#search/' . rawurlencode('rfc822msgid:' . $m['message_id']),
                 'summary' => $s['summary'] ?? null, 'reply' => ($s['reply'] ?? false) === true];
@@ -139,9 +158,9 @@ class Mail extends Collector
     private function defaultTag(): Closure
     {
         $cfg = (require __DIR__ . '/../../config/collectors.php')['mail'];
-        $contacts = ClientContacts::read($this->log);
+        $rules = MailRules::context(ClientContacts::read($this->log));
         $c = new Classifier(new GraphStore(Db::open(dirname($this->cache) . '/dashboard.sqlite')), dirname($this->cache) . '/' . $cfg['senders'],
-            Summarizer::generate($cfg['ollama'], $cfg['model']), $contacts);
+            Summarizer::generate($cfg['ollama'], $cfg['model']), $rules);
         return fn(array $m): array => $c->tag($m);
     }
 

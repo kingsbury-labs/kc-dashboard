@@ -2,7 +2,8 @@
 
 /**
  * Rob's clients as {name, email}, read at run time from clients/_CONTACTS.md (gitignored, read-only): the first
- * markdown table with an Email column, one entry per address, name = Business if set, else Name. Every row counts,
+ * markdown table with an Email column, one entry per address, name = Business if set, else Name; person = Name (for
+ * MailRules' display-name tie-break). Every row counts,
  * whatever _PIPELINE.md says of it. A missing or unreadable file returns no contacts and logs one line naming the
  * file, never a value; the list stays in memory and is never cached.
  */
@@ -23,7 +24,7 @@ class ClientContacts
         return self::parse($md);
     }
 
-    /** @return list<array{name:string, email:string}> */
+    /** @return list<array{name:string, email:string, person:string}> */
     public static function parse(string $md): array
     {
         $head = null;
@@ -51,7 +52,7 @@ class ClientContacts
             $name = mb_substr($name !== '' ? $name : trim((string) ($r['name'] ?? '')), 0, Relevance::NAME_MAX);
             foreach (preg_split('/[\s,;]+/', strtolower((string) ($r['email'] ?? '')), -1, PREG_SPLIT_NO_EMPTY) as $email) {
                 if ($name !== '' && filter_var($email, FILTER_VALIDATE_EMAIL) !== false) {
-                    $out[] = ['name' => $name, 'email' => $email];
+                    $out[] = ['name' => $name, 'email' => $email, 'person' => mb_substr(trim((string) ($r['name'] ?? '')), 0, Relevance::NAME_MAX)];
                 }
             }
         }

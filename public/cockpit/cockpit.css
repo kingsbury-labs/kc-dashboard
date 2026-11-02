@@ -56,7 +56,7 @@ a{color:inherit;text-decoration:none}.clickable,.cal-day,.agenda-item,.check-btn
 .care-banner{display:grid;gap:4px;margin:0 0 16px;padding:12px 14px;border:1px solid rgba(242,109,109,.35);border-radius:12px;background:rgba(242,109,109,.12)}.care-banner-line{border:0;background:none;padding:2px 0;text-align:left;color:var(--coral);font-weight:500;font-size:14px;cursor:pointer}.care-banner .text-btn{justify-self:start;margin-top:4px}.care-table{min-width:560px}
 .email-body{display:grid;gap:2px;color:inherit;text-decoration:none;border-radius:6px}a.email-body:hover{background:rgba(255,255,255,.035)}.email-item .email-tag{color:var(--teal);font-size:11px}.email-actions{display:flex;flex-wrap:wrap;gap:12px;align-items:center}.email-project{min-width:0;width:100%;max-width:220px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--s2);color:var(--text)}
 /* Card 117: the Unsure pile under the email list. */
-.email-unsure{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}.email-unsure summary{cursor:pointer;color:var(--muted);font-size:12px}.email-unsure .email-item{margin-top:8px}
+.email-unsure{margin-bottom:10px;border-bottom:1px solid var(--line);padding-bottom:8px}.email-unsure summary{cursor:pointer;color:var(--muted);font-size:12px}.email-unsure .email-item{margin-top:8px}
 /* Card 110: voice mode toggle, Mic open, the thread above the bar and its fade after 20 s of quiet. */
 .voice-mode{flex:none;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--s2);color:var(--muted);font-size:12px;white-space:nowrap}
 .mic-open{color:var(--coral);font-size:12px;font-weight:600;white-space:nowrap}

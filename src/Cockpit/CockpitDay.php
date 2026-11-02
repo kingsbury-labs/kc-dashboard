@@ -85,6 +85,7 @@ class CockpitDay
             $rows[] = ['from' => NeverShow::text((string) ($r['from'] ?? ''), null, 80), 'subject' => NeverShow::text((string) ($r['subject'] ?? ''), null, 200),
                 'sender' => (string) ($r['addr'] ?? ''), 'project' => NeverShow::text((string) $r['project'], null, Relevance::NAME_MAX),
                 'reason' => NeverShow::text((string) ($r['reason'] ?? ''), null, 200),
+                'rule' => is_int($r['rule'] ?? null) ? $r['rule'] : null, 'kind' => ($r['kind'] ?? null) === 'about' ? 'about' : 'from',
                 'date' => is_int($r['date'] ?? null) ? $r['date'] : null,
                 'link' => str_starts_with($link, 'https://mail.google.com/') ? $link : null,
                 'summary' => is_string($r['summary'] ?? null) ? NeverShow::text($r['summary'], null, 200) : null,

@@ -1,0 +1,21 @@
+{
+  "greeting": "* OK Gimap ready for requests from 127.0.0.1",
+  "capability_note": "Card 133: a thread Rob wrote to a client (served as both INBOX and Sent Mail by cy_wire), and a client on Cc.",
+  "messages": [
+    {
+      "uid": 301,
+      "envelope": "(\"Thu, 29 Oct 2026 10:00:00 -0400\" \"Kitchen plan\" ((\"Rob\" NIL \"rob\" \"example.studio\")) NIL NIL ((\"Bea\" NIL \"bea\" \"example.com\")) NIL NIL NIL \"<m301@example.com>\")",
+      "body": "Plan attached for the kitchen."
+    },
+    {
+      "uid": 302,
+      "envelope": "(\"Fri, 30 Oct 2026 10:00:00 -0400\" \"Re: Kitchen plan\" ((\"Night Owl\" NIL \"owl\" \"example.org\")) NIL NIL ((\"Rob\" NIL \"hello\" \"example.studio\")) NIL NIL NIL \"<m302@example.com>\")",
+      "body": "Looks good, the walrus cabinet stays."
+    },
+    {
+      "uid": 303,
+      "envelope": "(\"Sat, 31 Oct 2026 10:00:00 -0400\" \"Lunch\" ((\"Pat\" NIL \"pat\" \"example.net\")) NIL NIL ((\"Rob\" NIL \"hello\" \"example.studio\")) ((\"Bea\" NIL \"bea\" \"example.com\")) NIL NIL \"<m303@example.com>\")",
+      "body": "Lunch with the penguin crew on Friday."
+    }
+  ]
+}

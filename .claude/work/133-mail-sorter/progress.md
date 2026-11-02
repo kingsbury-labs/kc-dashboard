@@ -1,0 +1,9 @@
+- start: read brief; next read sources
+- read sources; plan: MailRules.php pure rules, Classifier ctx, Mail collector to/cc + sent subjects, views Unsorted first
+- MailRules.php written; ClientContacts person; Relevance::byContact via rules; Classifier uses MailRules::place. next: Mail collector
+- collector, config studio, CockpitDay rule/kind, views Unsorted first, css done. next: tests
+- fixtures added: tests/fixtures/cockpit-mail/clients/, thread/; next: new tests
+- new tests added in CockpitMailRelevanceTest; next: run
+- GraphTest sent-rerun check scoped to the graph's rerun (mail collector now reads Sent too)
+- mutation check done (4 mutations, all caught), restored green. next: live check
+- live: first collect skipped mail (cache fresh); second collect + capture running in background

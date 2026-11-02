@@ -872,8 +872,18 @@
     "id": "133",
     "title": "Mail sorter uses the client pattern; Unsorted always visible",
     "brief": ".claude/work/133-mail-sorter/brief.md",
-    "start_sha": "2d39c133b4a318920804c6dcfde6e4b883927a17",
-    "passes": false
+    "start_sha": "cdfdbd392a15ce9e9c87d627a525b57efed21fd9",
+    "passes": true,
+    "scope_ok": {
+      "at": "2026-11-02T03:46:35.618Z",
+      "start_sha": "cdfdbd392a15ce9e9c87d627a525b57efed21fd9",
+      "mutation_evidence": true,
+      "tree": "2ea1fd9000f3e39d16e9b695d6e7207a7d842397bfdc6b44cc81212455319435",
+      "size": "Risky"
+    },
+    "verified_at": "2026-11-02T03:48:37.288Z",
+    "tree": "2ea1fd9000f3e39d16e9b695d6e7207a7d842397bfdc6b44cc81212455319435",
+    "gate": "full"
   },
   {
     "id": "132",

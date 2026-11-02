@@ -116,18 +116,18 @@ function cm_contacts(Log $log): array
 test('_CONTACTS.md gives one entry per address, named by Business else Name, from the first email table only', function () {
     [, , $log] = cy_world();
     assert_same([
-        ['name' => "Jo's Garden", 'email' => 'jo.client@example.net'],
-        ['name' => 'Ownco', 'email' => 'bea@example.com'],
-        ['name' => 'Free Fan', 'email' => 'fan@example.net'],
-        ['name' => 'Web Fan', 'email' => 'fan@example.org'],
-        ['name' => 'Two Desks', 'email' => 'duo.one@example.net'],
-        ['name' => 'Two Desks', 'email' => 'duo.two@example.org'],
+        ['name' => "Jo's Garden", 'email' => 'jo.client@example.net', 'person' => "Jo's Garden"],
+        ['name' => 'Ownco', 'email' => 'bea@example.com', 'person' => 'Bea'],
+        ['name' => 'Free Fan', 'email' => 'fan@example.net', 'person' => 'G'],
+        ['name' => 'Web Fan', 'email' => 'fan@example.org', 'person' => 'O'],
+        ['name' => 'Two Desks', 'email' => 'duo.one@example.net', 'person' => 'Duo'],
+        ['name' => 'Two Desks', 'email' => 'duo.two@example.org', 'person' => 'Duo'],
     ], cm_contacts($log));
     assert_same('Two Desks', Relevance::byContact('Duo.Two@example.org', cm_contacts($log), CM_FREE), 'the second address in a cell maps too');
 });
 
 test('no file under src/ or config/ that card 131 touches names Daybook, MySQL, PDO or a credentials path', function () {
-    foreach (['src/Mail/ClientContacts.php', 'src/Mail/Relevance.php', 'src/Cockpit/CockpitDay.php', 'config/clients.php'] as $f) {
+    foreach (['src/Mail/ClientContacts.php', 'src/Mail/Relevance.php', 'src/Mail/MailRules.php', 'src/Cockpit/CockpitDay.php', 'config/clients.php'] as $f) {
         assert_true(!preg_match('/daybook|mysql|\bPDO\b|\.credentials|kc_dashboard_ro/i', (string) file_get_contents(__DIR__ . '/../' . $f), $m),
             "$f names " . ($m[0] ?? ''));
     }
@@ -149,7 +149,8 @@ test('a free-mail client maps by exact address, its own-domain client by domain,
     $asked = [];
     cm_free($t, $log, cm_contacts($log), $asked);
     [, $d] = cy_snapshot($t, $log);
-    assert_same(['Ownco Billing' => 'Ownco', 'Jo Client' => "Jo's Garden"], array_column($d['mail']['rows'], 'project', 'from'));
+    // Card 133: billing@ on Ownco's domain is a system sender, not Ownco; the entity domain list still places it.
+    assert_same(['Ownco Billing' => 'acme', 'Jo Client' => "Jo's Garden"], array_column($d['mail']['rows'], 'project', 'from'));
     assert_same(['Ola Webmail', 'Sam Sub', 'Stranger'], array_column($d['mail']['unsure'], 'from'), 'whole free-mail domains and subdomains never map');
     assert_same(3, count($asked), 'only the unsorted senders reach the model');
     $prompts = implode("\n", $asked);
@@ -195,4 +196,130 @@ test('old cached rows with no project show in Unsorted, and the cache holds no b
         ['uid' => 1, 'from' => 'Old Row', 'addr' => 'old@example.com', 'project' => null, 'subject' => 'Before', 'date' => CY_NOW - 60]]]));
     [, $d] = cy_snapshot($t, $log);
     assert_same(['Old Row'], array_column($d['mail']['unsure'], 'from'));
+});
+
+// Card 133: Rob's client pattern (MailRules). Invented clients: Ownco on example.com (own domain, site
+// ownco.example.com), Jo's Garden on free mail (site garden.example.org), Twin Co on free mail. example.net and
+// example.org play free mail, example.studio Rob's studio, example.pay a payment sender, example.io a platform.
+function cm_ctx(): array
+{
+    $contacts = [
+        ['name' => 'Ownco', 'email' => 'bea@example.com', 'person' => 'Bea Owner'],
+        ['name' => "Jo's Garden", 'email' => 'jo.client@example.net', 'person' => 'Jo Client'],
+        ['name' => 'Twin Co', 'email' => 'twin@example.org', 'person' => 'Tam Twin'],
+    ];
+    $dir = CM_FIX . '/clients';
+    return ['contacts' => $contacts, 'free' => CM_FREE, 'studio' => ['example.studio'], 'never' => ['example.pay'],
+        'terms' => MailRules::terms($dir, [], $contacts, ['example.studio']),
+        'pipeline' => MailRules::pipeline((string) file_get_contents($dir . '/_PIPELINE.md'))];
+}
+
+function cm_place(array $m): ?array
+{
+    return MailRules::place($m + ['addr' => '', 'from' => '', 'subject' => '', 'text' => ''], cm_ctx());
+}
+
+test('the client files give site domains and names per client, the studio left out, and pipeline names', function () {
+    $c = cm_ctx();
+    assert_same(["Jo's Garden", 'Ownco'], array_keys($c['terms']));
+    assert_true(in_array('ownco.example.com', $c['terms']['Ownco'], true) && in_array('garden.example.org', $c['terms']["Jo's Garden"], true));
+    assert_same(['pat lead' => 'Lead Bakery', 'sol solo' => 'Sol Solo'], $c['pipeline']);
+    assert_true(in_array('stripe.com', MailRules::NEVER, true) && in_array('billing', MailRules::SYSTEM_LOCAL, true));
+});
+
+test('rule 1 matches an exact contact address on To and on Cc, not only From', function () {
+    assert_same(['project' => "Jo's Garden", 'rule' => 1, 'kind' => 'from'], cm_place(['addr' => 'stranger@example.net', 'to' => ['jo.client@example.net']]));
+    assert_same(['project' => "Jo's Garden", 'rule' => 1, 'kind' => 'from'],
+        cm_place(['addr' => 'stranger@example.net', 'to' => ['hello@example.studio'], 'cc' => ['Jo.Client@example.net']]));
+    assert_same(null, cm_place(['addr' => 'stranger@example.net', 'to' => ['hello@example.studio']]));
+});
+
+test('rule 2 matches a client domain, refuses wordpress@, noreply@ and billing@ on it, and never a free-mail domain', function () {
+    assert_same(['project' => 'Ownco', 'rule' => 2, 'kind' => 'from'], cm_place(['addr' => 'dana@example.com']));
+    assert_same(['project' => 'Ownco', 'rule' => 2, 'kind' => 'from'], cm_place(['addr' => 'x@example.net', 'cc' => ['new.staff@example.com']]));
+    foreach (['wordpress@example.com', 'noreply@example.com', 'billing@example.com', 'no-reply+x@example.com'] as $a) {
+        assert_same(null, cm_place(['addr' => $a]), "$a placed");
+    }
+    assert_same(null, cm_place(['addr' => 'someone.else@example.net']), 'a free-mail domain matched a free-mail client');
+});
+
+test('rule 3 puts every message of a thread Rob wrote to a client under that client, an unknown sender included', function () {
+    assert_same(['project' => 'Ownco', 'rule' => 3, 'kind' => 'from'], cm_place(['addr' => 'owl@example.org', 'sent_to' => ['bea@example.com']]));
+    assert_same(['project' => "Jo's Garden", 'rule' => 3, 'kind' => 'from'], cm_place(['addr' => 'owl@example.org', 'sent_to' => ['jo.client@example.net']]));
+    assert_same(null, cm_place(['addr' => 'owl@example.org', 'sent_to' => ['random@example.net']]));
+    assert_same('kitchen plan', MailRules::thread('RE: Fwd:  Kitchen   Plan'));
+});
+
+test('rule 4 tags a platform notice naming a client site as about, and a payment sender is never from', function () {
+    assert_same(['project' => "Jo's Garden", 'rule' => 4, 'kind' => 'about'],
+        cm_place(['addr' => 'alerts@example.io', 'subject' => 'Zone active', 'text' => 'Your zone garden.example.org is now active.']));
+    assert_same(['project' => 'Ownco', 'rule' => 4, 'kind' => 'about'], cm_place(['addr' => 'robot@example.io', 'subject' => 'Invite to Ownco repo']));
+    assert_same(null, cm_place(['addr' => 'receipt@example.pay', 'cc' => ['bea@example.com'], 'sent_to' => ['bea@example.com']]),
+        'a payment sender with a client on Cc was placed');
+    assert_same(['project' => 'Ownco', 'rule' => 4, 'kind' => 'about'],
+        cm_place(['addr' => 'receipt@example.pay', 'cc' => ['bea@example.com'], 'subject' => 'Payout for ownco.example.com']));
+    assert_same(null, cm_place(['addr' => 'robot@example.io', 'subject' => 'ownco.example.community and notownco.example.com']), 'a look-alike matched');
+});
+
+test('rule 6 matches a studio-site inquiry relay to the pipeline name, and only from the studio system sender', function () {
+    assert_same(['project' => 'Lead Bakery', 'rule' => 6, 'kind' => 'from'],
+        cm_place(['addr' => 'noreply@example.studio', 'subject' => 'New project inquiry from Pat Lead']));
+    assert_same(['project' => 'Sol Solo', 'rule' => 6, 'kind' => 'from'], cm_place(['addr' => 'noreply@example.studio', 'subject' => 'new project inquiry from sol solo']));
+    assert_same(null, cm_place(['addr' => 'noreply@example.studio', 'subject' => 'New project inquiry from Nobody Known']));
+    assert_same(null, cm_place(['addr' => 'rob@example.studio', 'subject' => 'New project inquiry from Pat Lead']));
+    assert_same(null, cm_place(['addr' => 'noreply@example.io', 'subject' => 'New project inquiry from Pat Lead']));
+});
+
+test('rule 5 alone never places a row and only breaks a rule 3 or 4 tie for a free-mail sender', function () {
+    assert_same(null, cm_place(['addr' => 'bo@example.net', 'from' => 'Bea Owner']), 'the display name alone placed a row');
+    $both = ['subject' => 'DNS for ownco.example.com and garden.example.org'];
+    assert_same(null, cm_place(['addr' => 'bo@example.net', 'from' => 'Someone'] + $both), 'an unbroken tie was placed');
+    assert_same(['project' => 'Ownco', 'rule' => 5, 'kind' => 'about'], cm_place(['addr' => 'bo@example.net', 'from' => 'Bea Owner'] + $both));
+    assert_same(null, cm_place(['addr' => 'bo@example.io', 'from' => 'Bea Owner'] + $both), 'a display name on a non-free address broke a tie');
+    assert_same(['project' => 'Twin Co', 'rule' => 5, 'kind' => 'from'],
+        cm_place(['addr' => 'tt@example.net', 'from' => 'Tam Twin', 'sent_to' => ['bea@example.com', 'twin@example.org']]));
+});
+
+test('the priority order holds when two adjacent rules disagree', function () {
+    // 1 over 2: a free-mail client on From, another client's domain on To.
+    assert_same(['project' => "Jo's Garden", 'rule' => 1, 'kind' => 'from'], cm_place(['addr' => 'jo.client@example.net', 'to' => ['dana@example.com']]));
+    assert_same(['project' => "Jo's Garden", 'rule' => 1, 'kind' => 'from'], cm_place(['addr' => 'dana@example.com', 'cc' => ['jo.client@example.net']]));
+    // 2 over 3: Ownco's own domain, in a thread Rob wrote to Jo.
+    assert_same(['project' => 'Ownco', 'rule' => 2, 'kind' => 'from'], cm_place(['addr' => 'dana@example.com', 'sent_to' => ['jo.client@example.net']]));
+    // 3 over 4: a thread Rob wrote to Ownco that names Jo's site.
+    assert_same(['project' => 'Ownco', 'rule' => 3, 'kind' => 'from'],
+        cm_place(['addr' => 'owl@example.org', 'sent_to' => ['bea@example.com'], 'subject' => 'Re: garden.example.org']));
+    // 4 over 6: an inquiry relay whose first lines name a client's site.
+    assert_same(['project' => "Jo's Garden", 'rule' => 4, 'kind' => 'about'],
+        cm_place(['addr' => 'noreply@example.studio', 'subject' => 'New project inquiry from Pat Lead', 'text' => 'Saw garden.example.org']));
+});
+
+test('the collector reads To, Cc and Sent Mail read-only, places a thread and a Cc row with rule and kind, and caches no body or contacts', function () {
+    [$t, , $log] = cy_world();
+    $sent = [];
+    $ctx = cm_ctx();
+    $tag = fn(array $m): array => MailRules::place($m, $ctx) ?? ['project' => null, 'reason' => 'no rule', 'unsure' => true];
+    cy_mail($t, $log, $sent, fn(array $m): ?array => ['summary' => 'About: ' . $m['subject'], 'reply' => false], false, $tag, CM_FIX . '/thread')
+        ->collect(CY_NOW);
+    assert_true(array_filter($sent, fn($c) => !ImapReader::allowed($c)) === [], 'a command off the read-only list');
+    $rows = array_column(json_decode((string) file_get_contents($t . '/mail-cache.json'), true)['rows'], null, 'uid');
+    assert_same(['Ownco', 3, 'from'], [$rows[302]['project'], $rows[302]['rule'], $rows[302]['kind']], 'the thread reply from an unknown sender');
+    assert_same(['Ownco', 1, 'from'], [$rows[303]['project'], $rows[303]['rule'], $rows[303]['kind']], 'the client on Cc');
+    assert_same([null, null], [$rows[301]['project'], $rows[301]['rule']], "Rob's own studio mail is never a client's");
+    $cache = (string) file_get_contents($t . '/mail-cache.json');
+    foreach (['walrus', 'penguin', 'Plan attached', 'bea@', 'jo.client@', 'twin@', 'Bea Owner', 'Lead Bakery'] as $word) {
+        assert_true(!str_contains($cache, $word), "\"$word\" was written to the cache");
+    }
+    [, $d] = cy_snapshot($t, $log);
+    assert_same([['Ownco', 1, 'from'], ['Ownco', 3, 'from']], array_map(fn($r) => [$r['project'], $r['rule'], $r['kind']], $d['mail']['rows']));
+});
+
+test('the mail card puts its Unsorted pile above the rows, so it shows without scrolling the card at portrait size', function () {
+    $src = (string) file_get_contents(dirname(__DIR__) . '/public/cockpit/js/views.js');
+    assert_true(preg_match('/function emailCard\(\) \{(.*?)\r?\n\}\r?\n/s', $src, $f) === 1, 'emailCard found');
+    $pile = strpos($f[1], 'c.append(pile)');
+    $list = strpos($f[1], 'c.append(list)');
+    assert_true($pile !== false && $list !== false && $pile < $list, 'Unsorted is appended after the rows');
+    assert_true(str_contains($f[1], '`Unsorted (${unsure.length})`'), 'the pile shows its count');
+    assert_true(str_contains($f[1], "x.kind === 'about'"), 'about-client mail is labelled');
 });

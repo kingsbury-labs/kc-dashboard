@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/MailRules.php';
 
 /**
  * Which of Rob's projects, clients or vendors an email concerns, or null for the Unsorted pile. Rob's corrections win
@@ -51,26 +52,12 @@ class Relevance
         return false;
     }
 
-    // The client whose address this is exactly, else whose own (not free-mail) domain it is on, or null.
+    // The client whose address this is exactly (MailRules rule 1), else whose own domain it is on, not free mail and
+    // not a system sender like billing@ (rule 2), or null.
     public static function byContact(string $addr, array $contacts, array $free = self::FREE_MAIL): ?string
     {
         $addr = strtolower(trim($addr));
-        foreach ($contacts as $c) {
-            if ($addr !== '' && $c['email'] === $addr) {
-                return $c['name'];
-            }
-        }
-        $domain = (string) substr((string) strrchr($addr, '@'), 1);
-        if ($domain === '' || self::freeMail($domain, $free)) {
-            return null;
-        }
-        foreach ($contacts as $c) {
-            $d = (string) substr((string) strrchr($c['email'], '@'), 1);
-            if (!self::freeMail($d, $free) &&($domain === $d || str_ends_with($domain, '.' . $d))) {
-                return $c['name'];
-            }
-        }
-        return null;
+        return $addr === '' ? null : MailRules::rule1([$addr], $contacts) ?? MailRules::rule2([$addr], $contacts, $free);
     }
 
     // The entity list from the running config: names and domains only, read-only.

@@ -19,18 +19,22 @@ class Classifier
     private GraphStore $g;
     private string $senders;
     private ?Closure $ask;
-    private array $contacts;
+    private array $rules;
 
-    // $ask: fn(string prompt): ?string, the model's raw answer; null means no model. $contacts: ClientContacts::read.
-    public function __construct(GraphStore $g, string $senders, ?Closure $ask, array $contacts = [])
+    public const REASONS = [1 => 'A client contact on From, To or Cc', 2 => "The client's own domain", 3 => 'A thread Rob wrote to the client',
+        4 => "Names the client's site or business", 5 => 'Tie broken by the sender name', 6 => 'An inquiry from the studio site'];
+
+    // $ask: fn(string prompt): ?string, the model's raw answer; null means no model. $rules: MailRules::context, or a
+    // bare contact list (ClientContacts::read).
+    public function __construct(GraphStore $g, string $senders, ?Closure $ask, array $rules = [])
     {
         $this->g = $g;
         $this->senders = $senders;
         $this->ask = $ask;
-        $this->contacts = $contacts;
+        $this->rules = array_is_list($rules) ? ['contacts' => $rules] : $rules;
     }
 
-    /** $m: from, addr, subject, text. @return array{project:?string, reason:string, unsure:bool} */
+    /** $m: from, addr, to, cc, sent_to, subject, text. @return array{project:?string, reason:string, unsure:bool, rule?:int, kind?:string} */
     public function tag(array $m): array
     {
         $addr = strtolower(trim((string) ($m['addr'] ?? '')));
@@ -38,9 +42,9 @@ class Classifier
         if (array_key_exists($addr, $learned) && $learned[$addr] === null) {
             return ['project' => null, 'reason' => 'Rob marked this sender not his', 'unsure' => false];
         }
-        // A client from _CONTACTS.md by exact address (free mail included) or own domain, before the walk.
-        if (!array_key_exists($addr, $learned) && ($client = Relevance::byContact($addr, $this->contacts)) !== null) {
-            return ['project' => $client, 'reason' => 'A client contact', 'unsure' => false];
+        // Rob's client pattern (MailRules, rules 1 to 6 in order) before the walk; Rob's own correction beats it.
+        if (!array_key_exists($addr, $learned) && ($p = MailRules::place($m, $this->rules)) !== null) {
+            return $p + ['reason' => self::REASONS[$p['rule']], 'unsure' => false];
         }
         $tie = [];
         foreach ($this->starts($addr) as [$type, $id]) {

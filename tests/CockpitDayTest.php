@@ -141,10 +141,13 @@ test('email rows carry the stubbed model\'s summaries and the reader sends only 
         return ['summary' => 'About: ' . $m['subject'], 'reply' => $m['uid'] !== 102];
     };
     assert_same([], cy_mail($t, $log, $sent, $model)->collect(CY_NOW));
-    assert_same(['LOGIN', 'EXAMINE', 'UID SEARCH', 'UID FETCH', 'LOGOUT'],
+    // Card 133: To/Cc by envelope, then Sent Mail's envelopes for the thread claim, all on the read-only list.
+    assert_same(['LOGIN', 'EXAMINE', 'UID SEARCH', 'UID FETCH', 'UID FETCH', 'EXAMINE', 'UID SEARCH', 'UID FETCH', 'LOGOUT'],
         array_map(fn($c) => preg_replace('/^(UID \w+|\w+).*$/s', '$1', $c), $sent));
     assert_true(str_ends_with($sent[3], '(UID ENVELOPE BODY.PEEK[1]<0.2000>)'), $sent[3]);
-    assert_same('EXAMINE INBOX', $sent[1]);
+    assert_true(str_ends_with($sent[4], '(UID ENVELOPE)') && str_ends_with($sent[7], '(UID ENVELOPE)'), $sent[4]);
+    assert_same(['EXAMINE INBOX', 'EXAMINE "[Gmail]/Sent Mail"'], [$sent[1], $sent[5]]);
+    assert_true(array_filter($sent, fn($c) => !ImapReader::allowed($c)) === [], 'every command is on the read-only list');
     $text = array_column($calls, 'text', 'uid');
     assert_true(str_starts_with($text[101], 'Hi Rob, can you resend'), $text[101]);
     assert_same('Top stories this week Nothing you need to act on.', $text[102]);

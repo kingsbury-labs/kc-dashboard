@@ -196,6 +196,8 @@ test('no .env value, credential file or mail body reaches the graph or the API, 
     $asked = [];
     gr_build($t, $log, $g, $sent);
     gr_classify($t, $log, $g, $asked, $sent);
+    // The mail collector reads Sent Mail envelopes for its own thread claim (card 133); only the graph's rerun counts.
+    $rerun = count($sent);
     gr_build($t, $log, $g, $sent);
     $dump = json_encode($g->pdo()->query('SELECT type, key, label FROM graph_node')->fetchAll(PDO::FETCH_ASSOC));
     [$body] = cy_snapshot($t, $log);
@@ -209,7 +211,8 @@ test('no .env value, credential file or mail body reaches the graph or the API, 
     }
     assert_true(in_array('EXAMINE "[Gmail]/Sent Mail"', $sent, true), 'sent mail is examined');
     assert_true(in_array('UID FETCH 51,52 (UID ENVELOPE)', $sent, true), 'sent mail is envelopes only');
-    assert_true(!in_array('UID FETCH 51,52 (UID ENVELOPE)', array_slice($sent, array_search('UID FETCH 51,52 (UID ENVELOPE)', $sent) + 1), true),
+    assert_true(in_array('EXAMINE "[Gmail]/Sent Mail"', array_slice($sent, $rerun), true), 'the rerun opens sent mail');
+    assert_true(!in_array('UID FETCH 51,52 (UID ENVELOPE)', array_slice($sent, $rerun), true),
         'the second run reads no sent mail it has seen');
     foreach (['SELECT INBOX', 'STORE 1 +FLAGS (\\Seen)', 'UID FETCH 1 (BODY[1])', 'EXAMINE "[Gmail]/Trash"', 'UID FETCH 1 (UID ENVELOPE) STORE'] as $bad) {
         assert_true(!ImapReader::allowed($bad), "allowed: $bad");
