@@ -1398,6 +1398,22 @@ LOGOUT; no source file under `src/Mail/` contains STORE, COPY, MOVE, EXPUNGE,
 APPEND or SELECT; the app password never appears in the log or the API output;
 a follow-up write without the token is refused.
 
+### 131. Client mail shows in the cockpit (Risky)
+- Role: implementer, Opus. Risky path: `src/Mail/`, client data. Security-auditor pass, then a Fable second-model audit. Depends: none.
+
+Rob: "how come my client stuff isn't in there? Josh? David? Chris? Julie?" The mail card hides every
+message that matches no entity, and clients writing from gmail.com-style addresses match nothing. The
+entity list gains Daybook's active clients and their contact addresses through a column-limited
+read-only MySQL user, matched by full address only for free-mail domains. Mail that matches nothing
+shows in an Unsorted pile with Not mine and Project... buttons. No mail body stored, nothing leaves
+this machine.
+
+Done-test: `c:\xampp\php\php.exe tests/run.php --filter MailRelevance` passes, including new tests
+proving: a free-mail client address maps to its client by exact address; a free-mail stranger lands in
+Unsorted, not hidden; a whole gmail.com domain never maps to a client; corrections (project and null)
+still win; no body text or client address list is written to the mail cache. Live: the cockpit mail
+card at 1080x1920 (headless Playwright) shows client mail under its client and an Unsorted pile.
+
 ### 130. Plan: voice Cas is the PM (Risky)
 - Role: planner, Opus, high effort. Depends: none. Changes no code.
 

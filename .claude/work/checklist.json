@@ -821,7 +821,24 @@
     "id": "130",
     "title": "Plan: voice Cas is the PM",
     "brief": ".claude/work/130-voice-pm/brief.md",
-    "start_sha": "608ad647bf7b722e235d4567a96230b655fb6337",
+    "start_sha": "bc434a1821dafb132b52cb72b15b9c62d213751e",
+    "passes": true,
+    "scope_ok": {
+      "at": "2026-11-02T02:22:05.461Z",
+      "start_sha": "bc434a1821dafb132b52cb72b15b9c62d213751e",
+      "mutation_evidence": false,
+      "tree": "56ad7c4a0d6647cdc66eda8fda17099f61f5804422b84f60ba47da2fe3fe4dc4",
+      "size": "Risky"
+    },
+    "verified_at": "2026-11-02T02:23:15.663Z",
+    "tree": "56ad7c4a0d6647cdc66eda8fda17099f61f5804422b84f60ba47da2fe3fe4dc4",
+    "gate": "full"
+  },
+  {
+    "id": "131",
+    "title": "Client mail shows in the cockpit",
+    "brief": ".claude/work/131-client-mail/brief.md",
+    "start_sha": "PM-SETS",
     "passes": false
   }
 ]
