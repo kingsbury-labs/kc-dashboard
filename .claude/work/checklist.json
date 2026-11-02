@@ -889,7 +889,7 @@
     "id": "132",
     "title": "Cas bar and Google search at the top of every cockpit page",
     "brief": ".claude/work/132-cas-bar-top/brief.md",
-    "start_sha": "e5987af63688a24c204bbfd243b47ff227b6a11d",
+    "start_sha": "0dd874a63483621b10855dd689b64725c7cb11a6",
     "passes": false
   }
 ]
