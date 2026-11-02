@@ -816,5 +816,12 @@
     "verified_at": "2026-11-02T01:46:16.286Z",
     "tree": "0d320eff042d79e879ea6f9c3b7430f8f3b025349276f4ee39960d6b6e4df709",
     "gate": "full"
+  },
+  {
+    "id": "130",
+    "title": "Plan: voice Cas is the PM",
+    "brief": ".claude/work/130-voice-pm/brief.md",
+    "start_sha": "608ad647bf7b722e235d4567a96230b655fb6337",
+    "passes": false
   }
 ]

@@ -1398,6 +1398,18 @@ LOGOUT; no source file under `src/Mail/` contains STORE, COPY, MOVE, EXPUNGE,
 APPEND or SELECT; the app password never appears in the log or the API output;
 a follow-up write without the token is refused.
 
+### 130. Plan: voice Cas is the PM (Risky)
+- Role: planner, Opus, high effort. Depends: none. Changes no code.
+
+Writes `.claude/work/130-voice-pm/plan.md`: ordered build cards that give the
+voice brain (D:\Dev\cas-voice) the PM's tools with every hook firing and no
+prompts, a spoken-go gate for outward or irreversible actions, live PM state
+and a 12-minute heartbeat, loop and background-agent delegation, retirement of
+the HQ window, and a live-check card.
+
+Done-test: `node` check in the brief: plan.md has at least six cards, each
+headed `### N. Title (Size)` with Role, Files and Done-test lines.
+
 ### 125. Voice launcher starts the engine once, never twice (Small)
 - Role: implementer, Sonnet, effort low. Depends: 124.
 
