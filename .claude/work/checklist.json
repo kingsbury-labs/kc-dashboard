@@ -859,6 +859,13 @@
     "passes": false
   },
   {
+    "id": "133",
+    "title": "Mail sorter uses the client pattern; Unsorted always visible",
+    "brief": ".claude/work/133-mail-sorter/brief.md",
+    "start_sha": "2d39c133b4a318920804c6dcfde6e4b883927a17",
+    "passes": false
+  },
+  {
     "id": "132",
     "title": "Cas bar and Google search at the top of every cockpit page",
     "brief": ".claude/work/132-cas-bar-top/brief.md",
