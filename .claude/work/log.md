@@ -141,3 +141,6 @@ Worker (Opus) built it, MailRelevance/Graph/CockpitDay green, mutation evidence 
 
 ## 2026-11-01 card 131 round 3 (loop)
 - Rebuilt on _CONTACTS.md, no Daybook. Opus worker, scope ok, mutation evidence yes, sent to the gate with an audit (src/Mail/). start_sha moved to aeebf5c (context-only commits since f4bb3ae). Source scan bars Daybook/MySQL in touched files and PDO/credential paths in the contact reader only, since the dashboard's own SQLite and Gmail files use them. Live capture not taken (would overwrite data/mail-cache.json). For Rob: client folders with no email in _CONTACTS.md are listed in .claude/work/131-client-mail/result.md.
+
+- 2026-11-01 card 130-09: built and sent to the gate. start_sha moved to 0603f67 (board-only commits since e5987af). card_oversized reads started_at from status.json when present, else the newest *-card-<id>.jsonl creation time; the loop writes no card start time today. bin/pm-state.php not run live.
+- 130-09 round 2: TasksScriptTest coverage required every bin/*.php to be scheduled; pm-state.php is on demand (plan card 10), so a named TASKS_ON_DEMAND list in the test leaves it out.

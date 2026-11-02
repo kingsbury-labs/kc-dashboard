@@ -24,6 +24,7 @@
 - `bin/pm-state.php` (new)
 - `tests/PmStateTest.php` (new)
 - `tests/fixtures/pm-state/` (new, invented data only)
+- `tests/TasksScriptTest.php` (round 2: on-demand list only)
 
 ## Done-test
 `c:\xampp\php\php.exe tests/run.php --filter PmState` passes. New fixture tests prove: a live lock with loop.log 31 min old is `loop_stalled` and 29 min is not; a Normal card at 61 min is `card_oversized`; a Small brief naming `src/Http/` is `card_oversized`; a 5-min-old conch refusal is `chrome_without_conch`; a 35-min idle session with an open ask is `idle_with_open_work`; CLOSED asks are left out; nothing outside the fixture roots is opened (`$opened`); the output contains nothing from a `.key`, token or settings file.
@@ -38,3 +39,9 @@ Keep `progress.md` beside this file from your first step, one line per step that
 
 ## Report
 Write `result.md` beside this file, under 200 words: files changed, tests added, the mutation result naming the tests that failed, and any call made and why. Say what was not done.
+
+## Round 2
+The full suite failed: `TasksScriptTest: every bin/*.php job has a task with its interval...` lists every `bin/*.php` and expects each in `TASKS_EXPECTED`; `pm-state.php` is not scheduled, because plan card 10's PM check calls it on demand. Fix in the test, not with a scheduled task: add a `TASKS_ON_DEMAND` list beside `TASKS_EXPECTED` (`'pm-state.php' => 'called by the voice PM check, plan 130 card 10'`) and leave those names out of the coverage comparison. Do not touch `bin/register-tasks.ps1` or loosen any other assertion. Then run `--filter TasksScript` and `--filter PmState` green through the runner. The rest of your round-one work stands.
+
+Extra file you may touch:
+- `tests/TasksScriptTest.php`

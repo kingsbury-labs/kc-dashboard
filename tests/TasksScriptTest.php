@@ -17,6 +17,11 @@ const TASKS_EXPECTED = [
     'brief.php' => 'daily 06:15',
 ];
 
+// Jobs run on demand, never scheduled; left out of the coverage comparison.
+const TASKS_ON_DEMAND = [
+    'pm-state.php' => 'called by the voice PM check, plan 130 card 10',
+];
+
 function tasks_src(): string
 {
     return (string) file_get_contents(__DIR__ . '/../bin/register-tasks.ps1');
@@ -93,7 +98,7 @@ test('a -WhatIf run through ProcessRunner registers nothing and prints every tas
 test('every bin/*.php job has a task with its interval, S4U, IgnoreNew and the repo as working directory', function () {
     $tasks = tasks_whatif()['tasks'];
     $repo = tasks_repo();
-    $jobs = array_map('basename', glob($repo . '/bin/*.php'));
+    $jobs = array_values(array_diff(array_map('basename', glob($repo . '/bin/*.php')), array_keys(TASKS_ON_DEMAND)));
     sort($jobs);
     $expected = array_keys(TASKS_EXPECTED);
     sort($expected);
