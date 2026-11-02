@@ -1675,3 +1675,25 @@ with facts missing fields returns the good facts and no exception; an unknown
 5-hour reading renders as an empty bar; a message starting with a brief path is
 shown with the card label in its place; the top bar markup has no clock pill
 or avatar; Needs you shows at most 6 items until expanded.
+
+### 132. Cas bar and Google search at the top of every cockpit page (Small)
+- Role: implementer, Sonnet, effort low. Risky path: no. Depends: done cards only. Low priority.
+- `public/cockpit/js/main.js`
+- `public/cockpit/js/views.js`
+- `public/cockpit/cockpit.css`
+- `tests/CockpitHeroTest.php`, `tests/CockpitFitTest.php`, `tests/CockpitPortraitTest.php`
+
+Rob, 2026-11-01: "the sub pages in the dashboard have the voice and search at
+the bottom and it's oddly proportioned. Can we ensure it's always near the top?"
+Every route but the overview docks the one `.command` into a top row beside a
+`.google-form`, 44px tall at card 122's sizes; nothing pins `.command` with
+`position:fixed` at 700px and up.
+
+Done-test: `c:\xampp\php\php.exe tests/run.php --filter Cockpit` passes, including new
+tests proving: every non-overview route docks the single `.command` into a top
+row beside a `.google-form`; no rule at 700px and up leaves `.command`
+`position:fixed`; the docked bar and search are 44px tall. Then the mutation
+check through the runner: put `position:fixed` back on the undocked `.command`,
+run filtered, name the failing tests, restore, green. Then headless captures at
+1080x1920 of the overview and two sub pages (Playwright with its own browser
+profile, never the real Chrome), saved in the card folder.

@@ -850,5 +850,19 @@
     "verified_at": "2026-11-02T02:51:21.636Z",
     "tree": "9b21281766c62d63f43a9be96402e075bbe4935640e95560e02689982e03270d",
     "gate": "full"
+  },
+  {
+    "id": "130-09",
+    "title": "Live PM state",
+    "brief": ".claude/work/130-09-pm-state/brief.md",
+    "start_sha": "e5987af63688a24c204bbfd243b47ff227b6a11d",
+    "passes": false
+  },
+  {
+    "id": "132",
+    "title": "Cas bar and Google search at the top of every cockpit page",
+    "brief": ".claude/work/132-cas-bar-top/brief.md",
+    "start_sha": "e5987af63688a24c204bbfd243b47ff227b6a11d",
+    "passes": false
   }
 ]
