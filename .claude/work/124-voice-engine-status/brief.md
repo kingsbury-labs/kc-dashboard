@@ -1,4 +1,4 @@
-# 124. Voice engine: say when it is down or starting, log it, never a window (Normal)
+# 124. Voice engine: say when it is down or starting, log it, never a window (Risky)
 
 ## Objective
 The Cas bar tells the truth about the voice engine. It never shows "Listening"

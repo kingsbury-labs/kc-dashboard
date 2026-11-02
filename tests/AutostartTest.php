@@ -33,6 +33,24 @@ test('every spawn in autostart.cjs and install-autostart.cjs passes windowsHide:
     assert_true(str_contains((string) file_get_contents(AS_ROOT . '/bin/autostart.vbs'), '""", 0, False'), 'vbs runs node hidden');
 });
 
+test('cas-voice-start.cjs logs to data/cas-voice.log, writes the pid file and runs pythonw hidden, never a console', function () {
+    $src = (string) file_get_contents(AS_ROOT . '/bin/cas-voice-start.cjs');
+    assert_true(!str_contains($src, "stdio: 'ignore'"), "stdio: 'ignore' hides the engine's output");
+    assert_true(str_contains($src, "path.join(DATA, 'cas-voice.log')") && str_contains($src, "path.join(DATA, 'cas-voice.pid')"), 'log and pid paths');
+    assert_true(str_contains($src, "stdio: ['ignore', out, out]") && str_contains($src, "fs.openSync(LOG, 'a')"), 'output not appended to the log');
+    assert_true(str_contains($src, "cas-voice start on '"), 'no start line');
+    assert_true(str_contains($src, 'fs.writeFileSync(PID, JSON.stringify({ pid: child.pid, started:'), 'no pid file');
+    preg_match_all('~\b(?:spawn|spawnSync|exec|execSync|execFile|execFileSync)\(([^;]*)~', $src, $m);
+    assert_same(2, count($m[1]), 'spawns');
+    foreach ($m[1] as $c) {
+        assert_true(str_contains($c, 'windowsHide: true'), "spawn without windowsHide: $c");
+    }
+    assert_true(str_contains($src, "'\\\\venv\\\\Scripts\\\\pythonw.exe'"), 'not pythonw');
+    assert_true(!preg_match('~python\.exe|cmd\.exe|run\.cmd~i', $src), 'a console launch');
+    $auto = (string) file_get_contents(AS_ROOT . '/bin/autostart.cjs');
+    assert_true(str_contains($auto, "path.join(__dirname, 'cas-voice-start.cjs')"), 'the watchdog uses another launcher');
+});
+
 test('autostart exits when another copy holds the lock and takes a stale one', function () {
     $d = as_node('const lock = T + "/lock";
 fs.writeFileSync(lock, String(' . getmypid() . '));

@@ -17,6 +17,11 @@ let talking = false;
 let minTurn = 0;
 let playAt = 0;
 let retry = null;
+let opening = null;
+let want = false;
+const URL_ENGINE = '/api/voice.php';
+const OPEN_MS = 3000;
+const POLL_MS = 10000;
 const sources = new Set();
 // The mic level meter (card 120): 12 bars fed by an AnalyserNode on the mic stream, about 30 draws a second.
 const BARS = 12;
@@ -29,6 +34,7 @@ let quietSince = 0;
 let drawn = 0;
 
 const token = () => $('meta[name="kc-voice-token"]')?.content ?? '';
+const apiToken = () => $('meta[name="kc-token"]')?.content ?? '';
 
 export function available() {
   return token() !== '';
@@ -57,6 +63,51 @@ function wire() {
   return mode === 'click' && talking ? 'talk' : 'off';
 }
 
+// Card 124: the engine's state from api/voice.php (up, starting or down), asked every 10 s while the socket is closed.
+// Up reconnects; the other two go in the Cas bar.
+async function engine() {
+  clearTimeout(retry);
+  if (mode === 'off' || (ws && ws.readyState === 1)) return;
+  let s = 'down';
+  try {
+    const res = await fetch(URL_ENGINE, { cache: 'no-store', headers: { 'X-KC-Token': apiToken() } });
+    s = (await res.json()).state;
+  } catch { /* the dashboard itself is not answering: say down */ }
+  if (mode === 'off' || (ws && ws.readyState === 1)) return;
+  if (s === 'up') {
+    if (!ws) connect();
+  } else {
+    hooks.state(s === 'starting' ? 'starting' : 'down');
+  }
+  retry = setTimeout(engine, POLL_MS);
+}
+
+// Mic and "Listening" wait for the socket: ready() runs only from onopen. Without it in 3 s, the mic closes and the
+// bar shows the engine state.
+function ready() {
+  clearTimeout(opening);
+  if (mode === 'always' && !stream) micOn();
+  if (want) {
+    want = false;
+    talking = true;
+    send({ type: 'mode', mode: 'talk' });
+    hooks.state('listening');
+  } else {
+    hooks.state('idle');
+  }
+}
+
+function waitOpen() {
+  clearTimeout(opening);
+  opening = setTimeout(() => {
+    if (ws && ws.readyState === 1) return;
+    want = false;
+    talking = false;
+    micOff();
+    engine();
+  }, OPEN_MS);
+}
+
 function connect() {
   if (ws || !available() || mode === 'off') return;
   const s = new WebSocket(URL_WS);
@@ -64,14 +115,15 @@ function connect() {
   s.binaryType = 'arraybuffer';
   s.onopen = () => {
     s.send(JSON.stringify({ type: 'hello', token: token() }));
-    s.send(JSON.stringify({ type: 'mode', mode: wire() }));
+    s.send(JSON.stringify({ type: 'mode', mode: want ? 'talk' : wire() }));
+    ready();
   };
   s.onclose = () => {
     if (ws === s) ws = null;
     flush();
     hooks.state('off');
     clearTimeout(retry);
-    if (mode !== 'off') retry = setTimeout(connect, 5000);
+    if (mode !== 'off') retry = setTimeout(engine, 1000);
   };
   s.onmessage = (ev) => {
     if (typeof ev.data !== 'string') return play(ev.data);
@@ -209,16 +261,22 @@ export async function setMode(m) {
     send({ type: 'stop' });
     send({ type: 'mode', mode: 'off' });
     clearTimeout(retry);
+    clearTimeout(opening);
+    want = false;
     ws?.close();
     micOff();
     hooks.state('off');
     return;
   }
-  if (mode === 'always' && !(await micOn())) return;
   if (mode === 'click') micOff();
   connect();
-  send({ type: 'mode', mode: wire() });
-  hooks.state(ws && ws.readyState === 1 ? 'idle' : 'off');
+  if (ws && ws.readyState === 1) {
+    send({ type: 'mode', mode: wire() });
+    ready();
+  } else {
+    hooks.state('off');
+    waitOpen();
+  }
 }
 
 // The mic button in Click to talk: opens a turn, or ends it.
@@ -232,10 +290,10 @@ export async function toggleTalk() {
     return;
   }
   if (!(await micOn())) return;
-  talking = true;
+  want = true;
   connect();
-  send({ type: 'mode', mode: 'talk' });
-  hooks.state('listening');
+  if (ws && ws.readyState === 1) ready();
+  else waitOpen();
 }
 
 // A care incident, read aloud in a local browser voice. Nothing goes to cas-voice's brain.

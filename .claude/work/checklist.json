@@ -787,7 +787,17 @@
     "id": "124",
     "title": "Voice engine status, launcher log, no windows",
     "brief": ".claude/work/124-voice-engine-status/brief.md",
-    "start_sha": "800637dccb9c33b841f115d8c83f5b8c6e89f177",
-    "passes": false
+    "start_sha": "7e4e15bc283f3a22633be3e0b509ae3db2b338aa",
+    "passes": true,
+    "scope_ok": {
+      "at": "2026-11-02T01:25:52.678Z",
+      "start_sha": "7e4e15bc283f3a22633be3e0b509ae3db2b338aa",
+      "mutation_evidence": true,
+      "tree": "bb39daffce36d7fa44febc1f45a09cac359a3a5230545236a912483637b6dd42",
+      "size": "Risky"
+    },
+    "verified_at": "2026-11-02T01:27:16.232Z",
+    "tree": "bb39daffce36d7fa44febc1f45a09cac359a3a5230545236a912483637b6dd42",
+    "gate": "full"
   }
 ]

@@ -100,6 +100,44 @@ test('voice.js uses no innerHTML and keeps the mode in localStorage inside try/c
     assert_same(2, $uses);
 });
 
+// Card 124: the body of a top-level function in voice.js, up to the next blank line.
+function cv_fn(string $src, string $head): string
+{
+    $at = strpos($src, $head);
+    assert_true($at !== false, "no $head");
+    return substr($src, $at, (int) strpos($src, "\n\n", $at) - $at);
+}
+
+test('voice.js sets Listening only in ready(), which runs from onopen or an already open socket', function () {
+    $src = (string) file_get_contents(CV_JS . '/voice.js');
+    assert_same(1, substr_count($src, "hooks.state('listening')"), 'Listening set more than once');
+    assert_true(str_contains(cv_fn($src, 'function ready()'), "hooks.state('listening')"), 'Listening outside ready()');
+    assert_true(str_contains(cv_fn($src, 's.onopen = () => {') , 'ready();'), 'onopen does not call ready()');
+    assert_true(!str_contains(cv_fn($src, 'export async function toggleTalk'), "'listening'"), 'toggleTalk sets Listening itself');
+    preg_match_all('~^(.*)\bready\(\);~m', $src, $m);
+    foreach ($m[1] as $line) {
+        $ok = trim($line) === '' || str_contains($line, 'ws.readyState === 1');
+        assert_true($ok, 'ready() called without an open socket: ' . $line);
+    }
+    assert_true(str_contains(cv_fn($src, 'function ready()'), 'micOn()'), 'Always on opens the mic before the socket is open');
+    assert_true(!str_contains(cv_fn($src, 'export async function setMode'), 'micOn('), 'setMode opens the mic before onopen');
+});
+
+test('after 3 s without onopen voice.js closes the mic and shows the state from /api/voice.php, polled every 10 s', function () {
+    $src = (string) file_get_contents(CV_JS . '/voice.js');
+    assert_true(str_contains($src, 'const OPEN_MS = 3000;') && str_contains($src, 'const POLL_MS = 10000;'), '3 s and 10 s');
+    $wait = cv_fn($src, 'function waitOpen()');
+    assert_true(str_contains($wait, 'OPEN_MS') && str_contains($wait, 'micOff();') && str_contains($wait, 'engine();'), 'waitOpen');
+    assert_true(str_contains($src, "const URL_ENGINE = '/api/voice.php';"), 'engine URL');
+    $eng = cv_fn($src, 'async function engine()');
+    assert_true(str_contains($eng, "fetch(URL_ENGINE, { cache: 'no-store', headers: { 'X-KC-Token': apiToken() } })"), 'fetch without token');
+    assert_true(str_contains($eng, "hooks.state(s === 'starting' ? 'starting' : 'down')"), 'state not shown');
+    assert_true(str_contains($eng, 'connect();') && str_contains($eng, 'setTimeout(engine, POLL_MS)'), 'no reconnect or poll');
+    assert_true(str_contains(cv_fn($src, 'export async function toggleTalk'), 'waitOpen()'), 'toggleTalk does not wait');
+    $main = (string) file_get_contents(CV_JS . '/main.js');
+    assert_true(str_contains($main, "starting: 'Voice engine starting'") && str_contains($main, "down: 'Voice engine not running'"), 'labels');
+});
+
 test('voice.js builds an AnalyserNode on the mic stream and shows No mic input after 5 s under the floor', function () {
     $src = (string) file_get_contents(CV_JS . '/voice.js');
     assert_true(str_contains($src, 'analyser = ctx.createAnalyser();'), 'no AnalyserNode');

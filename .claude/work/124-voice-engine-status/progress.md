@@ -1,0 +1,2 @@
+- Read brief and files. Next: launcher, voice.php, voice.js, tests.
+- Done: public/api/voice.php (new), bin/cas-voice-start.cjs (pythonw, log, pid, subst), voice.js (onopen-gated, 3 s, poll), main.js labels. Next: tests.

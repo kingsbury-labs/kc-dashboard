@@ -53,7 +53,7 @@ function commandBar() {
     c.classList.add('active');
     if (loud) turn('cas', text);
   };
-  const LABEL = { off: 'Voice engine is off', idle: 'Idle', listening: 'Listening', thinking: 'Thinking', speaking: 'Speaking' };
+  const LABEL = { off: 'Voice engine is off', idle: 'Idle', listening: 'Listening', thinking: 'Thinking', speaking: 'Speaking', starting: 'Voice engine starting', down: 'Voice engine not running' };
   const order = Object.keys(MODES);
   const showMode = () => { toggle.textContent = MODES[currentMode()]; };
   start({
