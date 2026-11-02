@@ -1,7 +1,7 @@
 // Card 110: the Cas bar's voice line to the local cas-voice engine (D:\Dev\cas-voice\proto\RESULT-110.md is the protocol).
 // Three modes: Always on (cas-voice listens for "Hey Cas" or "Time to work"), Click to talk (the mic button opens a turn)
 // and Off. The page never starts cas-voice; with no token in the page, or no socket, the bar says "Voice engine is off".
-import { $ } from './dom.js';
+import { $, el, reduced } from './dom.js';
 
 const URL_WS = 'ws://127.0.0.1:8766/ws';
 const KEY = 'kc-voice-mode';
@@ -18,6 +18,15 @@ let minTurn = 0;
 let playAt = 0;
 let retry = null;
 const sources = new Set();
+// The mic level meter (card 120): 12 bars fed by an AnalyserNode on the mic stream, about 30 draws a second.
+const BARS = 12;
+const FLOOR = 0.02;
+const SILENT_MS = 5000;
+let analyser = null;
+let meter = null;
+let raf = 0;
+let quietSince = 0;
+let drawn = 0;
 
 const token = () => $('meta[name="kc-voice-token"]')?.content ?? '';
 
@@ -125,8 +134,61 @@ async function micOn() {
   ctx.createMediaStreamSource(stream).connect(node);
   node.connect(mute);
   mute.connect(ctx.destination);
+  analyser = ctx.createAnalyser();
+  analyser.fftSize = 512;
+  ctx.createMediaStreamSource(stream).connect(analyser);
+  meterOn();
   hooks.mic(true);
   return true;
+}
+
+function meterEl() {
+  if (meter?.isConnected) return meter;
+  meter = el('div', 'vu');
+  meter.setAttribute('role', 'meter');
+  meter.setAttribute('aria-label', 'Mic level');
+  meter.append(el('span', 'vu-bars'), el('span', 'vu-text'));
+  for (let i = 0; i < BARS; i++) meter.firstChild.append(el('i'));
+  $('.command')?.append(meter);
+  return meter;
+}
+
+// The peak of the latest frame, 0 to 1.
+function peak() {
+  const buf = new Float32Array(analyser.fftSize);
+  analyser.getFloatTimeDomainData(buf);
+  let p = 0;
+  for (let i = 0; i < buf.length; i++) p = Math.max(p, Math.abs(buf[i]));
+  return Math.min(1, p);
+}
+
+function drawMeter(t) {
+  raf = requestAnimationFrame(drawMeter);
+  if (!analyser || t - drawn < 33) return;
+  drawn = t;
+  const m = meterEl();
+  const p = peak();
+  if (p >= FLOOR) quietSince = t;
+  const silent = t - quietSince >= SILENT_MS;
+  m.classList.toggle('silent', silent);
+  const lit = Math.round(Math.sqrt(p) * BARS);
+  [...m.firstChild.children].forEach((b, i) => b.classList.toggle('on', i < lit));
+  m.lastChild.textContent = silent ? 'No mic input' : (reduced ? Math.round(p * 100) + '%' : '');
+}
+
+function meterOn() {
+  const m = meterEl();
+  if (m) m.hidden = false;
+  quietSince = performance.now();
+  cancelAnimationFrame(raf);
+  raf = requestAnimationFrame(drawMeter);
+}
+
+function meterOff() {
+  cancelAnimationFrame(raf);
+  raf = 0;
+  analyser = null;
+  if (meter) meter.hidden = true;
 }
 
 function micOff() {
@@ -134,6 +196,7 @@ function micOff() {
   stream?.getTracks().forEach((t) => t.stop());
   stream = null;
   node = null;
+  meterOff();
   if (ctx) { try { ctx.close(); } catch { /* closed */ } ctx = null; }
   hooks.mic(false);
 }

@@ -99,3 +99,18 @@ test('voice.js uses no innerHTML and keeps the mode in localStorage inside try/c
     assert_true(str_contains($src, 'localStorage.getItem(KEY)') && str_contains($src, 'localStorage.setItem(KEY'), 'mode read and written');
     assert_same(2, $uses);
 });
+
+test('voice.js builds an AnalyserNode on the mic stream and shows No mic input after 5 s under the floor', function () {
+    $src = (string) file_get_contents(CV_JS . '/voice.js');
+    assert_true(str_contains($src, 'analyser = ctx.createAnalyser();'), 'no AnalyserNode');
+    assert_true(str_contains($src, 'ctx.createMediaStreamSource(stream).connect(analyser)'), 'analyser not on the mic stream');
+    assert_true(str_contains($src, 'const SILENT_MS = 5000;') && str_contains($src, 'const BARS = 12;'), '5 s and 12 bars');
+    assert_true(str_contains($src, 'if (p >= FLOOR) quietSince = t;'), 'the floor resets the quiet clock');
+    assert_true(str_contains($src, "silent ? 'No mic input'"), 'no No mic input');
+    assert_true(str_contains($src, 't - quietSince >= SILENT_MS'), 'silence not timed against 5 s');
+    assert_true(str_contains($src, 'requestAnimationFrame(drawMeter)') && str_contains($src, 't - drawn < 33'), 'about 30 a second');
+    assert_true(str_contains($src, "reduced ? Math.round(p * 100) + '%'"), 'reduced motion shows a percent');
+    $on = strpos($src, 'meterOn();');
+    $off = strpos($src, 'meterOff();');
+    assert_true($on > strpos($src, 'async function micOn') && $off > strpos($src, 'function micOff'), 'meter follows the mic');
+});

@@ -1,0 +1,2 @@
+- autostart.cjs, autostart.vbs, install-autostart.cjs, ops/install-apache-service.ps1 written. Next: AutostartTest, VU meter, order sorts.
+- Round 2: service script replaced by ops/install-apache-autostart.ps1 (logon task as Rob, Limited); AutostartTest updated; brief file line updated. Done.

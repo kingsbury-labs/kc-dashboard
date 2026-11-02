@@ -60,6 +60,8 @@ class CockpitCare
         }
         $order = ['red' => 0, 'amber' => 1, 'green' => 2];
         usort($clients, fn($a, $b) => [$order[$a['status']], $a['domain']] <=> [$order[$b['status']], $b['domain']]);
+        // Newest first (card 120); an alert carries no start time, so it sorts after the outages.
+        usort($incidents, fn($a, $b) => ($b['since'] ?? PHP_INT_MIN) <=> ($a['since'] ?? PHP_INT_MIN));
         return ['at' => is_int($raw['at'] ?? null) ? $raw['at'] : null, 'clients' => $clients, 'incidents' => $incidents];
     }
 }

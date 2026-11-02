@@ -257,7 +257,7 @@ function calendarCard() {
   c.append(cal);
   const list = el('div', 'agenda-list');
   (k?.today ?? []).forEach((e) => {
-    const r = el('div', 'agenda-item');
+    const r = el('div', 'agenda-item' + (!e.all_day && Math.max(e.end, e.start + 1) * 1000 <= Date.now() ? ' past' : ''));
     add(r, el('time', '', e.all_day ? 'All day' : clock(e.start)), add(el('div'), el('b', '', e.title), e.location ? el('small', '', e.location) : null));
     list.append(r);
   });
@@ -612,7 +612,7 @@ export function renderSession(page, id) {
   page.append(head(me?.name ?? id.slice(0, 8), me ? [me.model, me.kind ?? me.type, me.card ? `card ${me.card}` : ''].filter(Boolean).join(' · ') : 'Not in the last 7 days', side));
   const grid = el('div', 'session-grid');
   const trans = card('Agent talk in this session');
-  const talk = s.talk.filter((x) => x.fromKey.split(':')[0] === id || x.toKey.split(':')[0] === id).slice().reverse();
+  const talk = s.talk.filter((x) => x.fromKey.split(':')[0] === id || x.toKey.split(':')[0] === id);
   if (!talk.length) trans.append(el('p', 'agenda-empty', 'No briefs or reports yet.'));
   talk.forEach((x) => {
     const e = el('div', 'event ' + (x.kind === 'question' ? 'rob' : 'cas'));

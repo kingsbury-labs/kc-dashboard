@@ -753,7 +753,17 @@
     "id": "120",
     "title": "Cockpit autostart, mic VU meter, newest first",
     "brief": ".claude/work/120-autostart-vu/brief.md",
-    "start_sha": "1dc1d31de977dbb7d91db871ba426be1b5649d0b",
-    "passes": false
+    "start_sha": "1e426e703f3293456cec9adc64f050aea4e67d57",
+    "passes": true,
+    "scope_ok": {
+      "at": "2026-11-02T00:55:16.820Z",
+      "start_sha": "1e426e703f3293456cec9adc64f050aea4e67d57",
+      "mutation_evidence": true,
+      "tree": "702bda6509fd05b1516908bb6692f6eb06a0c2056cafad96d7b0737a67eb7761",
+      "size": "Risky"
+    },
+    "verified_at": "2026-11-02T00:56:26.957Z",
+    "tree": "702bda6509fd05b1516908bb6692f6eb06a0c2056cafad96d7b0737a67eb7761",
+    "gate": "full"
   }
 ]

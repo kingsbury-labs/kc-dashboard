@@ -93,10 +93,17 @@ class CockpitDaily
             }
         }
         $out = [];
-        foreach (array_slice(Scorer::rank($items, $now), 0, self::NEWS) as $s) {
+        foreach (self::newestHour(array_slice(Scorer::rank($items, $now), 0, self::NEWS)) as $s) {
             $out[] = ['title' => NeverShow::text($s['title'], null, 200), 'source' => $s['source'], 'url' => $s['url'], 'ts' => $s['date']];
         }
         return $out;
+    }
+
+    // Newest first by the hour (card 120); within one hour the Scorer order stands (usort is stable).
+    public static function newestHour(array $stories): array
+    {
+        usort($stories, fn($a, $b) => intdiv((int) $b['date'], 3600) <=> intdiv((int) $a['date'], 3600));
+        return $stories;
     }
 
     /**

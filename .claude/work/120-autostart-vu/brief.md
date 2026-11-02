@@ -1,4 +1,4 @@
-# 120. Cockpit comes back by itself after a restart; mic VU meter (Normal)
+# 120. Cockpit comes back by itself after a restart; mic VU meter (Risky)
 
 ## Objective
 After the PC restarts and Rob logs in, everything comes back with no hands:
@@ -65,9 +65,9 @@ input" when it hears nothing.
 ## Files you may touch
 - `src/Cockpit/` (sort order only), `src/News/` (sort order only)
 - `bin/autostart.cjs`, `bin/autostart.vbs`, `bin/install-autostart.cjs` (new)
-- `ops/install-apache-service.ps1` (new)
+- `ops/install-apache-autostart.ps1` (new)
 - `public/cockpit/js/voice.js`, `public/cockpit/js/views.js`, `public/cockpit/cockpit.css`
-- `tests/AutostartTest.php` (new), `tests/CockpitVoiceTest.php`
+- `tests/AutostartTest.php` (new), `tests/CockpitVoiceTest.php`, `tests/CockpitOrderTest.php` (new)
 - `.claude/work/120-autostart-vu/progress.md`, `result.md`
 
 ## Done-test

@@ -49,9 +49,27 @@ class CockpitDay
             'age' => $c['age'],
             'month' => $month->format('Y-m'),
             'events' => $clean($in($month->getTimestamp(), $month->modify('+1 month')->getTimestamp())),
-            'today' => $clean($in($day->getTimestamp(), $day->modify('+1 day')->getTimestamp())),
+            'today' => self::agenda($clean($in($day->getTimestamp(), $day->modify('+1 day')->getTimestamp())), $now),
             'once' => array_values(array_map('strval', (array) $c['once'])),
         ];
+    }
+
+    // Today's agenda (card 120): what is on or still to come first, soonest first; finished events below, latest first.
+    public static function agenda(array $events, int $now): array
+    {
+        usort($events, function ($a, $b) use ($now) {
+            $pa = max($a['end'], $a['start'] + 1) <= $now;
+            $pb = max($b['end'], $b['start'] + 1) <= $now;
+            return $pa !== $pb ? $pa <=> $pb : ($pa ? $b['start'] <=> $a['start'] : $a['start'] <=> $b['start']);
+        });
+        return $events;
+    }
+
+    // Newest first, undated last (card 120).
+    public static function newestFirst(array $rows, string $key): array
+    {
+        usort($rows, fn($a, $b) => ($b[$key] ?? PHP_INT_MIN) <=> ($a[$key] ?? PHP_INT_MIN));
+        return $rows;
     }
 
     // Only mail tagged with a project, after Rob's corrections in $senders (Relevance).
@@ -84,7 +102,8 @@ class CockpitDay
                     'link' => str_starts_with($link, 'https://mail.google.com/') ? $link : null];
             }
         }
-        return ['at' => $m['at'], 'age' => $m['age'], 'error' => $m['error'], 'rows' => $rows, 'unsure' => array_slice($unsure, 0, self::MAIL_ROWS)];
+        return ['at' => $m['at'], 'age' => $m['age'], 'error' => $m['error'], 'rows' => self::newestFirst($rows, 'date'),
+            'unsure' => array_slice(self::newestFirst($unsure, 'date'), 0, self::MAIL_ROWS)];
     }
 
     // Threads that need a reply, and the local list: open items, and ones ticked off in the last two days.
@@ -94,6 +113,15 @@ class CockpitDay
             array_filter($mail['rows'] ?? [], fn($r) => $r['reply'])));
         $items = array_values(array_filter($path === null ? [] : self::items($path),
             fn($x) => $x['done'] === null || $now - $x['done'] < self::FOLLOW_SHOWN_DONE));
+        return self::followOrder($threads, $items);
+    }
+
+    // Follow-ups (card 120): no item carries a due date, so threads come newest first, undated last, and open items
+    // lead the ticked ones, newest first within each.
+    public static function followOrder(array $threads, array $items): array
+    {
+        $threads = self::newestFirst($threads, 'date');
+        usort($items, fn($a, $b) => [$a['done'] !== null, $b['done'] ?? 0, $b['at']] <=> [$b['done'] !== null, $a['done'] ?? 0, $a['at']]);
         return ['threads' => $threads, 'items' => $items];
     }
 
