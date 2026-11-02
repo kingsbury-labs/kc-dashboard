@@ -121,7 +121,14 @@ grid-template-areas:"needs talk" "email working" "agenda news" "follow finance" 
 .fit-grid>.agenda-card{grid-area:agenda}.fit-grid>.finance-card{grid-area:finance}.fit-grid>.news-card{grid-area:news}.fit-grid>.follow-card{grid-area:follow}.fit-grid>.care-card{grid-area:care}
 .fit-grid>.needs-card,.fit-grid>.talk-card,.fit-grid>.email-card,.fit-grid>.agents-card{overflow-y:auto;overflow-x:hidden}
 .fit-grid>.finance-card,.fit-grid>.news-card,.fit-grid>.follow-card,.fit-grid>.care-card{overflow-y:auto}
-.fit-grid>.news-card{max-height:306px}.fit-grid>.finance-card{max-height:232px}
+/* Card 123: News adds no height of its own (contain:size), so the row is as tall as the Agenda and News scrolls inside.
+   Finance shows five fixed-height lines under its 47px head (14 padding + 22 head + 10 gap, no bottom padding), then scrolls, so the visible area always ends on a whole line and Follow-ups sets the row. */
+.fit-grid>.news-card{contain:size}
+.fit-grid>.finance-card{--fin-line:24px;max-height:calc(47px + 5 * var(--fin-line));padding-bottom:0;align-self:start;overflow-y:auto}
+.fit-grid .finance-strip{gap:0}.fit-grid .finance-lines{margin-top:0;border-top:0}
+.fit-grid .finance-row,.fit-grid .finance-line{box-sizing:border-box;height:var(--fin-line);padding:0;align-items:center;overflow:hidden;white-space:nowrap}
+.fit-grid .agenda-card.card{padding-bottom:6px}.fit-grid .agenda-empty{margin-bottom:0}
+.fit-grid .care-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 24px}
 .fit-grid>.agenda-card{display:block;overflow-y:auto;align-self:start}
 .fit-grid .agenda-list{margin-top:8px;max-height:150px;overflow-y:auto}.fit-grid .calendar-grid{align-content:start}.fit-grid .cal-day{height:24px;font-size:13px}.fit-grid .cal-label{height:20px}
 .fit-grid .card *{font-size:14px}.fit-grid .card h2{font-size:16px}.fit-grid .cal-day{font-size:13px}

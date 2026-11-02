@@ -1,0 +1,2 @@
+- Round 2: captured live-1080x1920.png, measured; no further file edits. Next: run Cockpit tests, result.md.
+- Round 3: Finance capped at whole lines, Agenda padding; CockpitFitTest updated; mutation done; recaptured; result.md rewritten. Done.

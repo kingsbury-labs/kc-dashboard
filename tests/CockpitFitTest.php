@@ -44,6 +44,22 @@ test('every overview card sits in a named grid area', function () {
     }
 });
 
+test('card 123: News follows the Agenda row, Finance has no clipping height, Care is two columns', function () {
+    $css = fit_css();
+    assert_true(str_contains($css, '.fit-grid>.news-card{contain:size}'), 'news contributes no height and scrolls');
+    assert_true(preg_match('/\.news-card\{[^}]*(?<![-a-z])(?:max-)?height:\d+px/', $css) !== 1, 'news has no fixed px height');
+    // Finance may only be capped at its head plus a whole number of fixed-height lines.
+    preg_match_all('/\.finance-card\{[^}]*max-height:([^;}]+)/', $css, $caps);
+    foreach ($caps[1] as $cap) {
+        assert_true(preg_match('/^calc\(\d+px \+ \d+ \* var\(--fin-line\)\)$/', $cap) === 1, "finance cap is whole lines: $cap");
+    }
+    $line = fit_rule($css, '.fit-grid .finance-row,.fit-grid .finance-line');
+    assert_true(str_contains($line, 'height:var(--fin-line)') && str_contains($line, 'box-sizing:border-box') && str_contains($line, 'padding:0'), 'finance lines are exactly one --fin-line tall');
+    assert_true(preg_match('/\.fit-grid>\.finance-card\{[^}]*max-height:[^}]*padding-bottom:0/', $css) === 1, 'finance visible area ends on the last line, not in padding');
+    $rule = fit_rule($css, '.fit-grid .care-list');
+    assert_true(str_contains($rule, 'display:grid') && str_contains($rule, 'repeat(2,'), 'care list is a two-column grid');
+});
+
 test('the list cards scroll inside their own slot', function () {
     $css = fit_css();
     assert_true(preg_match('/((?:\.fit-grid>\.[a-z]+-card,?)+)\{[^}]*overflow-y:auto/', $css, $m) === 1, 'a list-card rule with overflow-y:auto');

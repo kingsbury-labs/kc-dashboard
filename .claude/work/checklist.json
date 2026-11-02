@@ -770,7 +770,17 @@
     "id": "123",
     "title": "Cockpit gaps: Agenda, finance, Care",
     "brief": ".claude/work/123-cockpit-gaps/brief.md",
-    "start_sha": "e8c04b8d91d1483d29d52bb15bc6494c1388ce89",
-    "passes": false
+    "start_sha": "10d54e6f104c9a2b668184eed0ed4b87206136a4",
+    "passes": true,
+    "scope_ok": {
+      "at": "2026-11-02T01:12:22.695Z",
+      "start_sha": "10d54e6f104c9a2b668184eed0ed4b87206136a4",
+      "mutation_evidence": true,
+      "tree": "a6fb4c191edf4e3441cfb94d695b1dc15225628eb168cc872a2b37730deea7c2",
+      "size": "Small"
+    },
+    "verified_at": "2026-11-02T01:14:05.239Z",
+    "tree": "a6fb4c191edf4e3441cfb94d695b1dc15225628eb168cc872a2b37730deea7c2",
+    "gate": "full"
   }
 ]
