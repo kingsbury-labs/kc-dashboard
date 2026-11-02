@@ -1,37 +1,38 @@
 ---
-session: 15
+session: 16
 last_updated: 2026-11-01
-continue_with: The PM runs from D:\Dev\hq (read D:\Dev\hq\.claude\context.md first). Cards 120, 123 and 124 landed 2026-11-01 (autostart and VU meter, cockpit gaps, voice engine status). The voice is now wav\aud_brit_warm.wav (server.py --ref default). Left - a PM panel (asks, conch, live work).
-blockers: none. Optional, Rob as admin when he likes: ops\install-apache-autostart.ps1 then node bin\install-autostart.cjs (dashboard back by itself after a reboot).
+continue_with: The PM runs from D:\Dev\hq (read D:\Dev\hq\.claude\context.md first). Cockpit and voice are working; Rob is satisfied with voice. Next - voice behaviour tweaks when Rob names them, then a PM panel on the cockpit (asks, conch, live work).
+blockers: none. Optional, Rob as admin when he likes: ops\install-apache-autostart.ps1 then node bin\install-autostart.cjs (dashboard and voice back by themselves after a reboot).
 ---
 
 # KC Dashboard context
 
 ## To Resume
-Session 15. main at 1ac8b4e on origin (kingsbury-labs/kc-dashboard); card 124 the last card landed, 1ac8b4e the PM's context commit. The PM (hq-ad, D:\Dev\hq) commits, pushes and starts loops; this window's guards refuse commit and push. The PM stashed Rob's .claude/settings.json Chrome grants ("pm: settings.json chrome grants") to pop later.
+Session 16. main at 9c53252 on origin (kingsbury-labs/kc-dashboard), card 125 the last landed. The PM (hq-ad, D:\Dev\hq) commits, pushes and starts loops; this window's guards refuse commit and push. The PM stashed Rob's .claude/settings.json Chrome grants ("pm: settings.json chrome grants") to pop later.
 THIS WINDOW (if opened here for dashboard work):
-1. Voice: Rob picked aud_brit_warm (server.py --ref default); the brain speaks plain Canadian English, swearing allowed (brain.py VOICE_SECTION). Engine starts only through card 124's launcher; nobody starts it by hand (it pops console windows).
-2. cas-voice is not git: the wake matcher fix (speech.py, server.py, backups in proto\bak-wake\) and the voice persona edit (brain.py) live only on disk.
+1. Voice tweaks only when Rob names them. Engine settings live in D:\Dev\cas-voice\proto\server.py args (--min-silence-ms 600, --turn-p 0.7, --voice qwen, --ref wav\emma_en-gb.wav). Restart: stop the pythonw tree, then `node bin\cas-voice-start.cjs` (hidden, single-start guarded); ready in ~15-90 s, check with curl to 8766, never netstat (it misses listeners here).
+2. PM panel card, sized by the PM.
 3. Prove every UI card with a headless shot at 1080x1920 before showing Rob; never use Chrome (Henike holds the conch).
 
 ## What exists
-- Cockpit live at http://127.0.0.1:8787/cockpit.php, Chrome on portrait monitor 2. Cards 107-122 on main. 121 rebuilt the hero (Find moved to the rail, voice chip gone), 122 set desktop sizes. Care reads UptimeRobot correctly since bf4258d (custom_uptime_ratios).
-- Local router experiment in `llm/router/` (never committed): Bonsai plus rules failed a blind 50-row test (8 of 16 Risky routed low), so it is not wired in. Record: `.claude/work/agentos/orchestration/ROUTER-MODEL.md`, `llm/router/verify/ROUTER-VERIFY.md`.
-- Orchestrator design: `.claude/work/agentos/orchestration/DESIGN.md` (11 cards; the fast path cut it to a few files, see the hq context).
-- Local models: Ollama on D:\ai\ollama\models; llama.cpp and Bonsai under `llm/` (used for mail tagging).
+- Cockpit live at http://127.0.0.1:8787/cockpit.php, Chrome on portrait monitor 2. Cards 107-125 on main: 120 autostart scripts, VU meter, newest-first lists; 123 cockpit gaps; 124 voice status (/api/voice.php, data/cas-voice.log, pythonw launcher); 125 launcher refuses a second start.
+- Voice engine D:\Dev\cas-voice (NOT git; edits live only on disk). Voice: Qwen clone of Kokoro bf_emma (wav\emma_en-gb.wav + .txt). Wake matcher accepts whisper mishears and wake checks prompt "Hey Cas."; near misses logged (backups proto\bak-wake\). Brain persona (brain.py VOICE_SECTION): sarcastic, swears, plain Canadian English, never recites to-dos. Greetings in speech.py; short sentences paired after the first.
+- Local router experiment in `llm/router/` (never committed), failed its blind test, not wired in. Orchestrator design: `.claude/work/agentos/orchestration/DESIGN.md`.
+- Local models: Ollama on D:\ai\ollama\models; llama.cpp and Bonsai under `llm/` (mail tagging).
 
 ## Waiting on Rob
-- Optional: the two autostart installs above (card 120 replaced the old Apache-as-service script). "Hey Cas" wakes since the 2026-11-01 matcher fix.
-- Delete the `.premove` Docker disk once `D:\_logs\docker-move\status.json` says ok (move ran 2026-11-02 04:00).
+- Optional: the two autostart installs above.
+- Docker disk move: D:\_logs\docker-move\status.json says preflight-ok (2026-11-01); delete the `.premove` disk only after it says ok.
 - Issue 3 (follow-ups from cards 14 and 15), parked as Later.
 
 ## Decided
 - The monitor sits beside Rob's face: desktop type sizes, never across-the-room sizes.
-- The cockpit look is the codex-hub4 concept Rob picked, not the old JARVIS stills.
-- Request sizing is the PM's judgment, rounded up; Risky is decided by each project's project.md risky paths at card time. No model router.
+- The cockpit look is the codex-hub4 concept Rob picked.
+- Request sizing is the PM's judgment, rounded up; no model router.
+- Nobody starts the voice engine by hand or through cmd/run.cmd (it pops console windows); only bin\cas-voice-start.cjs.
 - Everything lives on D:. Loop files stay out of public repos.
 
 ## Recent sessions
-- **S14 (2026-11-01, PM night):** fixed Care's UptimeRobot field, shipped cards 121 and 122 (hero, desktop sizes). Rob made this window PM over every session: Henike got its fly-in (a minifier turned 545ms into .545s), background, reviews and Services redesign fixed and shipped; the conch, inbox and settings-exception hooks went in (~/.claude 7f31443); PROCESS, asks and traps written in ~/.claude/pm; router bake-off run and dropped.
+- **S15 (2026-11-01):** PM moved to D:\Dev\hq; this window ran dashboard and voice. Cards 120, 123, 124, 125 landed. Voice fixed end to end: engine was down, then the wake word was misheard (matcher widened, whisper prompted), the brain stopped reciting stale to-dos, launcher double-start found and guarded, voice moved to an expressive Qwen clone of Emma with a longer pause before answering. Rob: "all in all, I'm satisfied." Henike blog scheduler wired on Cloudflare (deploy hook as the worker secret, crons 11:00/12:00 UTC; not in Infisical, first real run 2026-11-02 11:00 UTC).
+- **S14 (2026-11-01, PM night):** cards 121 and 122 (hero, desktop sizes), Care's UptimeRobot fix; this window became PM; Henike fixes shipped; conch, inbox and settings-exception hooks.
 - **S13 (2026-11-01):** cards 107-119 built the live cockpit through the loop.
-- **S12 (2026-11-01):** local model picked, Hermes dropped, Docker disk move scheduled.
