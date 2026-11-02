@@ -748,5 +748,12 @@
     "verified_at": "2026-11-01T21:33:27.150Z",
     "tree": "5a03dd5231af496a106a3546cbbf93e8d280c60cee52e8f4ebae4508f2d23df9",
     "gate": "full"
+  },
+  {
+    "id": "120",
+    "title": "Cockpit autostart, mic VU meter, newest first",
+    "brief": ".claude/work/120-autostart-vu/brief.md",
+    "start_sha": "1dc1d31de977dbb7d91db871ba426be1b5649d0b",
+    "passes": false
   }
 ]

@@ -1398,6 +1398,27 @@ LOGOUT; no source file under `src/Mail/` contains STORE, COPY, MOVE, EXPUNGE,
 APPEND or SELECT; the app password never appears in the log or the API output;
 a follow-up write without the token is refused.
 
+### 120. Cockpit comes back by itself after a restart; mic VU meter (Normal)
+- Role: implementer, Sonnet. Depends: 122.
+
+Rob: "when the computer restarts, this whole dashboard and functionality needs
+to restart ... automatic and seamless", "Voice needs a VU meter", and every list
+newest at the top. A hidden logon launcher with a cas-voice watchdog, an admin
+script Rob runs once for Apache as a service, a mic level meter in the Cas bar,
+and newest-first order on every list.
+
+Done-test: `c:\xampp\php\php.exe tests/run.php --filter Autostart` and `--filter
+CockpitVoice` pass: every spawn in `bin/autostart.cjs` and
+`bin/install-autostart.cjs` passes `windowsHide: true`; autostart exits when
+another copy holds the lock; it opens Chrome with the monitor 2 position and
+the cockpit URL in app mode and does not open a second window when the marker
+is live; the watchdog caps restarts at 3 an hour; voice.js builds an
+AnalyserNode on the mic stream and shows "No mic input" after 5 s under the
+floor; `ops/install-apache-service.ps1` backs up xampp-control.ini before
+changing it. A new CockpitOrder test proves, against fixtures, each list in
+the snapshot comes newest first (agenda: next upcoming first; follow-ups:
+overdue then soonest due first).
+
 ### 122. Cockpit at desktop sizes: the monitor is beside Rob's face (Small)
 - Role: implementer, Sonnet, effort low. Depends: 121. Runs before 120.
 
