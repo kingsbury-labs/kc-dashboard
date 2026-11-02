@@ -838,7 +838,7 @@
     "id": "131",
     "title": "Client mail shows in the cockpit",
     "brief": ".claude/work/131-client-mail/brief.md",
-    "start_sha": "PM-SETS",
+    "start_sha": "bdc7d912346d886cbdf517a70872191f551f3e08",
     "passes": false
   }
 ]

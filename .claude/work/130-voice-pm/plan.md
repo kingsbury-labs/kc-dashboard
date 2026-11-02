@@ -2,15 +2,15 @@
 
 ## What is unsafe, and the guard that makes each part safe
 
-A brain with Bash, Edit, Write and Agent, no prompts, fed by a microphone, is the most dangerous thing on this machine: anyone audible, a video, a mishearing or text in a page it read can steer it. Outward and irreversible acts (deploys, client-site pushes, mail, deletes, billing) are safe only behind the go gate (cards 5, 6), a hook rather than the model's judgement. Rob hears the hook's summary of the real call, and only his next utterance counts: one exact phrase, heard with confidence, never while Cas is talking, one pending at a time, 120 s expiry, one use, a 2 s cancel window, all logged. The brain cannot forge a yes: server.py signs approvals with a `.key` file that credential-read-blocker refuses, and the fence (card 3) refuses tool writes to the gate's files. The remaining gap is an outward command missing from the list: commands the hook cannot read and writes to non-local hosts count as gated, and the audit (card 16) hunts for misses. Editing project code directly would skip that project's own hooks, so the fence holds the PM to its notes and work goes to loops or sessions started in the project (cards 11, 12). Answer-only and voice-guard assume typed text; card 4 adapts them once Rob approves (card 1). Today's voice brain is already unsafe: `--setting-sources project` keeps the global hooks off, so it can read a secret file aloud. Card 7 fixes that.
+A brain with Bash, Edit, Write and Agent, no prompts, fed by a microphone, is the most dangerous thing on this machine: anyone audible, a video, a mishearing or text in a page it read can steer it. Outward and irreversible acts (deploys, client-site pushes, mail, deletes, billing) are safe only behind the go gate (cards 5, 6), a hook rather than the model's judgement. Rob hears the hook's summary of the real call, and only his next utterance counts: one exact phrase, heard with confidence, never while Cas is talking, one pending at a time, 120 s expiry, one use, a 2 s cancel window, all logged. The brain cannot forge a yes: server.py signs approvals with a `.key` file that credential-read-blocker refuses, and the fence (card 3) refuses tool writes to the gate's files. The remaining gap is an outward command missing from the list: commands the hook cannot read and writes to non-local hosts count as gated, and the audit (card 17) hunts for misses. Editing project code directly would skip that project's own hooks, so the fence holds the PM to its notes and work goes to loops or sessions started in the project (cards 12, 13). Answer-only and voice-guard assume typed text; card 4 adapts them once Rob approves (card 1). Today's voice brain is already unsafe: `--setting-sources project` keeps the global hooks off, so it can read a secret file aloud. Card 8 fixes that.
 
 ## Flags on the existing plan and rules
 
-- PROCESS.md says loop-start refuses without a PM grant. `loop-start.cjs` has no such check; card 12 adds it.
+- PROCESS.md says loop-start refuses without a PM grant. `loop-start.cjs` has no such check; card 13 adds it.
 - `D:\Dev\hq\.claude\settings.json` does not exist. HQ's project.md grants (`coordinator_only: off`, `window_merge: allowed`) reach only files inside `D:\Dev\hq`; the PM's reach came from coordinator-only failing open outside its project. Card 3's fence replaces that. Nothing else needs to move.
 - Drop `--setting-sources project` in brain.py now, as a one-line fix. Until card 4, voice-guard may make Cas repeat a reply.
 - `.gitignore`'s `bak-*/` misses `proto/bak110/`.
-- Cards 2 and 13 touch `~/.claude` but no hook or loop code, so they are Small despite PROCESS.md's blanket Risky.
+- Cards 2 and 14 touch `~/.claude` but no hook or loop code, so they are Small despite PROCESS.md's blanket Risky.
 
 ## Cards (in order)
 
@@ -41,7 +41,7 @@ Done-test: `node --test C:\Users\roban\.claude\bin\windows-hide.test.cjs` passes
   - `C:\Users\roban\.claude\hooks\credential-read-blocker.cjs`
   - `C:\Users\roban\.claude\hooks\credential-read-blocker.test.cjs`
 
-`isPm(input, env)`: `CAS_PM=1` and the input's session_id equals `~/.claude/pm/pm-session.json`, which server.py writes. Until that file exists, a session whose cwd is `D:\Dev\hq` counts as the PM, so the HQ window keeps working; card 13 removes that fallback. `pm-scope.cjs` runs on PreToolUse for Edit, Write, MultiEdit, NotebookEdit and Bash. It does not apply to loop passes (`CLAUDE_LOOP_PASS=1`) or dispatched sessions (`CAS_PM_DISPATCH=1`). For the PM and its subagents, file writes are allowed only under `~/.claude/pm`, `D:\Dev\hq`, `c:\personas\cas`, any `<project>\.claude\work\` and `<project>\.claude\context.md`. In Bash it refuses builds, tests and installs (php tests/run.php, npm, npx, composer, pip, playwright) and anything that opens a window (`code`, `start`, `explorer`, `Start-Process`, `powershell`, `pwsh`, `cmd /c`, a `.cmd`, console `python.exe`). For every session, it refuses writes to `pm/conch.json` and `pm/grants/` unless `isPm`. Nobody may write `pm-session.json`, `go-pending.json`, `go-ledger.jsonl` or the go key through a tool. Nobody may set `CAS_PM`, `CAS_GO_GATE`, `CAS_PM_DISPATCH` or `LOOP_START_GRANT` inside a command. credential-read-blocker adds `voice-token` and the dashboard's `data/token`. Register with `node C:/Users/roban/.claude/bin/settings-hook-add.cjs PreToolUse "Edit|Write|MultiEdit|NotebookEdit|Bash" "node C:/Users/roban/.claude/hooks/pm-scope.cjs"`; Rob allowed that script as the way to register hooks on 2026-11-01, as its header records.
+`isPm(input, env)`: `CAS_PM=1` and the input's session_id equals `~/.claude/pm/pm-session.json`, which server.py writes. Until that file exists, a session whose cwd is `D:\Dev\hq` counts as the PM, so the HQ window keeps working; card 14 removes that fallback. `pm-scope.cjs` runs on PreToolUse for Edit, Write, MultiEdit, NotebookEdit and Bash. It does not apply to loop passes (`CLAUDE_LOOP_PASS=1`) or dispatched sessions (`CAS_PM_DISPATCH=1`). For the PM and its subagents, file writes are allowed only under `~/.claude/pm`, `D:\Dev\hq`, `c:\personas\cas`, any `<project>\.claude\work\` and `<project>\.claude\context.md`. In Bash it refuses builds, tests and installs (php tests/run.php, npm, npx, composer, pip, playwright) and anything that opens a window (`code`, `start`, `explorer`, `Start-Process`, `powershell`, `pwsh`, `cmd /c`, a `.cmd`, console `python.exe`). For every session, it refuses writes to `pm/conch.json` and `pm/grants/` unless `isPm`. Nobody may write `pm-session.json`, `go-pending.json`, `go-ledger.jsonl` or the go key through a tool. Nobody may set `CAS_PM`, `CAS_GO_GATE`, `CAS_PM_DISPATCH` or `LOOP_START_GRANT` inside a command. credential-read-blocker adds `voice-token` and the dashboard's `data/token`. Register with `node C:/Users/roban/.claude/bin/settings-hook-add.cjs PreToolUse "Edit|Write|MultiEdit|NotebookEdit|Bash" "node C:/Users/roban/.claude/hooks/pm-scope.cjs"`; Rob allowed that script as the way to register hooks on 2026-11-01, as its header records.
 
 Done-test: `node --test C:\Users\roban\.claude\hooks\pm-scope.test.cjs C:\Users\roban\.claude\hooks\credential-read-blocker.test.cjs` passes. New cases prove: the PM's Edit of `D:\Dev\htdocs\henike-contracting\src\x.ts` exits 2, of `...\.claude\work\140\brief.md` exits 0 and of `~/.claude/pm/asks.md` exits 0. `CAS_PM=1` with the wrong session_id is not the PM, so its write to `conch.json` exits 2. Any session's Write or Bash naming `pm-session.json` or `go.key` exits 2. `CAS_PM=1 node loop-start.cjs` in a command exits 2. The PM running `php tests/run.php` or `code .` exits 2; with `CLAUDE_LOOP_PASS=1` the tests command exits 0. With no `pm-session.json`, cwd `D:\Dev\hq` is the PM. Reading `D:\Dev\cas-voice\proto\voice-token` is refused. The registration prints `added` or `already present`.
 
@@ -80,8 +80,21 @@ server.py watches `go-pending.json`. When a pending entry appears, server.py its
 
 Done-test: `venv\Scripts\python.exe -m unittest discover -s proto -p "test_*.py"` passes. New cases prove: with one pending, "go" and "Go ahead." write one approval whose MAC verifies and whose digest equals the pending's. Nothing is written for "no", "go home", "so", a bare "yes", a low-confidence "go", "go" after expiry, "go" with two pendings open, "go" while asleep, or "go" within 0.5 s of Cas's playback. Speech in the 2 s window cancels. Each outcome adds one ledger line. An end-to-end test runs `go-gate.cjs` with `CREATE_NO_WINDOW` and shows: a fixture deploy is refused; "go" is approved; the same call passes once, then is refused.
 
-### 7. The voice brain gets the PM's tools with every hook firing (Risky)
-- Role: implementer, Opus. Risky path: yes (starts `claude`). Runs in the cas-voice repo. Never restarts the running engine. Depends: 3, 4, 5, 6.
+### 7. Speaker verification: the voice tier (Risky)
+- Role: implementer, Opus. Risky path: yes (decides what the brain may touch). Runs in the cas-voice repo, plus a hook in `~/.claude/hooks`. Never restarts the running engine. Depends: 3, 5.
+- Files:
+  - `D:\Dev\cas-voice\proto\speaker.py` (new)
+  - `D:\Dev\cas-voice\proto\test_speaker.py` (new)
+  - `D:\Dev\cas-voice\proto\server.py`
+  - `C:\Users\roban\.claude\hooks\voice-tier.cjs` (new)
+  - `C:\Users\roban\.claude\hooks\voice-tier.test.cjs` (new)
+
+Voice Cas recognises who is speaking (Rob, 2026-11-01, relayed by the voice session). Three tiers. Rob: full powers, with the go gate still applying. Rob's wife: read Rob's mail and files and use the web, with no write, push, deploy or send (enrolled later, but the design has the tier). Any unrecognised voice: web search and lookups only, no file or mail reading. `speaker.py` decides the tier per turn from a speaker embedding of the utterance compared with the enrolled voices, stored locally under `%LOCALAPPDATA%\cas-voice`, never in a repo. Each tier has a threshold; a low-confidence match drops to the next lower tier, so a borderline Rob is the wife tier at best and a borderline wife is a stranger. Every decision (time, tier, best score, threshold, enrolled name) is appended to a log. server.py passes the tier's tool list to the brain per turn as `--allowedTools` and `--disallowedTools`, and writes the tier to a per-turn file that `voice-tier.cjs` reads on PreToolUse. The hook refuses any tool outside the tier, including Bash and Read for the stranger tier and every write, push, deploy and send for the wife tier. The tier is enforced by tool permissions plus the hook, not by the prompt alone. An unreadable tier file means the stranger tier.
+
+Done-test: `venv\Scripts\python.exe -m unittest proto.test_speaker` passes with recorded samples: Rob's voice gets the full tool list, a stranger's gets web search only, a borderline score drops one tier, and every case writes a log line. `node C:\Users\roban\.claude\hooks\voice-tier.test.cjs` passes, including that a stranger-tier turn cannot run Read or Bash and a wife-tier turn cannot run Edit, Write or a push.
+
+### 8. The voice brain gets the PM's tools with every hook firing (Risky)
+- Role: implementer, Opus. Risky path: yes (starts `claude`). Runs in the cas-voice repo. Never restarts the running engine. Depends: 3, 4, 5, 6, 7.
 - Files:
   - `D:\Dev\cas-voice\proto\brain.py`
   - `D:\Dev\cas-voice\proto\server.py`
@@ -92,19 +105,19 @@ Done-test: `venv\Scripts\python.exe -m unittest discover -s proto -p "test_*.py"
 
 Done-test: `venv\Scripts\python.exe -m unittest proto.test_pm_brain` passes, asserting the flags, env and cwd above, the persona contents, and the rules-changed prefix after an mtime bump. A live `venv\Scripts\python.exe proto\probe_pm.py` (Sonnet, effort low, its own brain, not the engine) shows: init `tools` contains Bash, Edit, Write, Agent, SendMessage and Skill; a turn running `git -C D:\Dev\hq status` and writing a scratch file ends with `permission_denials` empty; a Read of `C:\Users\roban\.claude\settings.json` is refused with `credential-read-blocker` text, which proves the global hooks load; `tasklist /v /fi "imagename eq claude.exe"` shows no window title.
 
-### 8. Live PM state (Normal)
-- Role: implementer, Sonnet. Risky path: no (reads through the existing `src/Running`, `src/Projects`). Runs in `_kc-dashboard`. Depends: none (reads card 10's log once it exists).
+### 9. Live PM state (Normal)
+- Role: implementer, Sonnet. Risky path: no (reads through the existing `src/Running`, `src/Projects`). Runs in `_kc-dashboard`. Depends: none (reads card 11's log once it exists).
 - Files:
   - `D:\Dev\htdocs\_kc-dashboard\src\Pm\PmState.php` (new)
   - `D:\Dev\htdocs\_kc-dashboard\bin\pm-state.php` (new)
   - `D:\Dev\htdocs\_kc-dashboard\tests\PmStateTest.php` (new)
 
-`php bin/pm-state.php --out <file>` writes JSON with: open asks; the conch holder; loops (state, card, last log time, via LoopState over ProjectList); the queue (unpassed checklist cards); peer sessions (SessionRegistry status and idle minutes); the go pending; findings. The findings match the HQ check: `loop_stalled` (running, loop.log untouched 30 min); `card_oversized` (running past 20/60/120 min for Small/Normal/Risky, or a Small or Normal brief naming a risky path from its project.md); `chrome_without_conch` (a conch refusal in the last 12 min, from card 10's log); `idle_with_open_work` (idle or waiting 30 min or more in a project with an open ask).
+`php bin/pm-state.php --out <file>` writes JSON with: open asks; the conch holder; loops (state, card, last log time, via LoopState over ProjectList); the queue (unpassed checklist cards); peer sessions (SessionRegistry status and idle minutes); the go pending; findings. The findings match the HQ check: `loop_stalled` (running, loop.log untouched 30 min); `card_oversized` (running past 20/60/120 min for Small/Normal/Risky, or a Small or Normal brief naming a risky path from its project.md); `chrome_without_conch` (a conch refusal in the last 12 min, from card 11's log); `idle_with_open_work` (idle or waiting 30 min or more in a project with an open ask).
 
 Done-test: `c:\xampp\php\php.exe tests/run.php --filter PmState` passes. New fixture tests prove: a live lock with loop.log 31 min old is `loop_stalled` and 29 min is not; a Normal card at 61 min is `card_oversized`; a Small brief naming `src/Http/` is `card_oversized`; a 5-min-old conch refusal is `chrome_without_conch`; a 35-min idle session with an open ask is `idle_with_open_work`; CLOSED asks are left out; nothing outside the fixture roots is opened (`$opened`); the output contains nothing from a `.key`, token or settings file.
 
-### 9. Heartbeat every 12 minutes, replacing the HQ cron (Normal)
-- Role: implementer, Sonnet. Risky path: no. Runs in the cas-voice repo. Never restarts the running engine. Depends: 7, 8.
+### 10. Heartbeat every 12 minutes, replacing the HQ cron (Normal)
+- Role: implementer, Sonnet. Risky path: no. Runs in the cas-voice repo. Never restarts the running engine. Depends: 8, 9.
 - Files:
   - `D:\Dev\cas-voice\proto\heartbeat.py` (new)
   - `D:\Dev\cas-voice\proto\test_heartbeat.py` (new)
@@ -114,7 +127,7 @@ Runs at :04, :16, :28, :40 and :52. It calls pm-state.php (`CREATE_NO_WINDOW`, o
 
 Done-test: `venv\Scripts\python.exe -m unittest proto.test_heartbeat` passes. Tests prove: the schedule never hits :00 or :30; the same finding twice gives one internal turn; an internal turn waits for a running Rob turn; internal replies never reach TTS; the subprocess passes `CREATE_NO_WINDOW`; a failed run is logged and retried at the next tick without raising.
 
-### 10. Conch belongs to the voice PM; Chrome misuse is logged (Risky)
+### 11. Conch belongs to the voice PM; Chrome misuse is logged (Risky)
 - Role: implementer, Opus. Risky path: yes (`~/.claude/hooks`). Runs in the `~/.claude` repo. Depends: 3.
 - Files:
   - `C:\Users\roban\.claude\hooks\conch.cjs`
@@ -124,8 +137,8 @@ Each refusal appends `{at, cwd, session_id, tool}` to `~/.claude/pm/conch-refusa
 
 Done-test: `node --test C:\Users\roban\.claude\hooks\conch.test.cjs` passes. New cases prove: a refusal appends one line to a temp `CONCH_LOG`; the advice says "voice PM" and not "D:\\Dev\\hq"; the holder still passes; a missing conch.json still refuses.
 
-### 11. Delegation stays headless; the voice turn stays responsive (Risky)
-- Role: implementer, Opus. Risky path: yes (`~/.claude/bin`, starts `claude`). Runs in the `~/.claude` repo. Depends: 3, 7.
+### 12. Delegation stays headless; the voice turn stays responsive (Risky)
+- Role: implementer, Opus. Risky path: yes (`~/.claude/bin`, starts `claude`). Runs in the `~/.claude` repo. Depends: 3, 8.
 - Files:
   - `C:\Users\roban\.claude\bin\pm-dispatch.cjs` (new)
   - `C:\Users\roban\.claude\bin\pm-dispatch.test.cjs` (new)
@@ -136,8 +149,8 @@ Done-test: `node --test C:\Users\roban\.claude\hooks\conch.test.cjs` passes. New
 
 Done-test: `node --test C:\Users\roban\.claude\bin\pm-dispatch.test.cjs C:\Users\roban\.claude\hooks\pm-scope.test.cjs C:\Users\roban\.claude\bin\windows-hide.test.cjs` passes. New cases prove: the spawn has `detached`, `windowsHide: true`, cwd equal to the project, and env without `CAS_PM` but with `CAS_GO_GATE=1`; the call returns before the child exits; a brief outside `.claude/work` is refused; the PM's Agent call without `run_in_background` exits 2 and with it exits 0; a subagent's Agent call (with `agent_id`) passes.
 
-### 12. loop-start needs a PM grant (Risky)
-- Role: implementer, Opus. Risky path: yes (the loop). Runs in the `~/.claude` repo. Depends: 7, 11.
+### 13. loop-start needs a PM grant (Risky)
+- Role: implementer, Opus. Risky path: yes (the loop). Runs in the `~/.claude` repo. Depends: 8, 12.
 - Files:
   - `C:\Users\roban\.claude\bin\loop-start.cjs`
   - `C:\Users\roban\.claude\bin\loop-start.test.cjs`
@@ -146,8 +159,8 @@ Makes PROCESS.md's claim true. loop-start starts a loop when the caller has `CAS
 
 Done-test: `node --test C:\Users\roban\.claude\bin\loop-start.test.cjs` passes. New cases prove: no grant means a refusal naming the voice PM and no spawn; `CAS_PM=1` spawns; an unexpired grant spawns and an expired one refuses; `LOOP_START_GRANT=off` spawns; the spawned env has no `CAS_PM`.
 
-### 13. Retire the HQ window: the rules move to the voice PM (Small)
-- Role: implementer, Sonnet, effort low. Risky path: no (docs, plus removing one fallback in `pm-identity.cjs`). `D:\Dev\hq` is not a git repo. Depends: 9, 10, 12.
+### 14. Retire the HQ window: the rules move to the voice PM (Small)
+- Role: implementer, Sonnet, effort low. Risky path: no (docs, plus removing one fallback in `pm-identity.cjs`). `D:\Dev\hq` is not a git repo. Depends: 10, 11, 13.
 - Files:
   - `C:\Users\roban\.claude\pm\PROCESS.md`
   - `D:\Dev\hq\CLAUDE.md`
@@ -158,8 +171,8 @@ Done-test: `node --test C:\Users\roban\.claude\bin\loop-start.test.cjs` passes. 
 
 Done-test: `node --test C:\Users\roban\.claude\hooks\pm-scope.test.cjs` passes, with the fallback case now proving that cwd `D:\Dev\hq` without a matching session is not the PM. `findstr /c:"kc-dashboard window" C:\Users\roban\.claude\pm\PROCESS.md`, `findstr /c:"This window is the PM" D:\Dev\hq\CLAUDE.md` and `findstr /c:"CronCreate" D:\Dev\hq\.claude\context.md` each find nothing.
 
-### 14. Live-check checker (Normal)
-- Role: implementer, Sonnet. Risky path: no. Runs in the cas-voice repo. Depends: 7, 11.
+### 15. Live-check checker (Normal)
+- Role: implementer, Sonnet. Risky path: no. Runs in the cas-voice repo. Depends: 8, 12.
 - Files:
   - `D:\Dev\cas-voice\proto\livecheck.py` (new)
   - `D:\Dev\cas-voice\proto\test_livecheck.py` (new)
@@ -168,17 +181,17 @@ Done-test: `node --test C:\Users\roban\.claude\hooks\pm-scope.test.cjs` passes, 
 
 Done-test: `venv\Scripts\python.exe -m unittest proto.test_livecheck` passes against fixture logs. It reports pass only when: the brain's results had zero `permission_denials`; a loop lock or dispatch folder appeared in the named project within 2 minutes; the deploy ask left a pending plus a `cancelled` line with Rob's "no" and no used approval; no claude, node, python, php, cmd or powershell process gained a window title.
 
-### 15. Live check with Rob, then the HQ window closes (waiting on Rob) (Small)
-- Role: Rob, with the PM running the checker. Risky path: no. Depends: 13, 14.
+### 16. Live check with Rob, then the HQ window closes (waiting on Rob) (Small)
+- Role: Rob, with the PM running the checker. Risky path: no. Depends: 14, 15.
 - Files:
-  - `D:\Dev\cas-voice\proto\livecheck.py` (new in card 14)
+  - `D:\Dev\cas-voice\proto\livecheck.py` (new in card 15)
 
 Rob, in wake mode: "hey Cas, go open kc-dashboard and start the loop on card 123". Then "deploy kc-portal". Cas should say "say go and I'll deploy kc-portal..." and Rob answers "no". When the checker passes, Rob closes the HQ window.
 
 Done-test: `venv\Scripts\python.exe proto\livecheck.py --since <start>` prints `PASS`, and asks.md gets the evidence line.
 
-### 16. Security audit of the voice PM (Risky)
-- Role: security-auditor, Opus, then a second-model pass. Risky path: yes (every card above). Depends: 15.
+### 17. Security audit of the voice PM (Risky)
+- Role: security-auditor, Opus, then a second-model pass. Risky path: yes (every card above). Depends: 16.
 - Files:
   - `D:\Dev\htdocs\_kc-dashboard\.claude\work\130-voice-pm\audit.md` (new)
 
