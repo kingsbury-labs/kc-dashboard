@@ -799,5 +799,12 @@
     "verified_at": "2026-11-02T01:27:16.232Z",
     "tree": "bb39daffce36d7fa44febc1f45a09cac359a3a5230545236a912483637b6dd42",
     "gate": "full"
+  },
+  {
+    "id": "125",
+    "title": "Voice launcher starts the engine once",
+    "brief": ".claude/work/125-voice-single-start/brief.md",
+    "start_sha": "f69728d70e98721abfacd70329da16ff8d35f83a",
+    "passes": false
   }
 ]

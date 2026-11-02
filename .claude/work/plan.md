@@ -1398,6 +1398,20 @@ LOGOUT; no source file under `src/Mail/` contains STORE, COPY, MOVE, EXPUNGE,
 APPEND or SELECT; the app password never appears in the log or the API output;
 a follow-up write without the token is refused.
 
+### 125. Voice launcher starts the engine once, never twice (Small)
+- Role: implementer, Sonnet, effort low. Depends: 124.
+
+Two launcher runs 0.38 s apart started two engines; one died binding 8766 and
+the pid file was left naming the dead one. The launcher checks the port, a live
+young pid and an exclusive lock before it spawns.
+
+Done-test: `c:\xampp\php\php.exe tests/run.php --filter Autostart` passes, including new
+tests proving: the launcher exits without spawning when 8766 is listening;
+exits without spawning when the pid file names a live process younger than 5
+minutes; two launcher runs started together spawn exactly once (lock file);
+only the spawning run writes the pid file; every spawn still passes
+`windowsHide: true` and uses pythonw.
+
 ### 124. Voice engine: say when it is down or starting, log it, never a window (Normal)
 - Role: implementer, Sonnet. Depends: 120, 123.
 
