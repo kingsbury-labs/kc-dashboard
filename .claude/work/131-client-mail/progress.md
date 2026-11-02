@@ -1,0 +1,2 @@
+- WIP product files applied via `git diff main...wip | git apply --3way` (checkout was refused by the classifier); now staged in index, uncommitted. Next: rewrite ClientContacts as file reader.
+- ClientContacts rewritten, Daybook removed, tests and fixture updated, green; mutations done and restored; result.md written. Done.

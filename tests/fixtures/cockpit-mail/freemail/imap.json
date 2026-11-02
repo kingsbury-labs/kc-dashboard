@@ -1,0 +1,31 @@
+{
+  "greeting": "* OK Gimap ready for requests from 127.0.0.1",
+  "capability_note": "Free-mail senders for CockpitMailRelevanceTest (card 131). Invented: example.net and example.org stand in for gmail.com and outlook.com, example.com is a client's own domain.",
+  "messages": [
+    {
+      "uid": 211,
+      "envelope": "(\"Fri, 30 Oct 2026 10:00:00 -0400\" \"Garden photos\" ((\"Jo Client\" NIL \"jo.client\" \"example.net\")) NIL NIL NIL NIL NIL NIL \"<m211@example.com>\")",
+      "body": "Here are the pangolin photos for the gallery page."
+    },
+    {
+      "uid": 212,
+      "envelope": "(\"Fri, 30 Oct 2026 11:00:00 -0400\" \"Hello there\" ((\"Stranger\" NIL \"stranger\" \"example.net\")) NIL NIL NIL NIL NIL NIL \"<m212@example.com>\")",
+      "body": "A narwhal question from someone Rob has not met."
+    },
+    {
+      "uid": 213,
+      "envelope": "(\"Fri, 30 Oct 2026 12:00:00 -0400\" \"Sub mail\" ((\"Sam Sub\" NIL \"sam\" \"x.example.net\")) NIL NIL NIL NIL NIL NIL \"<m213@example.com>\")",
+      "body": "From a subdomain of a free-mail host."
+    },
+    {
+      "uid": 214,
+      "envelope": "(\"Sat, 31 Oct 2026 09:00:00 -0400\" \"Webmail note\" ((\"Ola Webmail\" NIL \"ola\" \"example.org\")) NIL NIL NIL NIL NIL NIL \"<m214@example.com>\")",
+      "body": "A note from a second free-mail host."
+    },
+    {
+      "uid": 215,
+      "envelope": "(\"Sat, 31 Oct 2026 10:00:00 -0400\" \"Invoice\" ((\"Ownco Billing\" NIL \"billing\" \"example.com\")) NIL NIL NIL NIL NIL NIL \"<m215@example.com>\")",
+      "body": "Invoice attached."
+    }
+  ]
+}

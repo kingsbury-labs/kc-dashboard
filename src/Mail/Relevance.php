@@ -1,8 +1,9 @@
 <?php
 
 /**
- * Which of Rob's projects, clients or vendors an email concerns, or null to hide it. Rob's corrections win, then a
- * sender domain on the entity list (no model call), then the local model, which sees the entity names, sender,
+ * Which of Rob's projects, clients or vendors an email concerns, or null for the Unsorted pile. Rob's corrections win
+ * (null hides), then a client's exact address from _CONTACTS.md, then a sender domain on the entity list that is not free mail
+ * (no model call), then the local model, which sees the entity names, sender,
  * subject and the first 1,000 characters and may only answer one of those names. Corrections live in
  * data/mail-senders.json as sender address => project name, or null for "not mine". No mail text is stored.
  */
@@ -12,17 +13,64 @@ class Relevance
     public const SENDERS_MAX = 2000;
     public const NAME_MAX = 80;
 
+    // Free-mail domains: never a client's domain, matched only by a full client address. Add new ones here.
+    public const FREE_MAIL = ['gmail.com', 'googlemail.com', 'outlook.com', 'hotmail.com', 'live.com', 'msn.com', 'yahoo.com',
+        'ymail.com', 'icloud.com', 'me.com', 'mac.com', 'aol.com', 'proton.me', 'protonmail.com', 'gmx.com', 'mail.com',
+        'rogers.com', 'bell.net', 'sympatico.ca', 'shaw.ca', 'telus.net'];
+
     /** @var array<string,string[]> entity name => sender domains */
     private array $entities;
     private string $senders;
     private ?Closure $ask;
+    /** @var list<array{name:string, email:string}> */
+    private array $contacts;
+    private array $free;
 
-    // $ask: fn(string prompt): ?string, the model's raw answer; null means no model.
-    public function __construct(array $entities, string $senders, ?Closure $ask)
+    // $ask: fn(string prompt): ?string, the model's raw answer; null means no model. $contacts: ClientContacts::read.
+    // $free: the free-mail list; tests pass example domains, since real free-mail addresses may not sit in fixtures.
+    public function __construct(array $entities, string $senders, ?Closure $ask, array $contacts = [], array $free = self::FREE_MAIL)
     {
+        foreach ($contacts as $c) {
+            $entities[$c['name']] ??= [];
+        }
         $this->entities = $entities;
         $this->senders = $senders;
         $this->ask = $ask;
+        $this->contacts = $contacts;
+        $this->free = $free;
+    }
+
+    // The domain, or any parent of it, is on the free-mail list.
+    public static function freeMail(string $domain, array $free = self::FREE_MAIL): bool
+    {
+        foreach ($free as $f) {
+            if ($domain === $f || str_ends_with($domain, '.' . $f)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // The client whose address this is exactly, else whose own (not free-mail) domain it is on, or null.
+    public static function byContact(string $addr, array $contacts, array $free = self::FREE_MAIL): ?string
+    {
+        $addr = strtolower(trim($addr));
+        foreach ($contacts as $c) {
+            if ($addr !== '' && $c['email'] === $addr) {
+                return $c['name'];
+            }
+        }
+        $domain = (string) substr((string) strrchr($addr, '@'), 1);
+        if ($domain === '' || self::freeMail($domain, $free)) {
+            return null;
+        }
+        foreach ($contacts as $c) {
+            $d = (string) substr((string) strrchr($c['email'], '@'), 1);
+            if (!self::freeMail($d, $free) &&($domain === $d || str_ends_with($domain, '.' . $d))) {
+                return $c['name'];
+            }
+        }
+        return null;
     }
 
     // The entity list from the running config: names and domains only, read-only.
@@ -71,10 +119,13 @@ class Relevance
         if (array_key_exists($addr, $learned)) {
             return $learned[$addr];
         }
+        if (($client = self::byContact($addr, $this->contacts, $this->free)) !== null) {
+            return $client;
+        }
         $domain = (string) substr((string) strrchr($addr, '@'), 1);
-        foreach ($this->entities as $name => $domains) {
+        foreach (self::freeMail($domain, $this->free) ? [] : $this->entities as $name => $domains) {
             foreach ($domains as $d) {
-                if ($d !== '' && ($domain === $d || str_ends_with($domain, '.' . $d))) {
+                if ($d !== '' && !self::freeMail($d, $this->free) && ($domain === $d || str_ends_with($domain, '.' . $d))) {
                     return (string) $name;
                 }
             }
@@ -146,6 +197,14 @@ class Relevance
             }
         }
         return $out;
+    }
+
+    // Rows no project claims and Rob has not corrected, kept for the Unsorted pile; old rows with project null too.
+    public static function unsorted(array $rows, ?string $path): array
+    {
+        $learned = $path === null ? [] : self::senders($path);
+        return array_values(array_filter($rows, fn($r) => is_array($r) && !(is_string($r['project'] ?? null) && $r['project'] !== '')
+            && !array_key_exists(strtolower((string) ($r['addr'] ?? '')), $learned)));
     }
 
     // Stores one correction. Throws InvalidArgumentException on a bad sender or name.

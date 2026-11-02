@@ -19,13 +19,15 @@ class Classifier
     private GraphStore $g;
     private string $senders;
     private ?Closure $ask;
+    private array $contacts;
 
-    // $ask: fn(string prompt): ?string, the model's raw answer; null means no model.
-    public function __construct(GraphStore $g, string $senders, ?Closure $ask)
+    // $ask: fn(string prompt): ?string, the model's raw answer; null means no model. $contacts: ClientContacts::read.
+    public function __construct(GraphStore $g, string $senders, ?Closure $ask, array $contacts = [])
     {
         $this->g = $g;
         $this->senders = $senders;
         $this->ask = $ask;
+        $this->contacts = $contacts;
     }
 
     /** $m: from, addr, subject, text. @return array{project:?string, reason:string, unsure:bool} */
@@ -35,6 +37,10 @@ class Classifier
         $learned = Relevance::senders($this->senders);
         if (array_key_exists($addr, $learned) && $learned[$addr] === null) {
             return ['project' => null, 'reason' => 'Rob marked this sender not his', 'unsure' => false];
+        }
+        // A client from _CONTACTS.md by exact address (free mail included) or own domain, before the walk.
+        if (!array_key_exists($addr, $learned) && ($client = Relevance::byContact($addr, $this->contacts)) !== null) {
+            return ['project' => $client, 'reason' => 'A client contact', 'unsure' => false];
         }
         $tie = [];
         foreach ($this->starts($addr) as [$type, $id]) {

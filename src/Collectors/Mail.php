@@ -3,6 +3,7 @@ require_once __DIR__ . '/Collector.php';
 require_once __DIR__ . '/../Mail/ImapReader.php';
 require_once __DIR__ . '/../Mail/Summarizer.php';
 require_once __DIR__ . '/../Mail/Relevance.php';
+require_once __DIR__ . '/../Mail/ClientContacts.php';
 require_once __DIR__ . '/../Graph/Classifier.php';
 
 /**
@@ -138,8 +139,9 @@ class Mail extends Collector
     private function defaultTag(): Closure
     {
         $cfg = (require __DIR__ . '/../../config/collectors.php')['mail'];
+        $contacts = ClientContacts::read($this->log);
         $c = new Classifier(new GraphStore(Db::open(dirname($this->cache) . '/dashboard.sqlite')), dirname($this->cache) . '/' . $cfg['senders'],
-            Summarizer::generate($cfg['ollama'], $cfg['model']));
+            Summarizer::generate($cfg['ollama'], $cfg['model']), $contacts);
         return fn(array $m): array => $c->tag($m);
     }
 

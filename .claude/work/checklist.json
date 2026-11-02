@@ -838,7 +838,17 @@
     "id": "131",
     "title": "Client mail shows in the cockpit",
     "brief": ".claude/work/131-client-mail/brief.md",
-    "start_sha": "f4bb3ae0b210c4b2c9faf2ad5104e36cbcde7837",
-    "passes": false
+    "start_sha": "aeebf5cafb96057edf1aadca977eeee98b147d88",
+    "passes": true,
+    "scope_ok": {
+      "at": "2026-11-02T02:48:59.034Z",
+      "start_sha": "aeebf5cafb96057edf1aadca977eeee98b147d88",
+      "mutation_evidence": true,
+      "tree": "9b21281766c62d63f43a9be96402e075bbe4935640e95560e02689982e03270d",
+      "size": "Risky"
+    },
+    "verified_at": "2026-11-02T02:51:21.636Z",
+    "tree": "9b21281766c62d63f43a9be96402e075bbe4935640e95560e02689982e03270d",
+    "gate": "full"
   }
 ]

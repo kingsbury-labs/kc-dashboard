@@ -138,3 +138,6 @@ Rob: the remaining cards collapse into 60-69 (feature-sized, about an hour of lo
 
 ## 2026-11-01 card 131 parked
 Worker (Opus) built it, MailRelevance/Graph/CockpitDay green, mutation evidence yes. Work on wip/131-client-mail (pushed). Scope check failed only on .claude/context.md, an uncommitted handoff edit from another window (main 7fa3bd8 -> 0db4a9f text); branch-protection refused git checkout of it, so not routed around. Needs: owner commits or drops that edit, then re-gate from the wip branch. Still open for review: CockpitDayTest IMAP guard now excludes ClientContacts.php (replaced by a one-SELECT/no-write check); config DB user kc_dashboard_ro and db daybook are guesses; credential file not provisioned; live capture not done.
+
+## 2026-11-01 card 131 round 3 (loop)
+- Rebuilt on _CONTACTS.md, no Daybook. Opus worker, scope ok, mutation evidence yes, sent to the gate with an audit (src/Mail/). start_sha moved to aeebf5c (context-only commits since f4bb3ae). Source scan bars Daybook/MySQL in touched files and PDO/credential paths in the contact reader only, since the dashboard's own SQLite and Gmail files use them. Live capture not taken (would overwrite data/mail-cache.json). For Rob: client folders with no email in _CONTACTS.md are listed in .claude/work/131-client-mail/result.md.

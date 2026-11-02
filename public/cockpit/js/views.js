@@ -289,11 +289,11 @@ function emailCard() {
   });
   if (m && !m.rows.length && !m.error) list.append(el('p', 'agenda-empty', 'No new mail in the last two weeks.'));
   c.append(list);
-  // Mail the graph could not place: one click on "Project..." tags the sender, and the tag becomes an edge.
+  // Mail no project claims: one click on "Project..." tags the sender, and the tag becomes an edge.
   const unsure = m?.unsure ?? [];
   if (unsure.length) {
     const pile = el('details', 'email-unsure');
-    add(pile, el('summary', '', `Unsure (${unsure.length})`));
+    add(pile, el('summary', '', `Unsorted (${unsure.length})`));
     unsure.forEach((x) => {
       const r = el('div', 'email-item');
       const body = x.link ? link('', 'email-body', x.link) : el('div', 'email-body');

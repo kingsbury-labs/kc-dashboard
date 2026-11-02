@@ -180,6 +180,16 @@ test('a correction becomes a confirmed edge that wins over the walk on the next 
     assert_same(1, count($asked), 'only the quokka sender still needs the model');
 });
 
+test('the live Classifier tags a client contact by exact address before the walk, and not mine still wins', function () {
+    [$t, , $g] = gr_world();
+    // Other Co shares the domain and comes first, so only the exact address picks Jo.
+    $c = new Classifier($g, $t . '/mail-senders.json', null, [['name' => 'Other Co', 'email' => 'someone@example.net'],
+        ['name' => "Jo's Garden", 'email' => 'jo.client@example.net']]);
+    assert_same("Jo's Garden", $c->tag(['addr' => 'Jo.Client@example.net'])['project']);
+    Relevance::correct($t . '/mail-senders.json', 'jo.client@example.net', null);
+    assert_same(null, $c->tag(['addr' => 'jo.client@example.net'])['project']);
+});
+
 test('no .env value, credential file or mail body reaches the graph or the API, and IMAP stays read-only', function () {
     [$t, $log, $g] = gr_world();
     $sent = [];
