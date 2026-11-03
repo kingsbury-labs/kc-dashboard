@@ -10,7 +10,7 @@ require_once __DIR__ . '/../Mail/Relevance.php';
  * list and Rob's corrections are re-read and replace their own edges. Sent mail is read incrementally: envelopes of
  * the last 90 days over the read-only IMAP client, only UIDs past the last one seen. Records no facts.
  * $src: 'projects' => name => folder, 'vendors' => name => domains, 'clients' => folder, 'care' => clients.json,
- * 'senders' => mail-senders.json. $wire null skips sent mail.
+ * 'senders' => mail-senders.json, 'traps' => traps.md, 'asks' => asks.md. $wire null skips sent mail.
  */
 class Graph extends Collector
 {
@@ -46,6 +46,12 @@ class Graph extends Collector
         $this->g->replace('clients', GraphReaders::clients((string) ($this->src['clients'] ?? ''), $names));
         $this->g->replace('care', GraphReaders::care((string) ($this->src['care'] ?? ''), $names));
         $this->g->replace('corrections', GraphReaders::corrections(Relevance::senders((string) ($this->src['senders'] ?? ''))));
+        // Lessons (card 134), each source replaced alone: Rob's trap and ask files, landed cards' result.md files,
+        // pending dream proposals. Read-only.
+        $this->g->replace('traps', GraphReaders::traps(GraphReaders::read((string) ($this->src['traps'] ?? '')), $projects));
+        $this->g->replace('fixes', GraphReaders::fixes(GraphReaders::cards($projects), $projects));
+        $this->g->replace('asks', GraphReaders::asks(GraphReaders::read((string) ($this->src['asks'] ?? '')), $projects));
+        $this->g->replace('dreams', GraphReaders::dreams(GraphReaders::proposals($projects), $projects));
         if ($this->wire !== null) {
             foreach (GraphReaders::sent($this->sent($now), $names) as $e) {
                 $this->g->add('sent', $e);
@@ -81,7 +87,8 @@ class Graph extends Collector
     // The sources from the running config: project folders, client records, kc-care, corrections, vendors.
     public static function sources(string $dataDir): array
     {
-        $cfg = (require __DIR__ . '/../../config/collectors.php')['mail'];
+        $all = require __DIR__ . '/../../config/collectors.php';
+        $cfg = $all['mail'];
         $projects = require __DIR__ . '/../../config/projects.php';
         $clients = require __DIR__ . '/../../config/clients.php';
         $p = [];
@@ -89,6 +96,7 @@ class Graph extends Collector
             $p[basename($dir)] = $dir;
         }
         return ['projects' => $p, 'vendors' => (array) ($cfg['vendors'] ?? []), 'clients' => (string) $clients['dir'],
-            'care' => (string) ($cfg['care_clients'] ?? ''), 'senders' => $dataDir . '/' . $cfg['senders']];
+            'care' => (string) ($cfg['care_clients'] ?? ''), 'senders' => $dataDir . '/' . $cfg['senders'],
+            'traps' => (string) ($all['lessons']['traps'] ?? ''), 'asks' => (string) ($all['lessons']['asks'] ?? '')];
     }
 }

@@ -20,6 +20,7 @@ const TASKS_EXPECTED = [
 // Jobs run on demand, never scheduled; left out of the coverage comparison.
 const TASKS_ON_DEMAND = [
     'pm-state.php' => 'called by the voice PM check, plan 130 card 10',
+    'brief-context.php' => 'called by the brief skill, card 134',
 ];
 
 function tasks_src(): string

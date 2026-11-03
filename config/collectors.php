@@ -35,6 +35,8 @@ return [
             'Google Workspace' => ['workspace-noreply.google.com'],
         ]],
     'followups' => 'followups.json',
+    // The knowledge graph's lesson sources, read only: Rob's trap list and open asks.
+    'lessons' => ['traps' => 'C:\\Users\\roban\\.claude\\pm\\traps.md', 'asks' => 'C:\\Users\\roban\\.claude\\pm\\asks.md'],
     // kc-care, read only: its client list, UptimeRobot's read key by path (value read at run time, added to Log
     // redaction) and the open issues in rob-kingsbury/kc-care through gh. Cache is a file name under data/.
     'care' => ['clients' => 'D:\\Dev\\htdocs\\kc-care\\clients.json',

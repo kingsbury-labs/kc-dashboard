@@ -21,7 +21,7 @@ final class GraphReaders
         return array_values(array_unique(array_map(fn($h) => GraphStore::norm('domain', $h), $m[1])));
     }
 
-    private static function read(string $path): string
+    public static function read(string $path): string
     {
         return is_file($path) && !is_link($path) ? (string) @file_get_contents($path, false, null, 0, self::MAX_BYTES) : '';
     }
@@ -190,6 +190,276 @@ final class GraphReaders
                     $edges[] = ['person', (string) $addr, (string) $addr, 'emailed_about', 'project', $p, $p];
                 }
                 $edges[] = ['topic', $subject, mb_substr($subject, 0, 120), 'topic_of', 'project', $p, $p];
+            }
+        }
+        return $edges;
+    }
+
+    /*
+     * Lessons: traps, fixes, asks and dream proposals (card 134). Each becomes one node (type trap, fix, ask, dream)
+     * with a label of at most 120 characters and these links, all by fixed rules and none by a model or a fuzzy match:
+     * concerns -> project: the text names the project's folder (a leading _ ignored) or its project.md name as whole
+     *   words, or a path under its folder; a lesson found inside a project's own folder always concerns that project.
+     * names -> file: the text names a path that is a file in a project it concerns, key "project:path". With no
+     *   project named, a path with a slash that is a file in exactly one project links that file and that project.
+     * caused_by -> cause: a trap's section heading.
+     * Only the path is stored, never a file's content; .credentials, .env, token, secret and settings paths are not.
+     */
+    private const DENY = '~(^|/)(\.credentials|\.env[^/]*|[^/]*(token|secret|credential|settings)[^/]*)(/|$)~i';
+
+    // name => [dir, pattern] for each project: its folder name and its project.md name, as whole words.
+    public static function scope(array $projects): array
+    {
+        $out = [];
+        foreach ($projects as $name => $dir) {
+            $name = (string) $name;
+            $words = [];
+            if (strlen(trim($name, '_')) >= 3) {
+                $words[] = '_?' . preg_quote(trim($name, '_'), '/');
+            }
+            $md = self::read(rtrim((string) $dir, '\\/') . '/.claude/project.md');
+            if (preg_match('/\A---\R(.*?)\R---/s', $md, $f) && preg_match('/^name:\s*["\']?(.+?)["\']?\s*$/m', $f[1], $n) && strlen(trim($n[1])) >= 3) {
+                $words[] = str_replace(' ', '\s+', preg_quote(trim($n[1]), '/'));
+            }
+            $out[$name] = ['dir' => rtrim((string) $dir, '\\/'),
+                'pattern' => $words ? '/(?<![\w-])(?:' . implode('|', $words) . ')(?![\w-])/i' : '/(?!)/'];
+        }
+        return $out;
+    }
+
+    // Candidate paths in a text: backticks, quotes and brackets split it; a trailing :line, dot or colon is dropped.
+    private static function paths(string $text): array
+    {
+        preg_match_all('~[^\s`\'"()<>\[\]{},;|*=]+~', $text, $m);
+        $out = [];
+        foreach (array_unique($m[0]) as $t) {
+            $t = str_replace('\\', '/', $t);
+            $t = rtrim((string) preg_replace('/:\d+(?:-\d+)?$/', '', rtrim($t, '.:')), '.:');
+            if (str_contains($t, '://') || str_starts_with($t, '/') || str_starts_with($t, '~') || !preg_match('~[\w-]\.[A-Za-z0-9]{1,8}$~', $t)) {
+                continue;
+            }
+            $out[] = preg_replace('~^(\./)+~', '', $t);
+            if (count($out) >= 80) {
+                break;
+            }
+        }
+        return $out;
+    }
+
+    private static function plain(string $path): bool
+    {
+        return $path !== '' && !str_starts_with($path, '/') && !preg_match('~(^|/)\.\.(/|$)~', $path) && !preg_match(self::DENY, $path);
+    }
+
+    /** @return array{projects:string[],files:array<int,array{0:string,1:string}>} */
+    public static function linked(string $text, array $scope, ?string $owner): array
+    {
+        $named = [];
+        if ($owner !== null && isset($scope[$owner])) {
+            $named[$owner] = true;
+        }
+        foreach ($scope as $name => $s) {
+            if (preg_match($s['pattern'], $text)) {
+                $named[$name] = true;
+            }
+        }
+        $files = [];
+        $relative = [];
+        foreach (self::paths($text) as $p) {
+            if (preg_match('~^[A-Za-z]:/~', $p)) {
+                foreach ($scope as $name => $s) {
+                    $base = strtolower(str_replace('\\', '/', $s['dir'])) . '/';
+                    if (str_starts_with(strtolower($p), $base)) {
+                        $named[$name] = true;
+                        $rel = substr($p, strlen($base));
+                        if (self::plain($rel) && is_file($s['dir'] . '/' . $rel)) {
+                            $files[$name . ':' . $rel] = [$name, $rel];
+                        }
+                    }
+                }
+            } elseif (self::plain($p)) {
+                $relative[] = $p;
+            }
+        }
+        foreach ($relative as $p) {
+            foreach (array_keys($named) as $name) {
+                if (is_file($scope[$name]['dir'] . '/' . $p)) {
+                    $files[$name . ':' . $p] = [$name, $p];
+                }
+            }
+        }
+        if (!$named) {
+            foreach ($relative as $p) {
+                $hits = [];
+                if (str_contains($p, '/')) {
+                    foreach ($scope as $name => $s) {
+                        if (is_file($s['dir'] . '/' . $p)) {
+                            $hits[] = $name;
+                        }
+                    }
+                }
+                if (count($hits) === 1) {
+                    $named[$hits[0]] = true;
+                    $files[$hits[0] . ':' . $p] = [$hits[0], $p];
+                }
+            }
+        }
+        ksort($files);
+        $names = array_map('strval', array_keys($named));
+        sort($names);
+        return ['projects' => $names, 'files' => array_values($files)];
+    }
+
+    // One lesson's edges: to each project and file its text names, and to its cause.
+    private static function lesson(string $type, string $key, string $label, string $text, array $scope, ?string $owner, ?string $cause = null): array
+    {
+        $label = mb_substr($label, 0, 120);
+        $found = self::linked($text, $scope, $owner);
+        $edges = [];
+        foreach ($found['projects'] as $p) {
+            $edges[] = [$type, $key, $label, 'concerns', 'project', $p, $p];
+        }
+        foreach ($found['files'] as [$p, $rel]) {
+            $edges[] = [$type, $key, $label, 'names', 'file', $p . ':' . $rel, $p . '/' . $rel];
+        }
+        if ($cause !== null && $cause !== '') {
+            $edges[] = [$type, $key, $label, 'caused_by', 'cause', $cause, $cause];
+        }
+        return $edges;
+    }
+
+    private static function squash(string $s): string
+    {
+        return trim((string) preg_replace('/\s+/', ' ', str_replace('**', '', $s)));
+    }
+
+    private static function slug(string $s): string
+    {
+        return trim((string) preg_replace('/[^a-z0-9]+/', '-', strtolower($s)), '-');
+    }
+
+    // traps.md: "## Section" is the cause, each "- " item (with its indented lines) is one trap.
+    public static function traps(string $text, array $projects): array
+    {
+        $scope = self::scope($projects);
+        $edges = [];
+        $cause = '';
+        $item = null;
+        $flush = function () use (&$item, &$cause, &$edges, $scope): void {
+            if ($item !== null) {
+                $body = self::squash(implode(' ', $item));
+                $title = preg_match('/^\*\*(.+?)\*\*/', $item[0], $t) ? $t[1] : $body;
+                $key = self::slug($cause) . '/' . substr(self::slug($title), 0, 40) . '/' . substr(sha1($body), 0, 8);
+                $edges = array_merge($edges, self::lesson('trap', $key, $body, $body, $scope, null, $cause));
+            }
+            $item = null;
+        };
+        foreach (preg_split('/\R/', $text) as $line) {
+            if (preg_match('/^(#{1,6})\s+(.+?)\s*$/', $line, $h)) {
+                $flush();
+                $cause = $h[1] === '##' ? self::squash($h[2]) : $cause;
+            } elseif (str_starts_with($line, '- ')) {
+                $flush();
+                $item = [substr($line, 2)];
+            } elseif (trim($line) === '') {
+                continue;
+            } elseif ($item !== null && preg_match('/^\s/', $line)) {
+                $item[] = trim($line);
+            } else {
+                $flush();
+            }
+        }
+        $flush();
+        return $edges;
+    }
+
+    // asks.md: one "- date, project: the ask" per line. The project word is the folder name, or the client slug
+    // that begins exactly one project name (the clients reader's rule); "all" and "hq" name none.
+    public static function asks(string $text, array $projects): array
+    {
+        $scope = self::scope($projects);
+        $edges = [];
+        foreach (preg_split('/\R/', $text) as $line) {
+            if (!preg_match('/^- (\d{4}-\d{2}-\d{2}),\s*([^:]*?):\s*\S/', $line, $m)) {
+                continue;
+            }
+            $word = strtolower(trim($m[2]));
+            $owner = null;
+            $starts = [];
+            foreach (array_keys($scope) as $name) {
+                $bare = strtolower(trim((string) $name, '_'));
+                if ($bare === $word) {
+                    $owner = (string) $name;
+                    break;
+                }
+                if ($word !== '' && str_starts_with($bare, $word . '-')) {
+                    $starts[] = (string) $name;
+                }
+            }
+            $owner ??= count($starts) === 1 ? $starts[0] : null;
+            $body = self::squash(substr($line, 2));
+            $edges = array_merge($edges, self::lesson('ask', $m[1] . '/' . substr(self::slug($body), 0, 50) . '/' . substr(sha1($body), 0, 8), $body, $body, $scope, $owner));
+        }
+        return $edges;
+    }
+
+    /** Landed cards: [project, card folder, result.md text] for each .claude/work/<card>/result.md. */
+    public static function cards(array $projects): array
+    {
+        $out = [];
+        foreach ($projects as $name => $dir) {
+            foreach (glob(rtrim((string) $dir, '\\/') . '/.claude/work/*/result.md') ?: [] as $f) {
+                $text = self::read($f);
+                if ($text !== '') {
+                    $out[] = [(string) $name, basename(dirname($f)), $text];
+                }
+            }
+        }
+        return $out;
+    }
+
+    // Each result.md is one fix, labelled "project/card: first words"; it always concerns the project it sits in.
+    public static function fixes(array $cards, array $projects): array
+    {
+        $scope = self::scope($projects);
+        $edges = [];
+        foreach ($cards as [$project, $card, $text]) {
+            $body = self::squash((string) preg_replace('/\A\s*#[^\n]*\n/', '', $text));
+            if ($body === '') {
+                continue;
+            }
+            $edges = array_merge($edges, self::lesson('fix', $project . '/' . $card . '/' . substr(sha1($body), 0, 8),
+                $project . '/' . $card . ': ' . $body, $text, $scope, $project));
+        }
+        return $edges;
+    }
+
+    /** Pending dream proposals: [project, file name, text] for each .claude/dream/pending/proposal-*.md; logs/ is never read. */
+    public static function proposals(array $projects): array
+    {
+        $out = [];
+        foreach ($projects as $name => $dir) {
+            foreach (glob(rtrim((string) $dir, '\\/') . '/.claude/dream/pending/proposal-*.md') ?: [] as $f) {
+                $text = self::read($f);
+                if ($text !== '') {
+                    $out[] = [(string) $name, basename($f), $text];
+                }
+            }
+        }
+        return $out;
+    }
+
+    // One node per "### item-id" section, labelled "project: item-id".
+    public static function dreams(array $proposals, array $projects): array
+    {
+        $scope = self::scope($projects);
+        $edges = [];
+        foreach ($proposals as [$project, $file, $text]) {
+            $parts = preg_split('/^###\s+(\S+)\s*$/m', $text, -1, PREG_SPLIT_DELIM_CAPTURE);
+            for ($i = 1; $i + 1 < count($parts); $i += 2) {
+                $body = (string) preg_replace('/^##\s.*\z/ms', '', $parts[$i + 1]);
+                $edges = array_merge($edges, self::lesson('dream', $project . '/' . $file . '/' . $parts[$i],
+                    $project . ': ' . $parts[$i], $body, $scope, $project));
             }
         }
         return $edges;

@@ -1,0 +1,3 @@
+- Read brief and sources; design settled (edge types concerns/names/caused_by; node types trap/fix/ask/dream/file/cause).
+- Written, uncommitted: src/Graph/Readers.php (traps/asks/cards/fixes/proposals/dreams/linked/scope), src/Graph/GraphStore.php (lessons), src/Collectors/Graph.php, config/collectors.php, bin/brief-context.php, tests/TasksScriptTest.php, tests/fixtures/graph/lessons/*, tests/GraphTest.php (9 new tests appended).
+- Next: run Graph filter, fix failures, mutation check (break file link), result.md.

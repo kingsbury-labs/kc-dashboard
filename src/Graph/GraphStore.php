@@ -186,6 +186,54 @@ class GraphStore
         return $out;
     }
 
+    /**
+     * Lessons (traps, fixes, dream items) linked to a project or to any of its files, file matches first, then
+     * project-only ones; within each, kinds in the order given, then label. Each is ['kind', 'label', 'match'].
+     */
+    public function lessons(string $project, array $files, array $kinds = ['trap', 'fix', 'dream']): array
+    {
+        $key = null;
+        foreach ([$project, '_' . $project] as $try) {
+            $id = $this->find('project', $try);
+            if ($id !== null) {
+                $key = self::norm('project', $try);
+                break;
+            }
+        }
+        if ($key === null || !$kinds) {
+            return [];
+        }
+        $in = fn(array $a): string => implode(',', array_fill(0, count($a), '?'));
+        $order = 'CASE n.type ' . implode(' ', array_map(fn($i) => "WHEN ? THEN $i", array_keys($kinds))) . ' END, n.label, n.key';
+        $out = [];
+        $seen = [];
+        $fileIds = [];
+        foreach ($files as $f) {
+            $f = (string) preg_replace('~^(\./)+~', '', str_replace('\\', '/', trim((string) $f)));
+            $fid = $f === '' ? null : $this->find('file', $key . ':' . $f);
+            if ($fid !== null) {
+                $fileIds[] = $fid;
+            }
+        }
+        $runs = [];
+        if ($fileIds) {
+            $runs[] = ['file', 'names', $fileIds];
+        }
+        $runs[] = ['project', 'concerns', [(int) $this->find('project', $key)]];
+        foreach ($runs as [$match, $type, $ids]) {
+            $q = $this->pdo->prepare('SELECT DISTINCT n.id, n.type, n.label, n.key FROM graph_edge e JOIN graph_node n ON n.id = e.src
+                WHERE e.type = ? AND e.dst IN (' . $in($ids) . ') AND n.type IN (' . $in($kinds) . ') ORDER BY ' . $order);
+            $q->execute(array_merge([$type], $ids, $kinds, $kinds));
+            foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $r) {
+                if (!isset($seen[$r['id']])) {
+                    $seen[$r['id']] = true;
+                    $out[] = ['kind' => $r['type'], 'label' => $r['label'], 'match' => $match];
+                }
+            }
+        }
+        return $out;
+    }
+
     /** @return array<int,string> project node id => label */
     public function projects(): array
     {
